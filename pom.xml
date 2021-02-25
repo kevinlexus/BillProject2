@@ -11,6 +11,13 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
+    <modules>
+        <module>BillCommon</module>
+        <module>BillDirect</module>
+        <module>DWC</module>
+        <module>GisExchanger</module>
+    </modules>
+
     <groupId>com.dic.bill</groupId>
     <artifactId>billdirect-parent</artifactId>
     <packaging>pom</packaging>
