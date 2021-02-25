@@ -1,5 +1,6 @@
 package com.dic.bill.mm;
 
+import com.dic.bill.dto.KartLsk;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.excp.DifferentKlskBySingleAdress;
 import com.ric.cmn.excp.EmptyId;
@@ -45,4 +46,6 @@ public interface KartMng {
                     String fam, String im, String ot) throws WrongParam;
 
     void checkStateSch(Kart kart, Date curDt, int psch);
+
+    List<KartLsk> findByHouseId(Integer id);
 }

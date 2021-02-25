@@ -16,6 +16,7 @@ import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileLoad;
 import com.ric.cmn.excp.WrongParam;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -319,9 +320,10 @@ public class RegistryMngImpl implements RegistryMng {
      * @return - кол-во успешно обработанных записей
      */
     @Override
+    @CacheEvict(value = {"KartMngImpl.findByHouseId"}, allEntries = true)
     @Transactional(rollbackFor = Exception.class)
     public int loadFileKartExt(Org org, String fileName) throws FileNotFoundException, WrongParam, ErrorWhileLoad {
-        log.info("Начало загрузки файла внешних лиц.счетов fileName={}", fileName);
+        log.info("Начало загрузки файла внешних лиц.счетов fileName={} v 1.0", fileName);
         String cityName;
         switch (orgDAO.getByOrgTp("Город").getCd()) {
             case "г.Полысаево":
@@ -508,7 +510,12 @@ public class RegistryMngImpl implements RegistryMng {
                 kwNumOpt.ifPresent(t -> kartExtInfo.kw = t);
             } else if (i == 4) {
                 // ФИО
-                kartExtInfo.fio = elem.substring(0, 55);
+                int fioLength = elem.length();
+                if (fioLength > 55) {
+                    kartExtInfo.fio = elem.substring(0, 55);
+                } else {
+                    kartExtInfo.fio = elem;
+                }
             } else if (i == 5) {
                 // город
                 Optional<String> city = getAddressElemByIdx(elem, ",", 0);
@@ -1057,6 +1064,7 @@ public class RegistryMngImpl implements RegistryMng {
                     } else {
                         comm = "кол-во символов превысило 7 в номере помещения";
                         status = EXT_KW_EXCEED_CHAR_NUM;
+                        kartExtInfo.kw = kartExtInfo.kw.substring(0, kartExtInfo.kw.length() - 1);
                     }
                 } else {
                     // нет помещения, частный дом?
@@ -1085,7 +1093,10 @@ public class RegistryMngImpl implements RegistryMng {
                     } else {
                         // внешний лиц.счет еще не создан
                         // найти фин.лиц.счет по адресу
-                        lstKart = kartDAO.findByHouseIdKw(kartExtInfo.house.getId(), strKw);
+                        //lstKart = kartDAO.findByHouseIdKw(kartExtInfo.house.getId(), strKw);
+                        lstKart = kartMng.findByHouseId(kartExtInfo.house.getId());
+                        String finalStrKw = strKw;
+                        lstKart.removeIf(t -> !t.getNum().equals(finalStrKw));
                         if (lstKart.size() == 0) {
                             comm = "Будет создано новое помещение и внешний лиц.счет";
                             status = EXT_LSK_PREMISE_NOT_EXISTS;

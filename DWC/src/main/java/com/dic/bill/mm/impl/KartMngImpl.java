@@ -1,6 +1,7 @@
 package com.dic.bill.mm.impl;
 
 import com.dic.bill.dao.*;
+import com.dic.bill.dto.KartLsk;
 import com.dic.bill.mm.KartMng;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
@@ -510,5 +511,11 @@ public class KartMngImpl implements KartMng {
             em.flush(); // flush - потому что Hibernate вызывает порядок операций: insert, затем delete, см.https://vladmihalcea.com/hibernate-facts-knowing-flush-operations-order-matters/
         }
         kart.getStateSch().addAll(addLst);
+    }
+
+    @Override
+    @Cacheable(cacheNames="KartMngImpl.findByHouseId", key="{#houseId}" )
+    public List<KartLsk> findByHouseId(Integer houseId) {
+        return kartDao.findByHouseId(houseId);
     }
 }

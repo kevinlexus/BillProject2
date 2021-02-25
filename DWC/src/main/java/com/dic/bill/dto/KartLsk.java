@@ -8,4 +8,5 @@ public interface KartLsk {
 
     Integer getPsch();
 
+    String getNum();
 }

@@ -39,12 +39,16 @@ public interface KartDAO extends JpaRepository<Kart, String> {
                                           @Param("houseId") Integer houseId, @Param("kw") String kw);
 
     //@EntityGraph(attributePaths = {"kartDetail", "kartPr"})
-    @Query("select t.lsk as lsk, t.koKw.id as klskId, t.psch as psch from Kart t " +
-            "where t.house.id = :houseId and t.num=:kw")
-    List<KartLsk> findByHouseIdKw(@Param("houseId") Integer houseId, @Param("kw") String kw);
+//    @Query("select t.lsk as lsk, t.koKw.id as klskId, t.psch as psch, t.num as num from Kart t " +
+//            "where t.house.id = :houseId and t.num=:kw")
+//    List<KartLsk> findByHouseIdKw(@Param("houseId") Integer houseId, @Param("kw") String kw);
+
+    @Query("select t.lsk as lsk, t.koKw.id as klskId, t.psch as psch, t.num as num from Kart t " +
+            "where t.house.id = :houseId")
+    List<KartLsk> findByHouseId(@Param("houseId") Integer houseId);
 
     @EntityGraph(attributePaths = {"kartDetail"})
-    @Query("select t from Kart t where t.lsk='00000007'")
+    @Query("select t from Kart t")
     List<Kart> findAllForOrdering();
 
     @Query("select distinct t from Kart t join t.nabor n where t.tp.cd=:tpCd and n.usl.id=:uslId " +
