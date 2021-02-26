@@ -60,6 +60,7 @@ public class RegistryMngImpl implements RegistryMng {
     private final int EXT_LSK_EXIST = 11; // лиц.счет существует
     private final int EXT_NON_LIVING_NOT_USE = 12; // не загружать нежилые
     private final int EXT_KW_EXCEED_CHAR_NUM = 13; // кол-во символов в номере квартиры превысило допустимое число
+    private final int EXT_EMPTY_TURNOVER = 14; // отсутствует движение по лиц.счету
 
     @PersistenceContext
     private final EntityManager em;
@@ -323,7 +324,7 @@ public class RegistryMngImpl implements RegistryMng {
     @CacheEvict(value = {"KartMngImpl.findByHouseId"}, allEntries = true)
     @Transactional(rollbackFor = Exception.class)
     public int loadFileKartExt(Org org, String fileName) throws FileNotFoundException, WrongParam, ErrorWhileLoad {
-        log.info("Начало загрузки файла внешних лиц.счетов fileName={} v 1.0", fileName);
+        log.info("Начало загрузки файла внешних лиц.счетов fileName={} v 1.3", fileName);
         String cityName;
         switch (orgDAO.getByOrgTp("Город").getCd()) {
             case "г.Полысаево":
@@ -842,7 +843,7 @@ public class RegistryMngImpl implements RegistryMng {
                             // проверить наличие услуги в наборах
                             checkNaborUsl(org, t.getKart());
                         });
-                        loadKartExt.setApproveResult("Внешний лиц.сч. открыт");
+                        loadKartExt.setApproveResult("Внешний лиц.сч. открыт заново");
                         break;
 
                     }
@@ -1038,7 +1039,6 @@ public class RegistryMngImpl implements RegistryMng {
         String comm = "";
         int status = EXT_LSK_NOT_USE;
 
-        String rSchet = kartExtInfo.rSchet;
         String lsk = null;
         if (setExt.contains(kartExtInfo.extLsk)) {
             comm = "В файле дублируется внешний лиц.счет";
@@ -1054,17 +1054,16 @@ public class RegistryMngImpl implements RegistryMng {
                 String strKw = null;
                 if (kartExtInfo.kw != null && kartExtInfo.kw.length() > 0) {
                     // помещение
-                    if (kartExtInfo.kw.length() <= 7) {
-                        if (kartExtInfo.kw.contains("неж")) {
-                            comm = "нежилые лиц счета не будут загружены";
-                            status = EXT_NON_LIVING_NOT_USE;
-                        } else {
-                            strKw = Utl.lpad(kartExtInfo.kw, "0", 7).toUpperCase();
-                        }
+                    if (kartExtInfo.address.contains("неж.")) {
+                        comm = "нежилые лиц счета не будут загружены";
+                        status = EXT_NON_LIVING_NOT_USE;
+                        kartExtInfo.kw = null;
+                    } else if (kartExtInfo.kw.length() <= 7) {
+                        strKw = Utl.lpad(kartExtInfo.kw, "0", 7).toUpperCase();
                     } else {
                         comm = "кол-во символов превысило 7 в номере помещения";
                         status = EXT_KW_EXCEED_CHAR_NUM;
-                        kartExtInfo.kw = kartExtInfo.kw.substring(0, kartExtInfo.kw.length() - 1);
+                        kartExtInfo.kw = null;
                     }
                 } else {
                     // нет помещения, частный дом?
@@ -1076,8 +1075,6 @@ public class RegistryMngImpl implements RegistryMng {
                     LoadedKartExt loadedKartExt = mapLoadedKart.get(kartExtInfo.extLsk);
 
                     if (mapLoadedKart.containsKey(kartExtInfo.extLsk)) {
-                        //KartExt kartExt = kartExtOpt.get();
-                        //if (kartExt.getKart() != null) {
                         if (loadedKartExt.getV() == 1) {
                             if (Utl.in(loadedKartExt.getPsch(), 8, 9)) {
                                 comm = "Внешний лиц.счет уже создан, но закрыт в Kart";
@@ -1092,35 +1089,43 @@ public class RegistryMngImpl implements RegistryMng {
                         }
                     } else {
                         // внешний лиц.счет еще не создан
-                        // найти фин.лиц.счет по адресу
-                        //lstKart = kartDAO.findByHouseIdKw(kartExtInfo.house.getId(), strKw);
-                        lstKart = kartMng.findByHouseId(kartExtInfo.house.getId());
-                        String finalStrKw = strKw;
-                        lstKart.removeIf(t -> !t.getNum().equals(finalStrKw));
-                        if (lstKart.size() == 0) {
-                            comm = "Будет создано новое помещение и внешний лиц.счет";
-                            status = EXT_LSK_PREMISE_NOT_EXISTS;
-                        } else if (lstKart.size() == 1) {
-                            lsk = lstKart.get(0).getLsk();
-                            comm = "Будет создан и привязан внешний лиц.счет";
-                            status = EXT_LSK_NOT_EXISTS;
+                        if (kartExtInfo.insal.compareTo(BigDecimal.ZERO) == 0 &&
+                                kartExtInfo.chrg.compareTo(BigDecimal.ZERO) == 0 &&
+                                kartExtInfo.payment.compareTo(BigDecimal.ZERO) == 0 &&
+                                kartExtInfo.summa.compareTo(BigDecimal.ZERO) == 0
+                        ) {
+                            comm = "Отсутствует движение по лиц.счету";
+                            status = EXT_EMPTY_TURNOVER;
                         } else {
-                            long countKoKw = lstKart.stream().filter(t -> !Utl.in(t.getPsch(), 8, 9))
-                                    .map(KartLsk::getKlskId).distinct().count();
-                            if (countKoKw > 1) {
-                                comm = "Найдено более одного открытого лиц.счета, необходимо указать лиц.счет привязки";
-                                status = FOUND_MANY_ACTUAL_KO_KW;
-                            } else if (countKoKw == 0) {
-                                comm = "Не найдено ни одного открытого лиц.счета, необходимо указать лиц.счет привязки";
-                                status = NOT_FOUND_ACTUAL_KO_KW;
+                            // найти фин.лиц.счет по адресу
+                            lstKart = kartMng.findByHouseId(kartExtInfo.house.getId());
+                            String finalStrKw = strKw;
+                            lstKart.removeIf(t -> !t.getNum().equals(finalStrKw));
+                            if (lstKart.size() == 0) {
+                                comm = "Будет создано новое помещение и внешний лиц.счет";
+                                status = EXT_LSK_PREMISE_NOT_EXISTS;
+                            } else if (lstKart.size() == 1) {
+                                lsk = lstKart.get(0).getLsk();
+                                comm = "Будет создан и привязан внешний лиц.счет";
+                                status = EXT_LSK_NOT_EXISTS;
                             } else {
-                                // привязать к любому лиц.счету, в последующем возьмется привязка по фин.лиц.
-                                for (KartLsk k : lstKart) {
-                                    if (!Utl.in(k.getPsch(), 8, 9)) {
-                                        comm = "Будет создан и привязан внешний лиц.счет";
-                                        status = EXT_LSK_NOT_EXISTS;
-                                        lsk = k.getLsk();
-                                        break;
+                                long countKoKw = lstKart.stream().filter(t -> !Utl.in(t.getPsch(), 8, 9))
+                                        .map(KartLsk::getKlskId).distinct().count();
+                                if (countKoKw > 1) {
+                                    comm = "Найдено более одного открытого лиц.счета, необходимо указать лиц.счет привязки";
+                                    status = FOUND_MANY_ACTUAL_KO_KW;
+                                } else if (countKoKw == 0) {
+                                    comm = "Не найдено ни одного открытого лиц.счета, необходимо указать лиц.счет привязки";
+                                    status = NOT_FOUND_ACTUAL_KO_KW;
+                                } else {
+                                    // привязать к любому лиц.счету, в последующем возьмется привязка по фин.лиц.
+                                    for (KartLsk k : lstKart) {
+                                        if (!Utl.in(k.getPsch(), 8, 9)) {
+                                            comm = "Будет создан и привязан внешний лиц.счет";
+                                            status = EXT_LSK_NOT_EXISTS;
+                                            lsk = k.getLsk();
+                                            break;
+                                        }
                                     }
                                 }
                             }

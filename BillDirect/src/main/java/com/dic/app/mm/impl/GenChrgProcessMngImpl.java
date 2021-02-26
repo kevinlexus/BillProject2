@@ -508,10 +508,9 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                                 .filter(t -> t.usl.equals(nabor.getUsl().getMeterUslVol()) && t.dt.equals(curDt))
                                 .findFirst().orElse(null);
                         if (partVolMeter != null) {
-                            tempVol = partVolMeter.vol.multiply(calcStore.getPartDayMonth());
+                            //  в доле на 1 день - по счетчику - весь объем по льготной цене
+                            dayVol = partVolMeter.vol;
                         }
-                        //  в доле на 1 день - по счетчику - весь объем по льготной цене
-                        dayVol = tempVol;
                     } else {
                         if (kartArea.compareTo(BigDecimal.ZERO) != 0) {
                             if (distTp.equals(1)) {
