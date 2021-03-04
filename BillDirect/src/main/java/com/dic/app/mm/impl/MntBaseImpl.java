@@ -37,7 +37,7 @@ public class MntBaseImpl implements MntBase {
 	private final ApplicationContext ctx;
 	// текущий период
 	private Integer curPeriod;
-	// период -1 от текущего
+	// период -2 от текущего
 	private Integer backPeriod;
 	// анализировать все периоды?
 	private boolean isAllPeriods;

@@ -585,16 +585,13 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                             coldWaterVol = coldWaterVol.add(t.getVol().add(t.getVolOverSoc()));
                             isColdMeterExist = t.isMeter();
                             ttt=ttt.add(t.getVol().add(t.getVolOverSoc()));
-                            log.info("usl={}, vol={}", t.getUsl().getId(), t.getVol().add(t.getVolOverSoc()));
                         } else if (t.getUsl().getFkCalcTp().equals(56)) {
                             // г.в.
                             hotWaterVol = hotWaterVol.add(t.getVol().add(t.getVolOverSoc()));
                             isHotMeterExist = t.isMeter();
                             ttt=ttt.add(t.getVol().add(t.getVolOverSoc()));
-                            log.info("usl={}, vol={}", t.getUsl().getId(), t.getVol().add(t.getVolOverSoc()));
                         }
                     }
-                    log.info("ttt={}", ttt);
 
                     BigDecimal amountVol = coldWaterVol.add(hotWaterVol);
                     // получить соцнорму

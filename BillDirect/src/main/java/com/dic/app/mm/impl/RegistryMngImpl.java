@@ -767,8 +767,8 @@ public class RegistryMngImpl implements RegistryMng {
                             kartMng.checkStateSch(t.getKart(), configApp.getCurDt1(), 0);
                             // проверить наличие услуги в наборах
                             checkNaborUsl(org, t.getKart());
+                            loadKartExt.setApproveResult("Движение перенесено");
                         });
-                        loadKartExt.setApproveResult("Движение перенесено");
                         break;
                     }
                     case EXT_LSK_PREMISE_NOT_EXISTS: {
@@ -850,7 +850,7 @@ public class RegistryMngImpl implements RegistryMng {
                     case FOUND_MANY_ACTUAL_KO_KW:
                     case NOT_FOUND_ACTUAL_KO_KW:
                     case EXT_LSK_BIND_BY_KO_KW: {
-                        if (loadKartExt.getKart() == null) {
+                        if (loadKartExt.getLsk() == null) {
                             loadKartExt.setApproveResult("Ошибка! Пользователю необходимо указать лиц.счет привязки!");
                         } else {
                             Kart kart = kartMng.createKart(loadKartExt.getLsk(), 0,
@@ -912,8 +912,13 @@ public class RegistryMngImpl implements RegistryMng {
         kartExtDAO.save(kartExt);
     }
 
-    // создать внешний лиц.счет
-    private void createExtKartExtended(Org uk, LoadKartExt loadKartExt, Kart kart) throws WrongParam {
+    /**
+     * Cоздать внешний лиц.счет
+     * @param uk          УК
+     * @param loadKartExt временный вн.лс., для загрузки
+     * @param kart        лиц.сч.
+     */
+    private void createExtKartExtended(Org uk, LoadKartExt loadKartExt, Kart kart) {
         KartExt kartExt = KartExt.KartExtBuilder.aKartExt()
                 .withExtLsk(loadKartExt.getExtLsk())
                 .withKart(kart)

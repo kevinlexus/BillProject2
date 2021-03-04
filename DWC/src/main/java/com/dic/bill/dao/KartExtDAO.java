@@ -4,9 +4,11 @@ import com.dic.bill.dto.LoadedKartExt;
 import com.dic.bill.model.scott.KartExt;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import javax.persistence.QueryHint;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +20,7 @@ import java.util.Optional;
 @Repository
 public interface KartExtDAO extends JpaRepository<KartExt, Integer> {
 
+    @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
     Optional<KartExt> findByExtLsk(String extLsk);
 
 
