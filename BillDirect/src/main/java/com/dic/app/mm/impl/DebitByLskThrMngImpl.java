@@ -2,10 +2,7 @@ package com.dic.app.mm.impl;
 
 import com.dic.app.mm.DebitByLskThrMng;
 import com.dic.app.mm.GenPenMng;
-import com.dic.bill.dao.ApenyaDAO;
-import com.dic.bill.dao.KwtpMgDAO;
-import com.dic.bill.dao.PenCorrDAO;
-import com.dic.bill.dao.PenCurDAO;
+import com.dic.bill.dao.*;
 import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.CalcStoreLocal;
 import com.dic.bill.dto.PenCurRec;
@@ -47,16 +44,18 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
     private EntityManager em;
     private final GenPenMng genPenMng;
     private final PenCurDAO penCurDAO;
+    private final PenyaDAO penDAO;
     private final ApenyaDAO apenyaDAO;
     private final PenCorrDAO penCorrDAO;
     private final KwtpMgDAO kwtpMgDAO;
 
 
     public DebitByLskThrMngImpl(EntityManager em, GenPenMng genPenMng, PenCurDAO penCurDAO,
-                                ApenyaDAO apenyaDAO, PenCorrDAO penCorrDAO, KwtpMgDAO kwtpMgDAO) {
+                                PenyaDAO penDAO, ApenyaDAO apenyaDAO, PenCorrDAO penCorrDAO, KwtpMgDAO kwtpMgDAO) {
         this.em = em;
         this.genPenMng = genPenMng;
         this.penCurDAO = penCurDAO;
+        this.penDAO = penDAO;
         this.apenyaDAO = apenyaDAO;
         this.penCorrDAO = penCorrDAO;
         this.kwtpMgDAO = kwtpMgDAO;
@@ -387,6 +386,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         lstPenCurRec.forEach(t -> mapPenResult.merge(t.getMg(), t.getPen(), BigDecimal::add));
 
         // сохранить в C_PENYA
+        penDAO.deleteByLsk(kart.getLsk());
         mapPenResult.forEach((k, v) -> {
             Penya penya = new Penya();
             penya.setKart(kart);

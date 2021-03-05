@@ -56,7 +56,7 @@ public class TestGenPenProcessMng {
     private EntityManager em;
 
     @Test
-    @Rollback(true)
+    @Rollback(true) // не переводи в false - замучаешься вычищать kart из БД
     @Transactional
     public void testGenDebitPen() throws ParseException, ErrorWhileChrgPen {
         log.info("Test GenPenProcessMng.testGenDebitPen - Start");

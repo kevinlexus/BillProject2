@@ -3,6 +3,7 @@ package com.dic.bill.dao;
 import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.Penya;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -10,6 +11,15 @@ import java.util.List;
 
 
 public interface PenyaDAO extends JpaRepository<Penya, Integer> {
+
+
+    /**
+     * Удалить текущую пеню
+     * @param lsk - лиц.счет
+     */
+    @Modifying
+    @Query(value = "delete from Penya t where t.kart.lsk=:lsk")
+    void deleteByLsk(@Param("lsk") String lsk);
 
     /**
      * Получить все элементы по lsk
