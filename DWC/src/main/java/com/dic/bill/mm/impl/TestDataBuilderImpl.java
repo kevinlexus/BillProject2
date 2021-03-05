@@ -46,8 +46,13 @@ public class TestDataBuilderImpl implements TestDataBuilder {
     public Ko buildKartForTest(House house, String suffix, BigDecimal area, int persCount, boolean isAddPers, boolean isAddNabor,
                                int statusId, int psch, int ukId) {
 
-        // помещение
+        // Фин.лс.
         Ko ko = new Ko();
+        // помещение
+        Ko premise = new Ko();
+        em.persist(premise);
+
+        // лиц.сч.
         Kart kart = new Kart();
         // УК
         Org uk = em.find(Org.class, ukId);
@@ -60,6 +65,8 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         //Status status = em.find(Status.class, 2);
 
         kart.setKoKw(ko);
+        ko.getKart().add(kart);
+        kart.setKoPremise(premise);
         kart.setHouse(house);
         kart.setLsk("ОСН_" + suffix);
 
@@ -67,7 +74,9 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         kart.setSchEl(1);
 
         kart.setOpl(area);
-        kart.setKul("0001");
+        //kart.setKul("0001");
+        Spul spul = em.find(Spul.class, "0001");
+        kart.setSpul(spul);
         kart.setNd("000001");
         kart.setNum("0000001");
         kart.setKpr(0);
@@ -77,7 +86,8 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         kart.setMgFrom("201401");
         kart.setMgTo("201412");
         kart.setStatus(status);
-        ko.getKart().add(kart);
+        kart.setIsDivided(false);
+       // ko.getKart().add(kart);
 
         if (isAddPers) {
             // проживающие
@@ -91,7 +101,8 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         // счетчики
         buildMeterForTest(kart);
         house.getKart().add(kart);
-        em.persist(kart); // note Используй crud.save
+        em.persist(kart);
+/*
 
         // Лиц.счет РСО
         kart = new Kart();
@@ -105,11 +116,13 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         //status = em.find(Status.class, 1);
 
         kart.setKoKw(ko);
+        kart.setKoPremise(premise);
         kart.setHouse(house);
         kart.setLsk("РСО_" + suffix);
         kart.setPsch(psch);
         kart.setOpl(area);
-        kart.setKul("0001");
+        //kart.setKul("0001");
+        kart.setSpul(spul);
         kart.setNd("000001");
         kart.setNum("0000001");
         kart.setKpr(0);
@@ -120,6 +133,7 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         kart.setMgTo("201412");
         kart.setStatus(status);
         ko.getKart().add(kart);
+        kart.setIsDivided(false);
 
         if (isAddNabor) {
             // наборы услуг
@@ -127,7 +141,7 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         }
 
         house.getKart().add(kart);
-        em.persist(kart); // note Используй crud.save
+        em.persist(kart);
 
         // Лиц.счет Капремонта
         kart = new Kart();
@@ -141,11 +155,12 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         //status = em.find(Status.class, 1);
 
         kart.setKoKw(ko);
+        kart.setKoPremise(premise);
         kart.setHouse(house);
         kart.setLsk("КАП_" + suffix);
         kart.setPsch(0);
         kart.setOpl(area);
-        kart.setKul("0001");
+        kart.setSpul(spul);
         kart.setNd("000001");
         kart.setNum("0000001");
         kart.setKpr(0);
@@ -156,6 +171,7 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         kart.setMgTo("201412");
         //kart.setStatus(status);
         ko.getKart().add(kart);
+        kart.setIsDivided(false);
 
         if (isAddNabor) {
             // наборы услуг
@@ -163,7 +179,8 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         }
 
         house.getKart().add(kart);
-        em.persist(kart); // note Используй crud.save
+        em.persist(kart);
+*/
         return ko;
     }
 
@@ -251,7 +268,8 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         objPar.setLst(lst);
         objPar.setN1(vol);
         objPar.setMg(mg);
-        meter.getKo().getObjPar().add(objPar);
+        objPar.setStatus(0);
+        meter.getObjPar().add(objPar);
     }
 
     /**
@@ -274,10 +292,11 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         }
         meter.setKo(ko);
         meter.setKoObj(koObj);
+        koObj.getMeterByKo().add(meter);
         Usl usl = em.find(Usl.class, uslId);
         meter.setUsl(usl);
-        em.persist(ko); // note Используй crud.save
-        em.persist(meter); // note Используй crud.save
+        em.persist(ko);
+        em.persist(meter);
         return meter;
     }
 
@@ -298,27 +317,22 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         kart.getCharge().add(charge);
     }
 
-
     /**
      * Добавить записи задолженности
      */
     @Override
-    public void addDebForTest(Kart kart, String uslId, int orgId, int mgFrom, int mgTo, int mg, String strDebOut) {
-        Deb deb = new Deb();
-        deb.setKart(kart);
-
-        Usl usl = em.find(Usl.class, uslId);
-        Org org = em.find(Org.class, orgId);
+    public void addDebForTest(Kart kart, int mgFrom, int mgTo, int mg, String strDebOut) {
+        ChargePay chargePay = new ChargePay();
+        chargePay.setKart(kart);
         BigDecimal debout = new BigDecimal(strDebOut);
-
-        deb.setUsl(usl);
-        deb.setOrg(org);
-        deb.setDebOut(debout);
-        deb.setMgFrom(mgFrom);
-        deb.setMgTo(mgTo);
-        deb.setMg(mg);
-        //kart.getDeb().add(deb);
+        chargePay.setSumma(debout.doubleValue());
+        chargePay.setMgFrom(mgFrom);
+        chargePay.setMgTo(mgTo);
+        chargePay.setMg(String.valueOf(mg));
+        chargePay.setType(0);
+        kart.getChargepay().add(chargePay);
     }
+
 
     @Override
     public ChangeDoc buildChangeDocForTest(String strDt, String mgChange) {
@@ -329,7 +343,7 @@ public class TestDataBuilderImpl implements TestDataBuilder {
             e.printStackTrace();
         }
         changeDoc.setMgchange(mgChange);
-        em.persist(changeDoc); // note Используй crud.save
+        em.persist(changeDoc);
         return changeDoc;
     }
 
@@ -435,7 +449,7 @@ public class TestDataBuilderImpl implements TestDataBuilder {
             e.printStackTrace();
         }
         kart.getKwtp().add(kwtp);
-        em.persist(kwtp); // note Используй crud.save
+        em.persist(kwtp);
         return kwtp;
     }
 
@@ -455,7 +469,7 @@ public class TestDataBuilderImpl implements TestDataBuilder {
                 .withOper(kwtp.getOper())
                 .withSumma(new BigDecimal(strSumma))
                 .withPenya(new BigDecimal(strPenya)).build();
-        em.persist(kwtpMg); // note Используй crud.save
+        em.persist(kwtpMg);
 
         kwtp.getKwtpMg().add(kwtpMg);
         kwtp.getKart().getKwtpMg().add(kwtpMg);
@@ -483,7 +497,7 @@ public class TestDataBuilderImpl implements TestDataBuilder {
                 .withTp(tp)
                 .withSumma(new BigDecimal(strSumma))
                 .build();
-        em.persist(kwtpDay); // note Используй crud.save
+        em.persist(kwtpDay);
 
         kwtpMg.getKwtpDay().add(kwtpDay);
         kwtpMg.getKart().getKwtpDay().add(kwtpDay);
@@ -550,6 +564,7 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         KartPr kartPr = new KartPr();
         kartPr.setKart(kart);
         kartPr.setFio(fio);
+        kartPr.setIsUseDividedEls(false);
         try {
             kartPr.setDtBirdth(Utl.getDateFromStr(dtBirdth));
             kartPr.setDtReg(Utl.getDateFromStr(dtReg));

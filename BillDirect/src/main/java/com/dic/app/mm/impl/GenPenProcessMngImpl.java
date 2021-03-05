@@ -6,7 +6,6 @@ import com.dic.app.mm.ReferenceMng;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.CalcStoreLocal;
-import com.dic.bill.dto.UslOrg;
 import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.Ko;
 import com.ric.cmn.excp.ErrorWhileChrgPen;
@@ -17,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import java.util.List;
 
 /**
  * Сервис формирования задолженностей и пени
@@ -29,30 +27,28 @@ import java.util.List;
 @Service
 public class GenPenProcessMngImpl implements GenPenProcessMng {
 
-    private final DebDAO debDao;
     private final PenDAO penDao;
     private final ChargeDAO chargeDao;
-    private final VchangeDetDAO vchangeDetDao;
-    private final KwtpDayDAO kwtpDayDao;
+    private final ChangeDAO changeDao;
+    private final KwtpMgDAO kwtpMgDao;
     private final CorrectPayDAO correctPayDao;
-    private final PenUslCorrDAO penUslCorrDao;
+    private final ChargePayDAO chargePayDAO;
     private final ReferenceMng refMng;
     private final DebitByLskThrMng debitByLskThrMng;
 
     @PersistenceContext
     private EntityManager em;
 
-    public GenPenProcessMngImpl(DebDAO debDao, PenDAO penDao, ChargeDAO chargeDao,
-                                VchangeDetDAO vchangeDetDao, KwtpDayDAO kwtpDayDao,
-                                CorrectPayDAO correctPayDao, PenUslCorrDAO penUslCorrDao,
-                                ReferenceMng refMng, DebitByLskThrMng debitByLskThrMng) {
-        this.debDao = debDao;
+    public GenPenProcessMngImpl(PenDAO penDao, ChargeDAO chargeDao,
+                                ChangeDAO changeDao, KwtpMgDAO kwtpMgDao,
+                                CorrectPayDAO correctPayDao,
+                                ChargePayDAO chargePayDAO, ReferenceMng refMng, DebitByLskThrMng debitByLskThrMng) {
         this.penDao = penDao;
         this.chargeDao = chargeDao;
-        this.vchangeDetDao = vchangeDetDao;
-        this.kwtpDayDao = kwtpDayDao;
+        this.changeDao = changeDao;
+        this.kwtpMgDao = kwtpMgDao;
         this.correctPayDao = correctPayDao;
-        this.penUslCorrDao = penUslCorrDao;
+        this.chargePayDAO = chargePayDAO;
         this.refMng = refMng;
         this.debitByLskThrMng = debitByLskThrMng;
     }
@@ -68,12 +64,10 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
     @Transactional(
             propagation = Propagation.REQUIRED,
             rollbackFor = Exception.class)
-    @Deprecated
     public void genDebitPen(CalcStore calcStore, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen {
-        // fixme Используется ли данный метод? пометил deprecated 22.09.20
         Ko ko = em.find(Ko.class, klskId);
         for (Kart kart : ko.getKart()) {
-            genDebitPen(calcStore, isCalcPen, kart);
+            genDebitPen(calcStore, kart);
         }
     }
 
@@ -81,43 +75,34 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
      * Рассчет задолженности и пени по лиц.счету
      *
      * @param calcStore - хранилище справочников
-     * @param isCalcPen - рассчитывать пеню?
      * @param kart      - лиц.счет
      */
-    @Deprecated
-    private void genDebitPen(CalcStore calcStore, boolean isCalcPen, Kart kart) throws ErrorWhileChrgPen {
-        // fixme Используется ли данный метод? пометил deprecated 22.09.20
+    private void genDebitPen(CalcStore calcStore, Kart kart) throws ErrorWhileChrgPen {
+        // метод в разработке с 09.12.20
         Integer period = calcStore.getPeriod();
         Integer periodBack = calcStore.getPeriodBack();
-        // ЗАГРУЗИТЬ все финансовые операции по лиц.счету
+
+        // сформировать движение по лиц.счету (для пени - не нужно, сделал сюда, чтобы выполнялось многопоточно)
+        chargePayDAO.genChrgPay(kart.getLsk(), 0, calcStore.getGenDt());
+
+        // загрузить все финансовые операции по лиц.счету
         CalcStoreLocal localStore = new CalcStoreLocal();
         // задолженность предыдущего периода
-        localStore.setLstDebFlow(debDao.getDebitByLsk(kart.getLsk(), periodBack));
+        localStore.setLstDebFlow(chargePayDAO.getDebitByLsk(kart.getLsk(), periodBack));
         // текущее начисление - 2
-        localStore.setLstChrgFlow(chargeDao.getChargeByLsk(kart.getLsk()));
+        localStore.setChrgSum(chargeDao.getChargeByPeriodAndLsk(kart.getLsk()));
         // перерасчеты - 5
-        localStore.setLstChngFlow(vchangeDetDao.getVchangeDetByLsk(kart.getLsk()));
-        // оплата долга - 3
-        localStore.setLstPayFlow(kwtpDayDao.getKwtpDaySumByLsk(kart.getLsk()));
+        localStore.setLstChngFlow(changeDao.getChangeByPeriodAndLsk(kart.getLsk()));
+        // оплата - 3
+        localStore.setLstPayFlow(kwtpMgDao.getKwtpMgByPeriodAndLsk(kart.getLsk()));
         // корректировки оплаты - 6
-        localStore.setLstPayCorrFlow(correctPayDao.getCorrectPayByLsk(kart.getLsk(), String.valueOf(period)));
-        // создать список уникальных элементов услуга+организация
-        localStore.createUniqUslOrg();
+        localStore.setLstPayCorrFlow(correctPayDao.getCorrectByPeriodAndLsk(kart.getLsk(), String.valueOf(period)));
+
         // преобразовать String код reu в int, для ускорения фильтров
         localStore.setReuId(Integer.parseInt(kart.getUk().getReu()));
-        // получить список уникальных элементов услуга+организация
-        List<UslOrg> lstUslOrg = localStore.getUniqUslOrg();
-
-
-        log.info("Список уникальных усл.+орг.:");
-        lstUslOrg.forEach(t-> log.info("usl={}, org={}", t.getUslId(), t.getOrgId()));
-
-        // Расчет задолженности, подготовка для расчета пени
-        // версия расчета по услугам (отказался ставить, не продуманно до конца)
-        //debitThrMng.genDebitUsl(kart, calcStore, localStore);
 
         // версия расчета в целом по лиц.счету
-        debitByLskThrMng.genDebitUsl(kart, calcStore, localStore);
+        debitByLskThrMng.genDeb(kart, calcStore, localStore);
     }
 
 }

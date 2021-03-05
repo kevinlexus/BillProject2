@@ -23,9 +23,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
-import javax.persistence.ParameterMode;
 import javax.persistence.PersistenceContext;
-import javax.persistence.StoredProcedureQuery;
 import java.math.BigDecimal;
 import java.text.ParseException;
 
@@ -60,60 +58,6 @@ public class TestGenPenProcessMng {
     @Test
     @Rollback(true)
     @Transactional
-    public void testCreateKart() {
-        String[] parts = "Петров Виктор Сергеевич".split(" ");
-        String fam = null;
-        String im = null;
-        String ot = null;
-        int i=0;
-        for (String part : parts) {
-            if (i==0){
-                fam = part;
-            } else if (i==1) {
-                im = part;
-            } else if (i==2) {
-                ot = part;
-            }
-            i++;
-        }
-
-        log.info("fam={}, im={}, ot={}", fam, im, ot);
-
-        StoredProcedureQuery qr;
-        qr = em.createStoredProcedureQuery("scott.p_houses.kart_lsk_add");
-        qr.registerStoredProcedureParameter("p_lsk_tp", String.class, ParameterMode.IN);
-        qr.registerStoredProcedureParameter("p_lsk_new", String.class, ParameterMode.INOUT);
-        qr.registerStoredProcedureParameter("p_var", Integer.class, ParameterMode.IN);
-        qr.registerStoredProcedureParameter("p_kw", String.class, ParameterMode.IN);
-        qr.registerStoredProcedureParameter("p_reu", String.class, ParameterMode.IN);
-        qr.registerStoredProcedureParameter("p_house", Integer.class, ParameterMode.IN);
-        qr.registerStoredProcedureParameter("p_result", Integer.class, ParameterMode.IN);
-        qr.registerStoredProcedureParameter("p_klsk_dst", Integer.class, ParameterMode.IN);
-        qr.registerStoredProcedureParameter("p_klsk_premise_dst", Integer.class, ParameterMode.IN);
-        qr.registerStoredProcedureParameter("p_fam", String.class, ParameterMode.IN);
-        qr.registerStoredProcedureParameter("p_im", String.class, ParameterMode.IN);
-        qr.registerStoredProcedureParameter("p_ot", String.class, ParameterMode.IN);
-        qr.setParameter("p_lsk_tp", "LSK_TP_MAIN");
-        qr.setParameter("p_var", 3);
-        qr.setParameter("p_kw", "115");
-        qr.setParameter("p_reu", "001");
-        qr.setParameter("p_house", 6091);
-        qr.setParameter("p_klsk_dst", 104876);
-        qr.setParameter("p_klsk_premise_dst", 187);
-        qr.setParameter("p_fam", fam);
-        qr.setParameter("p_im", im);
-        qr.setParameter("p_ot", ot);
-        String lsk = qr.getOutputParameterValue("p_lsk_new").toString().trim();
-        lsk = lsk.trim();
-        log.info("Новый лиц.счет={}", lsk);
-
-        Kart kart = em.find(Kart.class, lsk);
-        log.info("check kart.lsk={}", kart.getLsk());
-    }
-
-    @Test
-    @Rollback(true)
-    @Transactional
     public void testGenDebitPen() throws ParseException, ErrorWhileChrgPen {
         log.info("Test GenPenProcessMng.testGenDebitPen - Start");
 
@@ -125,7 +69,7 @@ public class TestGenPenProcessMng {
         // дом
         House house = new House();
         Ko houseKo = new Ko();
-        em.persist(houseKo); // note Используй crud.save
+        em.persist(houseKo);
 
         // добавить вводы
         // без ОДПУ
@@ -139,30 +83,43 @@ public class TestGenPenProcessMng {
         house.setKo(houseKo);
         house.setKul("0001");
         house.setNd("000001");
-        em.persist(house); // note Используй crud.save
+        em.persist(house);
 
         // построить лицевые счета по помещению
         int ukId = 12; // УК 14,15
         //int ukId = 547; // общий тип распределения
         Ko ko = testDataBuilder.buildKartForTest(house, "0001", BigDecimal.valueOf(76.2),
                 3, true, true, 1, 1, ukId);
-        em.persist(ko); // note Используй crud.save
-        String lsk = "РСО_0001";
+        em.persist(ko);
+        String lsk = "ОСН_0001";
         Kart kart = em.find(Kart.class, lsk);
 
         // Добавить входящую задолженность
-        testDataBuilder.addDebForTest(kart, "011", 3,
-                201401, 201403, 201401, "100.00");
-        testDataBuilder.addDebForTest(kart, "011", 3,
-                201401, 201403, 201402, "50.00");
-        testDataBuilder.addDebForTest(kart, "011", 3,
-                201401, 201403, 201403, "20.00");
+        // данные периоды не должны использоваться!
+        testDataBuilder.addDebForTest(kart, 201308, 201308,
+                201308, "77777777777.00");
+        testDataBuilder.addDebForTest(kart, 201310, 201310,
+                201308, "77777777777.00");
+        testDataBuilder.addDebForTest(kart, 201310, 201310,
+                201309, "77777777777.00");
+        testDataBuilder.addDebForTest(kart, 201310, 201310,
+                201310, "77777777777.00");
+        testDataBuilder.addDebForTest(kart, 201311, 201311,
+                201308, "77777777777.00");
+        testDataBuilder.addDebForTest(kart, 201311, 201311,
+                201310, "77777777777.00");
 
-/*        testDataBuilder.addDebForTest(kart, "003", 1,
-                201401, 201403, 201401, "77.84");
-        testDataBuilder.addDebForTest(kart, "005", 10,
-                201401, 201403, 201401, "0.10");
-*/
+        // данные периоды должны использоваться!
+        testDataBuilder.addDebForTest(kart, 201403, 201403,
+                201308, "1200.00");
+        testDataBuilder.addDebForTest(kart, 201403, 201403,
+                201309, "5.15");
+        testDataBuilder.addDebForTest(kart, 201403, 201403,
+                201310, "7.00");
+        testDataBuilder.addDebForTest(kart, 201403, 201403,
+                201311, "11.00");
+        testDataBuilder.addDebForTest(kart, 201403, 201403,
+                201401, "1100.00");
 
         // Добавить текущее начисление
         testDataBuilder.addChargeForTest(kart, "011", "70.0");
@@ -200,7 +157,7 @@ public class TestGenPenProcessMng {
                 "201404", "201404", 1, strDt, "-5.90");
 
         // Добавить платеж
-        String dopl2 = "201311";
+        String dopl2 = "201401";
         Kwtp kwtp = testDataBuilder.buildKwtpForTest(kart, dopl2, "10.04.2014", null, 0,
                 "021", "12313", "001", "0000.00", null);
 
@@ -245,6 +202,12 @@ public class TestGenPenProcessMng {
 
         // для того чтобы увидеть insert-ы в тестом режиме
         penCurDAO.findAll().size();
+
+        log.info("Итого пеня:");
+        for (Penya penya : kart.getPenya()) {
+            log.info("период={}, долг={}, пеня={}, дней={}",
+                    penya.getMg1(), penya.getSumma(), penya.getPenya(), penya.getDays());
+        }
 
         log.info("Test GenPenProcessMng.testGenDebitPen - End");
     }
