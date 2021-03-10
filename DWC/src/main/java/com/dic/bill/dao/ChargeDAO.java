@@ -5,8 +5,10 @@ import com.dic.bill.dto.SumUslOrgRec;
 import com.dic.bill.model.scott.Charge;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
+import javax.persistence.QueryHint;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -37,6 +39,7 @@ public interface ChargeDAO extends JpaRepository<Charge, Integer> {
 	@Query(value = "select coalesce(sum(t.summa),0) as summa "
 			+ " from Charge t "
 			+ "where t.kart.lsk=:lsk and t.type=1 ")
+	@QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
 	BigDecimal getChargeByPeriodAndLsk(@Param("lsk") String lsk);
 
 	/**

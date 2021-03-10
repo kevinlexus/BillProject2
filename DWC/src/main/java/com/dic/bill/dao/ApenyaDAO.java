@@ -28,7 +28,7 @@ public interface ApenyaDAO extends JpaRepository<Apenya, Integer> {
 	 * @param lsk - лиц.счет
 	 */
 	@Query("select t from Apenya t "
-			+ "where t.kart.id = :lsk and t.mg = :mg and nvl(t.summa,0) <> 0 "
+			+ "where t.kart.id = :lsk and t.mg = :mg"
 			+ "order by t.mg1")
 	List<Apenya> getByLsk(@Param("lsk") String lsk, @Param("mg") String mg);
 

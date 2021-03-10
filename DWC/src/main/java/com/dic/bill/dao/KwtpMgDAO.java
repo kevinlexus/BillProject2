@@ -4,8 +4,10 @@ import com.dic.bill.dto.SumRecMgDt;
 import com.dic.bill.model.scott.KwtpMg;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
+import javax.persistence.QueryHint;
 import java.util.List;
 
 
@@ -29,6 +31,7 @@ public interface KwtpMgDAO extends JpaRepository<KwtpMg, Integer> {
             + "from KwtpMg t "
             + "where t.kart.lsk=:lsk "
             + "group by t.dopl, t.dt")
+    @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
     List<SumRecMgDt> getKwtpMgByPeriodAndLsk(@Param("lsk") String lsk);
 
 }

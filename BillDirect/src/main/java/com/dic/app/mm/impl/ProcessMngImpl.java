@@ -105,7 +105,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
         if (retStatus == null) {
             try {
                 if (Utl.in(reqConf.getTp(), 0, 1, 2, 4)) {
-                    // расчет начисления, распределение объемов, расчет задолженности и пени
+                    // расчет начисления, распределение объемов, расчет пени
                     reqConf.prepareChrgCountAmount();
                     log.trace("Будет обработано {} объектов", reqConf.getLstItems().size());
                     ProcessMng processMng = ctx.getBean(ProcessMng.class);
@@ -156,6 +156,10 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                 // вызвать в новой транзакции, многопоточно
                 threadMng.invokeThreads(reqConf, reqConf.getRqn());
             } else {
+                // не удалять комментарий, был случай выполнялось однопоточно на проде ред.09.03.21
+                log.info("ВНИМАНИЕ! ВЫПОЛНЯЕТСЯ ОДНОПОТОЧНО!!!");
+                log.info("ВНИМАНИЕ! ВЫПОЛНЯЕТСЯ ОДНОПОТОЧНО!!!");
+                log.info("ВНИМАНИЕ! ВЫПОЛНЯЕТСЯ ОДНОПОТОЧНО!!!");
                 // вызвать в той же транзакции, однопоточно, для Unit - тестов
                 selectInvokeProcess(reqConf);
             }
@@ -239,7 +243,6 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                                 }
                                 if (Utl.in(reqConf.getTp(), 1)) {
                                     // расчет пени
-                                    // fixme Используется ли данный метод? 22.09.20
                                     genPenProcessMng.genDebitPen(reqConf.getCalcStore(), true, id);
                                 } else {
                                     // расчет начисления и начисления для распределения объемов

@@ -341,7 +341,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                         }
                         log.info("Пеня: debForPen={}, dt={}, mg={}, совокупно дней={}, penya={}, proc={}, Stavr.id={}",
                                 debForPen, Utl.getStrFromDate(dt), mg, t.getDays(), t.getPenya(), t.getProc(),
-                                t.getStavr().getId());
+                                t.getStavr() != null ? t.getStavr().getId() : t.getStavr());
                     });
                 }
             }
@@ -353,7 +353,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         lstPenCurRec.forEach(t -> {
             log.info("Пеня по ставкам: mg={}, debPen={}, curDays={}, dt1={}, dt2={}, pen={}, stavr.id={}",
                     t.getMg(), t.getDebForPen(), t.getCurDays(), Utl.getStrFromDate(t.getDt1()),
-                    Utl.getStrFromDate(t.getDt2()), t.getPen(), t.getStavr().getId());
+                    Utl.getStrFromDate(t.getDt2()), t.getPen(), t.getStavr() != null ? t.getStavr().getId() : t.getStavr());
             PenCur penCur = new PenCur();
             penCur.setKart(kart);
             penCur.setMg1(String.valueOf(t.getMg()));
@@ -381,25 +381,29 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         // вычесть поступление оплаты пени C_KWTP_MG
         kwtpMgDAO.getByLsk(kart.getLsk())
                 .forEach(t -> mapPenResult.merge(Integer.parseInt(t.getDopl()),
-                        Utl.nvl(t.getPenya(), BigDecimal.ZERO).negate(), BigDecimal::subtract));
+                        Utl.nvl(t.getPenya(), BigDecimal.ZERO).negate(), BigDecimal::add));
         // прибавить текущее начисление пени
         lstPenCurRec.forEach(t -> mapPenResult.merge(t.getMg(), t.getPen(), BigDecimal::add));
 
         // сохранить в C_PENYA
         penDAO.deleteByLsk(kart.getLsk());
         mapPenResult.forEach((k, v) -> {
-            Penya penya = new Penya();
-            penya.setKart(kart);
-            penya.setMg1(String.valueOf(k));
-            penya.setPenya(v.setScale(2, RoundingMode.HALF_UP));
-            penya.setSumma(Utl.nvl(mapDeb.get(k), BigDecimal.ZERO));
-            if (Utl.nvl(mapDeb.get(k), BigDecimal.ZERO).compareTo(BigDecimal.ZERO) != 0) {
-                penya.setDays(mapDebDays.get(k));
-            } else {
-                penya.setDays(0);
+            if (v != null && v.compareTo(BigDecimal.ZERO) != 0 || mapDeb.get(k) != null
+                    && mapDeb.get(k).compareTo(BigDecimal.ZERO) != 0) {
+                Penya penya = new Penya();
+                penya.setKart(kart);
+                penya.setMg1(String.valueOf(k));
+                if (v != null) {
+                    penya.setPenya(v.setScale(2, RoundingMode.HALF_UP));
+                }
+                penya.setSumma(Utl.nvl(mapDeb.get(k), BigDecimal.ZERO));
+                if (Utl.nvl(mapDeb.get(k), BigDecimal.ZERO).compareTo(BigDecimal.ZERO) != 0) {
+                    penya.setDays(mapDebDays.get(k));
+                } else {
+                    penya.setDays(0);
+                }
+                kart.getPenya().add(penya);
             }
-            //em.persist(penya);
-            kart.getPenya().add(penya);
         });
 /*
         for (Penya penya : kart.getPenya()) {

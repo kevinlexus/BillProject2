@@ -5,8 +5,10 @@ import com.dic.bill.dto.SumUslOrgRec;
 import com.dic.bill.model.scott.Change;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
+import javax.persistence.QueryHint;
 import java.util.List;
 
 
@@ -33,6 +35,7 @@ public interface ChangeDAO extends JpaRepository<Change, Integer> {
             + "from Change t "
             + "where t.kart.lsk=:lsk "
             + "group by t.mgchange, t.dt")
+    @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
     List<SumRecMgDt> getChangeByPeriodAndLsk(@Param("lsk") String lsk);
 
 }

@@ -7,10 +7,13 @@ import com.dic.bill.dto.SumUslOrgRec;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
 import com.dic.bill.dto.SumRec;
 import com.dic.bill.model.scott.CorrectPay;
+
+import javax.persistence.QueryHint;
 
 
 public interface CorrectPayDAO extends JpaRepository<CorrectPay, Integer> {
@@ -45,6 +48,7 @@ public interface CorrectPayDAO extends JpaRepository<CorrectPay, Integer> {
 			+ "from CorrectPay t "
 			+ "where t.kart.lsk=:lsk and t.mg=:mg "
 			+ "group by t.mg")
+	@QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
 	List<SumRecMg> getCorrectByPeriodAndLsk(@Param("lsk") String lsk, @Param("mg") String mg);
 
 	/**

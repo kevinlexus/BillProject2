@@ -6,6 +6,8 @@ import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
 import com.ric.cmn.Utl;
+import com.ric.cmn.excp.ErrorWhileChrg;
+import com.ric.cmn.excp.ErrorWhileChrgPen;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +33,8 @@ public class GenPenMngImpl implements GenPenMng {
      *
      * @author Lev
      */
-    @Getter @Setter
+    @Getter
+    @Setter
     public class PenDTO {
         // кол-во дней просрочки
         int days = 0;
@@ -45,9 +48,10 @@ public class GenPenMngImpl implements GenPenMng {
 
     /**
      * Рассчитать пеню
-     *  @param deb - долг
-     * @param mg    - период долга
-     * @param kart  - лиц.счет
+     *
+     * @param deb  - долг
+     * @param mg   - период долга
+     * @param kart - лиц.счет
      * @return
      */
     @Override
@@ -58,16 +62,20 @@ public class GenPenMngImpl implements GenPenMng {
         if (penDt == null) {
             if (mg.compareTo(calcStore.getPeriod()) > 0) {
                 // период больше текущего, не должно быть пени
-                return null;
+                return Optional.empty();
             } else {
                 // некритическая ошибка отсутствия записи в справочнике пени, просто не начислить пеню!
                 log.error("ОШИБКА во время начисления пени по лиц.счету lsk={}, возможно не настроен справочник C_SPR_PEN!"
                                 + "Попытка найти элемент: mg={}, kart.tp={}, kart.reu={}", kart.getLsk(),
                         mg, kart.getTp().getId(), kart.getUk().getReu());
-                return null;
+                return Optional.empty();
             }
         }
         int days = Utl.daysBetween(penDt.getDt(), curDt);
+        PenDTO penDTO = new PenDTO();
+        penDTO.proc = BigDecimal.ZERO;
+        penDTO.penya = BigDecimal.ZERO;
+        penDTO.days = 0;
         if (days > 0) {
             // пеня возможна, если есть кол-во дней долга
             //log.info(" spr={}, cur={}, curDays={}", sprPenUsl.getTs(), curDt, curDays);
@@ -76,18 +84,16 @@ public class GenPenMngImpl implements GenPenMng {
                     .filter(t -> days >= t.getDays1() && days <= t.getDays2()) // фильтр по кол-ву дней долга
                     .filter(t -> Utl.between(curDt, t.getDt1(), t.getDt2())) // фильтр по дате расчета в справочнике
                     .findFirst().orElse(null);
-            PenDTO penDTO = new PenDTO();
-            // расчет пени = долг * процент/100
-            assert stavr != null;
-            penDTO.proc = stavr.getProc();
-            penDTO.penya = deb.multiply(penDTO.proc).divide(new BigDecimal(100), RoundingMode.HALF_UP);
-            penDTO.days = days;
-            penDTO.stavr = stavr;
-            return Optional.of(penDTO);
-        } else {
-            // нет пени
-            return Optional.empty();
+            if (stavr != null) {
+                // расчет пени = долг * процент/100
+                penDTO.proc = stavr.getProc();
+                penDTO.penya = deb.multiply(penDTO.proc).divide(new BigDecimal(100), RoundingMode.HALF_UP);
+                penDTO.stavr = stavr;
+                penDTO.days = days;
+            }
         }
+        return Optional.of(penDTO);
+
     }
 
     /**

@@ -11,6 +11,7 @@ import com.dic.bill.model.scott.Ko;
 import com.ric.cmn.excp.ErrorWhileChrgPen;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,7 +63,8 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
      */
     @Override
     @Transactional(
-            propagation = Propagation.REQUIRED,
+            propagation = Propagation.REQUIRES_NEW,
+            isolation = Isolation.READ_COMMITTED, // читать только закомиченные данные, не ставить другое, не даст запустить поток!
             rollbackFor = Exception.class)
     public void genDebitPen(CalcStore calcStore, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen {
         Ko ko = em.find(Ko.class, klskId);
@@ -82,8 +84,9 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
         Integer period = calcStore.getPeriod();
         Integer periodBack = calcStore.getPeriodBack();
 
+        // todo убрать отсюда, для итогового сделать общий вызов, для всех лиц.счетов
         // сформировать движение по лиц.счету (для пени - не нужно, сделал сюда, чтобы выполнялось многопоточно)
-        chargePayDAO.genChrgPay(kart.getLsk(), 0, calcStore.getGenDt());
+        //chargePayDAO.genChrgPay(kart.getLsk(), 0, calcStore.getGenDt());
 
         // загрузить все финансовые операции по лиц.счету
         CalcStoreLocal localStore = new CalcStoreLocal();

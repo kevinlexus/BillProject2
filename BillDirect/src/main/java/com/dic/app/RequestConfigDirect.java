@@ -46,7 +46,7 @@ public class RequestConfigDirect implements Cloneable {
     Date curDt2;
 
     // выполнять многопоточно
-    boolean isMultiThreads = false;
+    boolean isMultiThreads = true;
     // кол-во потоков
     int cntThreads = 1;
     final int CNT_THREADS_FOR_COMMON_TASKS = 15;

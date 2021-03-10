@@ -6,9 +6,11 @@ import com.dic.bill.model.scott.ChargePayId;
 import com.dic.bill.model.scott.Kart;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
+import javax.persistence.QueryHint;
 import java.util.Date;
 import java.util.List;
 
@@ -27,6 +29,7 @@ public interface ChargePayDAO extends JpaRepository<ChargePay, ChargePayId> {
             "        group by t.mg"
             , nativeQuery = true
 			)
+    @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
 	List<SumDebPenRec> getDebitByLsk(@Param("lsk") String lsk, @Param("period") Integer period);
 
     /**
