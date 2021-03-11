@@ -27,7 +27,7 @@ public interface KwtpMgDAO extends JpaRepository<KwtpMg, Integer> {
      * Получить сгруппированные записи оплат текущего периода
      * @param lsk - лицевой счет
      */
-    @Query(value = "select t.dopl as mg, coalesce(sum(t.summa),0) as summa, t.dt "
+    @Query(value = "select t.dopl as mg, coalesce(sum(t.summa),0) as summa, t.dt as dt "
             + "from KwtpMg t "
             + "where t.kart.lsk=:lsk "
             + "group by t.dopl, t.dt")

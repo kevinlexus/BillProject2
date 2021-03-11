@@ -170,7 +170,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
             // вычесть оплату включая текущий день поступления - для обычного долга
             // и не включая для расчета пени
             lst = localStore.getLstPayFlow().stream()
-                    .map(t -> new TempSumRec(null, null, t.getSumma(), t.getMg(), dt1, null))
+                    .map(t -> new TempSumRec(null, null, t.getSumma(), t.getMg(), t.getDt(), null))
                     .collect(Collectors.toList());
             process(lst.stream(), mapDebPart2, dt, dt, true, null);
 
@@ -339,7 +339,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                             // поменять последнюю запись по пене
                             mapLastPenCurRec.put(mg, rec);
                         }
-                        log.info("Пеня: debForPen={}, dt={}, mg={}, совокупно дней={}, penya={}, proc={}, Stavr.id={}",
+                        log.trace("Пеня: debForPen={}, dt={}, mg={}, совокупно дней={}, penya={}, proc={}, Stavr.id={}",
                                 debForPen, Utl.getStrFromDate(dt), mg, t.getDays(), t.getPenya(), t.getProc(),
                                 t.getStavr() != null ? t.getStavr().getId() : t.getStavr());
                     });
@@ -351,25 +351,26 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         penCurDAO.deleteByLsk(kart.getLsk());
         // записать в C_PEN_CUR
         lstPenCurRec.forEach(t -> {
-            log.info("Пеня по ставкам: mg={}, debPen={}, curDays={}, dt1={}, dt2={}, pen={}, stavr.id={}",
-                    t.getMg(), t.getDebForPen(), t.getCurDays(), Utl.getStrFromDate(t.getDt1()),
-                    Utl.getStrFromDate(t.getDt2()), t.getPen(), t.getStavr() != null ? t.getStavr().getId() : t.getStavr());
-            PenCur penCur = new PenCur();
-            penCur.setKart(kart);
-            penCur.setMg1(String.valueOf(t.getMg()));
-            penCur.setCurDays(t.getCurDays());
-            penCur.setStavr(t.getStavr());
-            penCur.setDeb(t.getDebForPen());
-            penCur.setPenya(t.getPen());
-            penCur.setDt1(t.getDt1());
-            penCur.setDt2(t.getDt2());
-            kart.getPenCur().add(penCur);
-            em.persist(penCur);
-            log.info("C_PEN_CUR: период={}, тек.пеня={}, тек.дней={}", t.getMg(), t.getPen(), t.getCurDays());
+            if (t.getPen().compareTo(BigDecimal.ZERO)!=0) {
+                log.trace("Пеня по ставкам: mg={}, debPen={}, curDays={}, dt1={}, dt2={}, pen={}, stavr.id={}",
+                        t.getMg(), t.getDebForPen(), t.getCurDays(), Utl.getStrFromDate(t.getDt1()),
+                        Utl.getStrFromDate(t.getDt2()), t.getPen(), t.getStavr() != null ? t.getStavr().getId() : t.getStavr());
+                PenCur penCur = new PenCur();
+                penCur.setKart(kart);
+                penCur.setMg1(String.valueOf(t.getMg()));
+                penCur.setCurDays(t.getCurDays());
+                penCur.setStavr(t.getStavr());
+                penCur.setDeb(t.getDebForPen());
+                penCur.setPenya(t.getPen());
+                penCur.setDt1(t.getDt1());
+                penCur.setDt2(t.getDt2());
+                kart.getPenCur().add(penCur);
+                em.persist(penCur);
+                log.trace("C_PEN_CUR: период={}, тек.пеня={}, тек.дней={}", t.getMg(), t.getPen(), t.getCurDays());
+            }
         });
 
         // формировать C_PENYA:
-
         Map<Integer, BigDecimal> mapPenResult = new HashMap<>();
         // вх.сальдо по пене - APENYA
         apenyaDAO.getByLsk(kart.getLsk(), String.valueOf(calcStore.getPeriodBack()))
@@ -522,25 +523,32 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
     private void process(Stream<SumRec> stream, Map<DebPeriod, PeriodSumma> mapDeb,
                          Date beforeDt, Date beforeDtForPen, boolean isNegate, Integer curMg) {
         stream
-                .filter(t -> beforeDt == null || t.getDt().getTime() <= beforeDt.getTime()) // ограничить по дате
                 .forEach(t -> {
-                            DebPeriod debPeriod = new DebPeriod(
-                                    curMg != null ? curMg : t.getMg());
+                            //log.info("Обработка: t.getSumma()={}, t.getDt()={}, t.getMg()={}",
+                            //        t.getSumma(), t.getDt(), t.getMg());
+                            BigDecimal deb = BigDecimal.ZERO;
+                            // ограничить по дате для расчета долга
+                            if (beforeDt == null || t.getDt().getTime() <= beforeDt.getTime()) {
+                                deb = isNegate ? t.getSumma().negate() : t.getSumma();
+                            }
                             BigDecimal debForPen = BigDecimal.ZERO;
-                            // ограничить по дате для долга по пене
+                            // ограничить по дате для долга для расчета пени
                             if (beforeDtForPen == null || t.getDt().getTime() < beforeDtForPen.getTime()) {
                                 debForPen = isNegate ? t.getSumma().negate() : t.getSumma();
                             }
-                            PeriodSumma periodSumma =
-                                    new PeriodSumma(isNegate ? t.getSumma().negate() : t.getSumma(), debForPen
-                                    );
 
-                            PeriodSumma val = mapDeb.get(debPeriod);
-                            if (val == null) {
-                                mapDeb.put(debPeriod, periodSumma);
-                            } else {
-                                val.setDeb(val.getDeb().add(periodSumma.getDeb()));
-                                val.setDebForPen(val.getDebForPen().add(periodSumma.getDebForPen()));
+                            if (deb.compareTo(BigDecimal.ZERO) != 0 || debForPen.compareTo(BigDecimal.ZERO) != 0) {
+                                PeriodSumma periodSumma =
+                                        new PeriodSumma(deb, debForPen);
+                                DebPeriod debPeriod = new DebPeriod(
+                                        curMg != null ? curMg : t.getMg());
+                                PeriodSumma val = mapDeb.get(debPeriod);
+                                if (val == null) {
+                                    mapDeb.put(debPeriod, periodSumma);
+                                } else {
+                                    val.setDeb(val.getDeb().add(periodSumma.getDeb()));
+                                    val.setDebForPen(val.getDebForPen().add(periodSumma.getDebForPen()));
+                                }
                             }
                         }
                 );

@@ -65,9 +65,9 @@ public class GenPenMngImpl implements GenPenMng {
                 return Optional.empty();
             } else {
                 // некритическая ошибка отсутствия записи в справочнике пени, просто не начислить пеню!
-                log.error("ОШИБКА во время начисления пени по лиц.счету lsk={}, возможно не настроен справочник C_SPR_PEN!"
-                                + "Попытка найти элемент: mg={}, kart.tp={}, kart.reu={}", kart.getLsk(),
-                        mg, kart.getTp().getId(), kart.getUk().getReu());
+                //log.warn("ОШИБКА во время начисления пени по лиц.счету lsk={}, возможно не настроен справочник C_SPR_PEN!"
+                //                + "Попытка найти элемент: mg={}, kart.tp={}, kart.reu={}", kart.getLsk(),
+                //        mg, kart.getTp().getId(), kart.getUk().getReu());
                 return Optional.empty();
             }
         }
@@ -87,7 +87,7 @@ public class GenPenMngImpl implements GenPenMng {
             if (stavr != null) {
                 // расчет пени = долг * процент/100
                 penDTO.proc = stavr.getProc();
-                penDTO.penya = deb.multiply(penDTO.proc).divide(new BigDecimal(100), RoundingMode.HALF_UP);
+                penDTO.penya = deb.multiply(penDTO.proc).divide(new BigDecimal(100), 10, RoundingMode.HALF_UP);
                 penDTO.stavr = stavr;
                 penDTO.days = days;
             }
