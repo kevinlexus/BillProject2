@@ -6,8 +6,6 @@ import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
 import com.ric.cmn.Utl;
-import com.ric.cmn.excp.ErrorWhileChrg;
-import com.ric.cmn.excp.ErrorWhileChrgPen;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -60,16 +58,11 @@ public class GenPenMngImpl implements GenPenMng {
         SprPen penDt = getPenDt(calcStore, mg, kart);
         // вернуть кол-во дней между датой расчета пени и датой начала пени по справочнику
         if (penDt == null) {
-            if (mg.compareTo(calcStore.getPeriod()) > 0) {
-                // период больше текущего, не должно быть пени
-                return Optional.empty();
-            } else {
-                // некритическая ошибка отсутствия записи в справочнике пени, просто не начислить пеню!
-                //log.warn("ОШИБКА во время начисления пени по лиц.счету lsk={}, возможно не настроен справочник C_SPR_PEN!"
-                //                + "Попытка найти элемент: mg={}, kart.tp={}, kart.reu={}", kart.getLsk(),
-                //        mg, kart.getTp().getId(), kart.getUk().getReu());
-                return Optional.empty();
-            }
+            // некритическая ошибка отсутствия записи в справочнике пени, просто не начислить пеню!
+            //log.warn("ОШИБКА во время начисления пени по лиц.счету lsk={}, возможно не настроен справочник C_SPR_PEN!"
+            //                + "Попытка найти элемент: mg={}, kart.tp={}, kart.reu={}", kart.getLsk(),
+            //        mg, kart.getTp().getId(), kart.getUk().getReu());
+            return Optional.empty();
         }
         int days = Utl.daysBetween(penDt.getDt(), curDt);
         PenDTO penDTO = new PenDTO();
@@ -84,12 +77,12 @@ public class GenPenMngImpl implements GenPenMng {
                     .filter(t -> days >= t.getDays1() && days <= t.getDays2()) // фильтр по кол-ву дней долга
                     .filter(t -> Utl.between(curDt, t.getDt1(), t.getDt2())) // фильтр по дате расчета в справочнике
                     .findFirst().orElse(null);
+            penDTO.days = days;
             if (stavr != null) {
                 // расчет пени = долг * процент/100
                 penDTO.proc = stavr.getProc();
                 penDTO.penya = deb.multiply(penDTO.proc).divide(new BigDecimal(100), 10, RoundingMode.HALF_UP);
                 penDTO.stavr = stavr;
-                penDTO.days = days;
             }
         }
         return Optional.of(penDTO);

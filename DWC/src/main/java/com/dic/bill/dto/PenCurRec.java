@@ -2,11 +2,13 @@ package com.dic.bill.dto;
 
 import com.dic.bill.model.scott.Stavr;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.util.Date;
 
 // запись пени
+@Slf4j
 @Data
 public class PenCurRec {
     // период долга
@@ -46,7 +48,7 @@ public class PenCurRec {
      * @param stavr     - ставка реф.
      */
     public boolean compareWith(int mg, BigDecimal debForPen, Stavr stavr) {
-        return this.mg == mg && this.debForPen.equals(debForPen)
+        return this.mg == mg && this.debForPen.compareTo(debForPen) == 0
                 && (this.stavr == null && stavr == null || this.stavr != null && this.stavr.equals(stavr));
     }
 
