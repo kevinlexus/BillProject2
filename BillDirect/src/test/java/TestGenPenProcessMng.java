@@ -111,9 +111,9 @@ public class TestGenPenProcessMng {
 
         // данные периоды должны использоваться!
         testDataBuilder.addDebForTest(kart, 201403, 201403,
-                201308, "1200.00");
+                201308, "-6200.00");
         testDataBuilder.addDebForTest(kart, 201403, 201403,
-                201309, "5.15");
+                201309, "-5.15");
         testDataBuilder.addDebForTest(kart, 201403, 201403,
                 201310, "7.00");
         testDataBuilder.addDebForTest(kart, 201403, 201403,
@@ -144,7 +144,7 @@ public class TestGenPenProcessMng {
         testDataBuilder.addChangeForTest(kart, changeDoc, 4, "011", 3,
                 "201311", "201311", 1, strDt, "5.89");
         testDataBuilder.addChangeForTest(kart, changeDoc, 4, "012", 3,
-                "201312", "201312", 1, strDt, "15000.74");
+                "201312", "201312", 1, strDt, "15.74");
         testDataBuilder.addChangeForTest(kart, changeDoc, 4, "011", 3,
                 "201401", "201401", 1, strDt, "-10.10");
         testDataBuilder.addChangeForTest(kart, changeDoc, 4, "012", 5,
@@ -197,8 +197,11 @@ public class TestGenPenProcessMng {
         reqConf.prepareId();
         reqConf.getCalcStore().setDebugLvl(1);
 
+        // сбросить изменения в БД принудительно, иначе из за QueryHints, не будут получены данные insert-ов
+        penCurDAO.flush();
+
         // рассчитать задолженность, пеню
-        genPenProcessMng.genDebitPen(reqConf.getCalcStore(), true, ko.getId());
+        genPenProcessMng.genDebitPenForTest(reqConf.getCalcStore(), true, ko.getId());
 
         // для того чтобы увидеть insert-ы в тестом режиме
         penCurDAO.findAll().size();

@@ -7,6 +7,7 @@ import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.Ko;
 import com.ric.cmn.excp.ErrorWhileChrgPen;
 import com.ric.dto.CommonResult;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,4 +18,9 @@ public interface GenPenProcessMng {
 
     void genDebitPen(CalcStore calcStore, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen;
 
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation = Isolation.READ_COMMITTED, // читать только закомиченные данные, не ставить другое, не даст запустить поток!
+            rollbackFor = Exception.class)
+    void genDebitPenForTest(CalcStore calcStore, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen;
 }

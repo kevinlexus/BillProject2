@@ -74,6 +74,25 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
     }
 
     /**
+     * Рассчет задолженности и пени по всем лиц.счетам помещения для тестов - без создания новой транзакции
+     *
+     * @param calcStore - хранилище объемов, справочников
+     * @param isCalcPen - рассчитывать пеню?
+     * @param klskId    - klskId помещения
+     */
+    @Override
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation = Isolation.READ_COMMITTED, // читать только закомиченные данные, не ставить другое, не даст запустить поток!
+            rollbackFor = Exception.class)
+    public void genDebitPenForTest(CalcStore calcStore, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen {
+        Ko ko = em.find(Ko.class, klskId);
+        for (Kart kart : ko.getKart()) {
+            genDebitPen(calcStore, kart);
+        }
+    }
+
+    /**
      * Рассчет задолженности и пени по лиц.счету
      *
      * @param calcStore - хранилище справочников
@@ -84,10 +103,8 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
         Integer period = calcStore.getPeriod();
         Integer periodBack = calcStore.getPeriodBack();
 
-        // todo убрать отсюда, для итогового сделать общий вызов, для всех лиц.счетов
         // сформировать движение по лиц.счету (для пени - не нужно, сделал сюда, чтобы выполнялось многопоточно)
-        //chargePayDAO.genChrgPay(kart.getLsk(), 0, calcStore.getGenDt());
-
+        chargePayDAO.genChrgPay(kart.getLsk(), 0, calcStore.getGenDt());
         // загрузить все финансовые операции по лиц.счету
         CalcStoreLocal localStore = new CalcStoreLocal();
         // задолженность предыдущего периода

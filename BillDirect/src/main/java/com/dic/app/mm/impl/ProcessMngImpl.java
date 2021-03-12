@@ -107,7 +107,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                 if (Utl.in(reqConf.getTp(), 0, 1, 2, 4)) {
                     // расчет начисления, распределение объемов, расчет пени
                     reqConf.prepareChrgCountAmount();
-                    log.trace("Будет обработано {} объектов", reqConf.getLstItems().size());
+                    log.info("Будет обработано {} объектов", reqConf.getLstItems().size());
                     ProcessMng processMng = ctx.getBean(ProcessMng.class);
                     processMng.processAll(reqConf);
                 }
@@ -130,8 +130,8 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
 
 
     /**
-     * Выполнение процесса формирования начисления, задолженности, по помещению, по дому, по вводу
-     *
+     * Выполнение процесса формирования начисления, задолженности, по помещению, по дому, по вводу - выполняется
+     * например, из потоков распределения воды
      * @param reqConf - конфиг запроса
      * @throws ErrorWhileGen - ошибка обработки
      */

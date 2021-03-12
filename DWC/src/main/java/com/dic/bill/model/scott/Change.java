@@ -17,6 +17,7 @@ import java.util.Objects;
 @SuppressWarnings("serial")
 @Entity
 @Table(name = "C_CHANGE", schema="SCOTT")
+//@Table(name = "C_CHANGE", schema="LOADER1")
 @Getter @Setter
 public class Change implements java.io.Serializable  {
 

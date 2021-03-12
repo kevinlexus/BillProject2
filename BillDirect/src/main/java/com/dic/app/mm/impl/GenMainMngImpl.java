@@ -142,7 +142,7 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                         dt1 = new Date();
                         retStatus = webController.gen(2, 0, 0L, 0L, 0, null, null,
                                 Utl.getStrFromDate(config.getCurDt2()), 0);
-                        if (!retStatus.substring(0, 2).equals("OK")) {
+                        if (!retStatus.startsWith("OK")) {
                             // ошибка начисления
                             execMng.setMenuElemState(menuGenItg, "Ошибка во время распределения объемов!");
                             log.error("Ошибка во время распределения объемов!");
@@ -155,7 +155,7 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                         dt1 = new Date();
                         retStatus = webController.gen(0, 0, 0L, 0L, 0, null, null,
                                 Utl.getStrFromDate(config.getCurDt2()), 0);
-                        if (!retStatus.substring(0, 2).equals("OK")) {
+                        if (!retStatus.startsWith("OK")) {
                             // ошибка начисления
                             execMng.setMenuElemState(menuGenItg, "Найдены ошибки во время расчета начисления!");
                             log.error("Найдены ошибки во время расчета начисления!");
@@ -176,16 +176,24 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                         if (markExecuted(menuGenItg, itm, 0.50D, dt1)) return;
                         break;
                     case "GEN_PENYA":
-                        // начисление пени по домам
+                        // начисление пени по всем помещениям в Java
                         dt1 = new Date();
-                        lst = houseDao.findAll()
+                        retStatus = webController.gen(1, 0, 0L, 0L, 0, null, null,
+                                Utl.getStrFromDate(config.getCurDt2()), 0);
+                        if (!retStatus.startsWith("OK")) {
+                            // ошибка начисления
+                            execMng.setMenuElemState(menuGenItg, "Найдены ошибки во время расчета начисления пени!");
+                            log.error("Найдены ошибки во время расчета начисления пени!");
+                            return;
+                        }
+                        /*lst = houseDao.findAll()
                                 .stream().map(t -> t.getId().longValue()).collect(Collectors.toList());
                         if (!doInThread(lst, itm)) {
                             // ошибка распределения
                             execMng.setMenuElemState(menuGenItg, "Найдены ошибки во время начисления пени по домам!");
                             log.error("Найдены ошибки во время начисления пени по домам!");
                             return;
-                        }
+                        }*/
                         if (markExecuted(menuGenItg, itm, 0.55D, dt1)) return;
                         break;
                     case "GEN_PENYA_DIST":
