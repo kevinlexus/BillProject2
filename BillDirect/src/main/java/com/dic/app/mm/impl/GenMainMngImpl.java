@@ -44,7 +44,6 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
     private final SprParamMng sprParamMng;
     private final ConfigApp config;
     private final SprGenItmDAO sprGenItmDao;
-    private final HouseDAO houseDao;
     private final ExecMng execMng;
     private final KartMng kartMng;
     private final RegistryMng registryMng;
@@ -61,7 +60,6 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                           SprParamMng sprParamMng, KartMng kartMng, RegistryMng registryMng) {
         this.config = config;
         this.sprGenItmDao = sprGenItmDao;
-        this.houseDao = houseDao;
         this.execMng = execMng;
         this.mntBase = mntBase;
         this.ctx = ctx;
@@ -172,11 +170,17 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                     case "GEN_FLOW":
                         // движение
                         dt1 = new Date();
-                        execMng.execProc(20, null, null);
-                        if (markExecuted(menuGenItg, itm, 0.50D, dt1)) return;
+                        if (Utl.nvl(sprParamMng.getN1("JAVA_DEB_PEN"), 0D).intValue() == 0) {
+                            // старый вариант (расчет движения не в потоке Java)
+                            execMng.execProc(20, null, null);
+                            if (markExecuted(menuGenItg, itm, 0.50D, dt1)) return;
+                        } else {
+                            // начисление пени в Java - поставить отметку
+                            setMenuProc(menuGenItg, itm, 0.50D, dt1, new Date(), "ПРОПУЩЕНО");
+                        }
                         break;
                     case "GEN_PENYA":
-                        // начисление пени по всем помещениям в Java
+                        // начисление пени по всем помещениям в Java + движение по лиц.счетам
                         dt1 = new Date();
                         retStatus = webController.gen(1, 0, 0L, 0L, 0, null, null,
                                 Utl.getStrFromDate(config.getCurDt2()), 0);
@@ -186,14 +190,6 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                             log.error("Найдены ошибки во время расчета начисления пени!");
                             return;
                         }
-                        /*lst = houseDao.findAll()
-                                .stream().map(t -> t.getId().longValue()).collect(Collectors.toList());
-                        if (!doInThread(lst, itm)) {
-                            // ошибка распределения
-                            execMng.setMenuElemState(menuGenItg, "Найдены ошибки во время начисления пени по домам!");
-                            log.error("Найдены ошибки во время начисления пени по домам!");
-                            return;
-                        }*/
                         if (markExecuted(menuGenItg, itm, 0.55D, dt1)) return;
                         break;
                     case "GEN_PENYA_DIST":
@@ -310,7 +306,7 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                             // выйти при ошибке
                             return;
                         }
-                        setMenuProc(menuGenItg, itm, 0.96D, dt1, new Date());
+                        setMenuProcDefaultMessage(menuGenItg, itm, 0.96D, dt1, new Date());
                         if (markExecuted(menuGenItg, itm, 1D, dt1)) return;
                         break;
                     case "GEN_CHECK_AFTER_GEN":
@@ -371,7 +367,7 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
      * @return - формирование остановлено?
      */
     private boolean markExecuted(SprGenItm genItg, SprGenItm itm, double proc, Date dt1) {
-        setMenuProc(genItg, itm, proc, dt1, new Date());
+        setMenuProcDefaultMessage(genItg, itm, proc, dt1, new Date());
         if (config.getLock().isStopped(stopMarkAmntGen)) {
             execMng.setMenuElemState(genItg, "Остановлено!");
             execMng.setMenuElemState(itm, "Остановлено!");
@@ -381,11 +377,17 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
         return false;
     }
 
-    private void setMenuProc(SprGenItm menuGenItg, SprGenItm itm, Double proc, Date dt1, Date dt2) {
+    private void setMenuProcDefaultMessage(SprGenItm menuGenItg, SprGenItm itm, Double proc, Date dt1, Date dt2) {
+        setMenuProc(menuGenItg, itm, proc, dt1, dt2, "Выполнено успешно");
+    }
+
+    private void setMenuProc(SprGenItm menuGenItg, SprGenItm itm, Double proc, Date dt1, Date dt2, String message) {
         execMng.setMenuElemPercent(itm, 1);
         execMng.setMenuElemDt1(itm, dt1);
         execMng.setMenuElemDt2(itm, dt2);
-        execMng.setMenuElemState(itm, "Выполнено успешно");
+        execMng.setMenuElemState(itm, message);
+        long duration = (dt2.getTime() - dt1.getTime()) / 1000;
+        execMng.setMenuElemDuration(itm, (int) duration);
         if (menuGenItg.getSel()) {
             execMng.setMenuElemPercent(menuGenItg, proc);
         }

@@ -130,6 +130,13 @@ public class ExecMngImpl implements ExecMng {
         sprFound.setProc(proc);
     }
 
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void setMenuElemDuration(SprGenItm spr, int duration) {
+        SprGenItm sprFound = em.find(SprGenItm.class, spr.getId());
+        sprFound.setDuration(duration);
+    }
+
     /**
      * Установить строку состояния в элементе меню
      *

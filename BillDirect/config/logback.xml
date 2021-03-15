@@ -24,7 +24,7 @@
             <totalSizeCap>5GB</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{dd-MM-yyyy HH:mm:ss} %msg%n</pattern> 
+            <pattern>%d{dd-MM-yyyy HH:mm:ss} %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -52,14 +52,14 @@
     </appender>
 
      <logger name="org.hibernate.type" level="ERROR" />  <!-- TRACE - показать BIND переменные -->
-     <logger name="org.hibernate" level="ERROR" />  
+     <logger name="org.hibernate" level="ERROR" />
      <logger name="org.hibernate.SQL" level="ERROR" /> <!-- DEBUG - показать SQL запрос -->
-    
+
 
     <logger name="org.hibernate.engine.loading.internal.CollectionLoadContext" level="ERROR"/>
 
-    <logger name="com.ric" level="TRACE"/>
-    <logger name="com.dic" level="TRACE"/>
+    <logger name="com.ric" level="INFO"/>
+    <logger name="com.dic" level="INFO"/>
 
     <!-- логгер для платежей -->
     <logger name="com.dic.app.mm.impl.DistPayMngImpl" level="INFO" additivity="false">
