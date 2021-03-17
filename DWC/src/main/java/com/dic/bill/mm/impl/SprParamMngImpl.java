@@ -12,12 +12,14 @@ import com.ric.cmn.Utl;
 import com.ric.cmn.excp.WrongParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.QueryHint;
 import java.util.Date;
 import java.util.List;
 
@@ -29,9 +31,7 @@ import java.util.List;
 @Slf4j
 public class SprParamMngImpl implements SprParamMng {
 
-    @PersistenceContext
-    private EntityManager em;
-    @Autowired
+	@Autowired
     private SprParamDAO sprParamDao;
 
 	/**
@@ -40,6 +40,7 @@ public class SprParamMngImpl implements SprParamMng {
 	 * @return
 	 */
 	@Override
+	@QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
 	public Double getN1(String cd) throws WrongParam {
 		SprParam par = sprParamDao.getByCD(cd, 0);
 		if (par !=null) {
@@ -55,6 +56,7 @@ public class SprParamMngImpl implements SprParamMng {
 	 * @return
 	 */
 	@Override
+	@QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
 	public String getS1(String cd) throws WrongParam {
 		SprParam par = sprParamDao.getByCD(cd, 1);
 		if (par !=null) {
@@ -70,6 +72,7 @@ public class SprParamMngImpl implements SprParamMng {
 	 * @return
 	 */
 	@Override
+	@QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
 	public Date getD1(String cd) throws WrongParam {
 		SprParam par = sprParamDao.getByCD(cd, 2);
 		if (par !=null) {
@@ -85,6 +88,7 @@ public class SprParamMngImpl implements SprParamMng {
 	 * @return
 	 */
 	@Override
+	@QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
 	public Boolean getBool(String cd) throws WrongParam {
 		SprParam par = sprParamDao.getByCD(cd, 0);
 		if (par !=null) {

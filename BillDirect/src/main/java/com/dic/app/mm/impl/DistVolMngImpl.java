@@ -109,8 +109,8 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                 // не заполнен вариант расчета - возможно услуга для распределения
                 // объема - информационно - не распределять вообще
                 tpTmp = -1;
-            } else if (Utl.in(usl.getFkCalcTp(), 3, 17, 4, 18, 31, 38, 40)) {
-                if (Utl.in(usl.getFkCalcTp(), 3, 17, 38, 4, 18, 40)) {
+            } else if (usl.isKindOfODPU()) {
+                if (usl.isKindOfWaterAndODPU()) {
                     // х.в., г.в.
                     tpTmp = 0;
                 } else if (Utl.in(usl.getFkCalcTp(), 31)) {
@@ -284,7 +284,7 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                     if (!Utl.in(distTp, 4, 5)) {
                         // с ОДПУ
                         if (kub.compareTo(BigDecimal.ZERO) != 0) {
-                            if (Utl.in(usl.getFkCalcTp(), 3, 17, 4, 18, 31, 38, 40)) {
+                            if (usl.isKindOfODPU()) {
                                 if (Utl.in(distTp, 1, 3, 8)) {
                                     BigDecimal volAmntWithODN = (amnt.volAmnt.add(limitODN.amntVolODN))
                                             .setScale(3, BigDecimal.ROUND_HALF_UP);

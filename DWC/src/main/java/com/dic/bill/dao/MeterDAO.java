@@ -6,9 +6,11 @@ import com.dic.bill.model.scott.Meter;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.LockModeType;
+import javax.persistence.QueryHint;
 import java.util.Date;
 import java.util.List;
 
@@ -64,6 +66,7 @@ public interface MeterDAO extends JpaRepository<Meter, Integer> {
      * @param dtFrom  - начало периода
      * @param dtTo    - оконачание периода
      */
+    @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
     @Query(value = "select t.id as meterId, t.usl.id as uslId, t.dt1 as dtFrom, t.dt2 as dtTo, nvl(sum(o.n1),0) as vol " +
             "from Meter t left join t.objPar o with o.lst.cd='ins_vol_sch' and o.mg = TO_CHAR(?2,'YYYYMM') "
             + "where t.koObj.id = ?1 " +

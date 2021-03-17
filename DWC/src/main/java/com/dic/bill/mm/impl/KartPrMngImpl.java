@@ -94,7 +94,7 @@ public class KartPrMngImpl implements KartPrMng {
                     if (nabor.getUsl().isHousing()) {
                         // жилищная услуга
                         countPers.kpr++;
-                    } else if (Utl.in(nabor.getUsl().getFkCalcTp(), 17, 18, 19, 55, 56, 57)) {
+                    } else if (nabor.getUsl().isKindOfWaterCalc()) {
                         // х.в., г.в., водоотвед - КИС согласно ТЗ на 22.10.2019
                         // расценка по ВО - на уровне для населения
                         countPers.kpr++;
@@ -132,7 +132,7 @@ public class KartPrMngImpl implements KartPrMng {
                     countPers.kprOt++;
                     //countPers.kprMax++;
                     if (nabor.getUsl().isHousing() ||
-                            Utl.in(nabor.getUsl().getFkCalcTp(), 17, 18, 19, 55, 56, 57)) {
+                            nabor.getUsl().isKindOfWaterCalc()) {
                         // жилищная услуга или х.в., г.в., кан. ред.25.10.2019
                         countPers.kprNorm++;
                     }

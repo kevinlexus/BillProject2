@@ -12,7 +12,7 @@
 
   <groupId>com.ric.cmn</groupId>
   <artifactId>BillCommon</artifactId>
-  <version>0.0.6</version>
+  <version>0.0.7</version>
     <name>BillCommon</name>
 
   <description>Common utilities for BillWeb and Others</description>
