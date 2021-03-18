@@ -1,16 +1,16 @@
 package com.dic.bill.dto;
 
+import com.dic.bill.model.scott.Lst;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
 import com.ric.cmn.Utl;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.Value;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * DTO, для хранения необходимых данных для расчета пени, начисления
@@ -33,9 +33,16 @@ public class CalcStore {
     // период - месяц назад
     Integer periodBack;
     // справочник дат начала пени
-    List<SprPen> lstSprPen;
+    //List<SprPen> lstSprPen;
     // справочник ставок рефинансирования
     List<Stavr> lstStavr;
+
+    // справочник дат начала пени
+    Map<SprPenKey, SprPen> mapSprPen = new HashMap<>();
+
+    public void prepareSprPen(List<SprPen> lstSprPen) {
+        lstSprPen.forEach(t -> mapSprPen.put(new SprPenKey(t.getTp(), t.getMg(), t.getReu()), t));
+    }
 
     // справочник дат начала пени по типу услуг (пока отказался, решил использовать старый справочник ред.31.05.2019)
     //List<PenDt> lstPenDt;

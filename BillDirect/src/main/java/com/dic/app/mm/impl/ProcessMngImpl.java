@@ -238,7 +238,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                             if (Utl.in(reqConf.getTp(), 0, 1, 3, 4)) {
                                 // Начисление и начисление для распределения объемов, расчет пени
                                 if (reqConf.isSingleObjectCalc()) {
-                                    log.trace("****** {} фин.лиц.сч. klskId={} - начало    ******",
+                                    log.info("****** {} фин.лиц.сч. klskId={} - начало    ******",
                                             reqConf.getTpName(), id);
                                 }
                                 if (Utl.in(reqConf.getTp(), 1)) {
@@ -249,7 +249,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                                     genChrgProcessMng.genChrg(reqConf, id);
                                 }
                                 if (reqConf.isSingleObjectCalc()) {
-                                    log.trace("****** {} фин.лиц.сч. klskId={} - окончание   ******",
+                                    log.info("****** {} фин.лиц.сч. klskId={} - окончание   ******",
                                             reqConf.getTpName(), id);
                                 } else if (i == 500L) {
                                     i = 0;

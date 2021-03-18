@@ -284,7 +284,8 @@ public class RequestConfigDirect implements Cloneable {
         log.trace("Начало получения справочников");
         if (tp == 1) {
             // справочник дат начала пени
-            calcStore.setLstSprPen(sprPenDAO.findAll());
+            //calcStore.setLstSprPen(sprPenDAO.findAll());
+            calcStore.prepareSprPen(sprPenDAO.findAll());
             log.info("Загружен справочник дат начала обязательства по оплате");
             // справочник ставок рефинансирования
             calcStore.setLstStavr(stavrDAO.findAll());

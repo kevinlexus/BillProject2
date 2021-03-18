@@ -52,11 +52,11 @@ public class ThreadMngImpl<T> implements ThreadMng<T> {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void invokeThreads(RequestConfigDirect reqConf, int rqn)
             throws ErrorWhileGen {
-        log.trace("Будет создано {} потоков", reqConf.getCntThreads());
+        log.info("Будет создано {} потоков", reqConf.getCntThreads());
         List<CompletableFuture<CommonResult>> lst = new ArrayList<>();
         for (int i = 0; i < reqConf.getCntThreads(); i++) {
             // создать новый поток, передать информацию о % выполнения
-            //log.info("********* Создан новый поток-1 tpName={}", reqConf.getTpName());
+            log.info("********* Создан новый поток-1 tpName={}", reqConf.getTpName());
             ProcessMng processMng = ctx.getBean(ProcessMng.class);
             //log.info("********* Создан новый поток-2 tpName={}", reqConf.getTpName());
             CompletableFuture<CommonResult> ret = processMng.process(reqConf);

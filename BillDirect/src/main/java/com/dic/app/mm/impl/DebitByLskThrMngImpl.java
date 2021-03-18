@@ -84,8 +84,8 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
     @Transactional(
             propagation = Propagation.REQUIRED,
             rollbackFor = Exception.class)
-    public void genDeb(Kart kart, CalcStore calcStore,
-                       CalcStoreLocal localStore) throws ErrorWhileChrgPen {
+    public void genDebPen(Kart kart, CalcStore calcStore,
+                          CalcStoreLocal localStore) throws ErrorWhileChrgPen {
         @Value
         class TempSumRec implements SumRecMgDt {
             BigDecimal summa;

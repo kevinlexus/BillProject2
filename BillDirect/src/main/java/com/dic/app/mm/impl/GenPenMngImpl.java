@@ -2,6 +2,7 @@ package com.dic.app.mm.impl;
 
 import com.dic.app.mm.GenPenMng;
 import com.dic.bill.dto.CalcStore;
+import com.dic.bill.dto.SprPenKey;
 import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
@@ -97,10 +98,13 @@ public class GenPenMngImpl implements GenPenMng {
      * @param kart      - лиц.счет
      */
     private SprPen getPenDt(CalcStore calcStore, Integer mg, Kart kart) {
+        return calcStore.getMapSprPen().get(new SprPenKey(kart.getTp(), mg, kart.getUk().getReu()));
+/*
         return calcStore.getLstSprPen().stream()
                 .filter(t -> t.getTp().equals(kart.getTp()) && t.getMg().equals(mg)) // фильтр по типу лиц.сч. и периоду
                 .filter(t -> t.getReu().equals(kart.getUk().getReu()))
                 .findFirst().orElse(null);
+*/
     }
 
 }
