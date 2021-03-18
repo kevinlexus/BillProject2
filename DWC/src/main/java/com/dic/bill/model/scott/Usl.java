@@ -182,11 +182,11 @@ public class Usl implements java.io.Serializable {
 
 
     /**
-     * Расчет по услугам, содержащим счетчики? или calc_tp in (17, 18, 31, 52, 53, 54, 55, 56)
+     * Расчет по услугам, содержащим счетчики? или calc_tp in (14, 17, 18, 31, 52, 53, 54, 55, 56)
      */
     @Transient
     public boolean isCounterCalc() {
-        return isBaseWaterCalc() || Utl.in(getFkCalcTp(), 31, 52, 53, 54);
+        return isBaseWaterCalc() || Utl.in(getFkCalcTp(), 14, 31, 52, 53, 54);
     }
 
     /**
