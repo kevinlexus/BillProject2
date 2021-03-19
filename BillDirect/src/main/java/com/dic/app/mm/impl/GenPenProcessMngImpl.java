@@ -105,23 +105,7 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
         Integer periodBack = calcStore.getPeriodBack();
 
         // сформировать движение по лиц.счету (для пени - не нужно, сделал сюда, чтобы выполнялось многопоточно)
-        //chargePayDAO.genChrgPay(kart.getLsk(), 0, calcStore.getGenDt());
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
-        // note ОТКЛЮЧЕНО
+        chargePayDAO.genChrgPay(kart.getLsk(), 0, calcStore.getGenDt());
         // загрузить все финансовые операции по лиц.счету
         CalcStoreLocal localStore = new CalcStoreLocal();
         // задолженность предыдущего периода
