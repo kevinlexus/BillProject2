@@ -31,7 +31,7 @@ public interface ChangeDAO extends JpaRepository<Change, Integer> {
      * Получить сгруппированные записи перерасчетов текущего периода
      * @param lsk - лицевой счет
      */
-    @Query(value = "select t.mgchange as mg, coalesce(sum(t.summa),0) as summa, t.dt "
+    @Query(value = "select t.mgchange as mg, coalesce(sum(t.summa),0) as summa, t.dt as dt "
             + "from Change t "
             + "where t.kart.lsk=:lsk "
             + "group by t.mgchange, t.dt")

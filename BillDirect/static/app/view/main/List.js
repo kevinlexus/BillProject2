@@ -87,7 +87,15 @@ Ext.define('TestApp.view.main.List', {
             }
         }
         ,
-        { text: 'Время, с', dataIndex: 'duration',
+        { text: 'Время', dataIndex: 'duration',
+            minWidth: 30,
+            editor: {
+                readOnly:true, //только для чтения
+                allowBlank: false
+            }
+        }
+        ,
+        { text: 'Пред.время', dataIndex: 'prevDuration',
             minWidth: 30,
             editor: {
                 readOnly:true, //только для чтения

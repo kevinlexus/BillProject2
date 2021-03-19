@@ -17,7 +17,7 @@ public interface ExecMng {
 	void clearPercent();
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    void setMenuElemDuration(SprGenItm spr, int duration);
+    void setMenuElemDuration(SprGenItm spr, double duration);
 
     void setMenuElemState(SprGenItm spr, String state);
 	void setMenuElemDt1(SprGenItm spr, Date dt1);

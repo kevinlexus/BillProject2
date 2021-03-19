@@ -7,6 +7,7 @@
  */
 var state="-1";
 var progress="0";
+var myMask;
 
 Ext.define('TestApp.view.main.MainController', {
     extend: 'Ext.app.ViewController',
@@ -147,6 +148,10 @@ Ext.define('TestApp.view.main.MainController', {
                 var grid = me.lookupReference('grid1');
                 var buttonGauge2 = me.lookupReference('buttonGauge2');
                 if (state != '1') {
+                    grid.getStore().reload();
+                    myMask = new Ext.LoadMask(grid, {msg:"Идет формирование...", msgCls:'msgClsCustomLoadMask'});
+                    myMask.show();
+
                     // начать формирование, если уже не идёт
                     Ext.Ajax.request({
                         url: 'http://127.0.0.1:8100/startGen'
@@ -209,6 +214,7 @@ Ext.define('TestApp.view.main.MainController', {
                             ret = false;
                         } else if (state == '2') {
                             //Ошибка формирования
+                            myMask.hide();
                             ret = true;
                             console.log("Ошибка");
                             refreshFlag=true;
@@ -218,6 +224,7 @@ Ext.define('TestApp.view.main.MainController', {
                             me.fireEvent('ownevent1', this);
                         } else if (state == '0') {
                             //Формирование закончено успешно
+                            myMask.hide();
                             ret = true;
                             console.log("Закончено успешно");
                             refreshFlag=true;

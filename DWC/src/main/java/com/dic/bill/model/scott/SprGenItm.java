@@ -53,7 +53,10 @@ public class SprGenItm {
     private Double proc;
 
     @Column(name = "DURATION")
-    private Integer duration;
+    private Double duration;
+
+    @Column(name = "PREV_DURATION")
+    private Double prevDuration;
 
     // Выбрано пользователем?
     @Type(type = "org.hibernate.type.NumericBooleanType")

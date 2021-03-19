@@ -1,5 +1,6 @@
 package com.dic.bill.dao;
 
+import com.dic.bill.dto.SumDebPenLskRec;
 import com.dic.bill.dto.SumDebPenRec;
 import com.dic.bill.model.scott.ChargePay;
 import com.dic.bill.model.scott.ChargePayId;
@@ -32,6 +33,21 @@ public interface ChargePayDAO extends JpaRepository<ChargePay, ChargePayId> {
     )
     @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
     List<SumDebPenRec> getDebitByLsk(@Param("lsk") String lsk, @Param("period") Integer period);
+
+
+    /**
+     * Получить записи долгов, по услугам, по всем лиц.счетам
+     *
+     * @param period - бухгалтерский период
+     */
+    @Query(value = "select t.lsk, sum(decode(t.type,0,t.summa,-1*t.summa)) as debOut, " +
+            "        t.mg from scott.c_chargepay2 t " +
+            "        where :period between t.mgFrom and t.mgTo " +
+            "        group by t.lsk, t.mg"
+            , nativeQuery = true
+    )
+    @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
+    List<SumDebPenLskRec> getDebitsAll(@Param("period") Integer period);
 
     /**
      * Получить все элементы по лиц.счету, начиная с заданного периода

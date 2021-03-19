@@ -386,8 +386,9 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
         execMng.setMenuElemDt1(itm, dt1);
         execMng.setMenuElemDt2(itm, dt2);
         execMng.setMenuElemState(itm, message);
-        long duration = (dt2.getTime() - dt1.getTime()) / 1000;
-        execMng.setMenuElemDuration(itm, (int) duration);
+        double duration = (dt2.getTime() - dt1.getTime()) / 1000 / 60;
+        double durationFormatted = Double.parseDouble((int)(duration / 60) + "." + (int)(duration % 60));
+        execMng.setMenuElemDuration(itm, durationFormatted);
         if (menuGenItg.getSel()) {
             execMng.setMenuElemPercent(menuGenItg, proc);
         }

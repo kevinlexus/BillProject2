@@ -1,12 +1,11 @@
 package com.dic.bill.dto;
 
-import com.dic.bill.model.scott.Lst;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
 import com.ric.cmn.Utl;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -17,6 +16,7 @@ import java.util.*;
  *
  * @author Lev
  */
+@Slf4j
 @Getter
 @Setter
 public class CalcStore {
@@ -39,6 +39,8 @@ public class CalcStore {
 
     // справочник дат начала пени
     Map<SprPenKey, SprPen> mapSprPen = new HashMap<>();
+    // долги по всем лиц.счетам
+    Map<String, List<SumDebPenRec>> mapDebit = new HashMap<>();
 
     public void prepareSprPen(List<SprPen> lstSprPen) {
         lstSprPen.forEach(t -> mapSprPen.put(new SprPenKey(t.getTp(), t.getMg(), t.getReu()), t));
@@ -60,4 +62,14 @@ public class CalcStore {
         BigDecimal monthDays = BigDecimal.valueOf(Utl.getCntDaysByDate(getCurDt1()));
         return oneDay.divide(monthDays, 20, RoundingMode.HALF_UP);
     }
+
+    public void setMapDeb(List<SumDebPenLskRec> debits) {
+        debits.forEach(t -> {
+            List<SumDebPenRec> prevVal = mapDebit.putIfAbsent(t.getLsk(), new ArrayList<>());
+            if (prevVal != null) {
+                prevVal.add(t);
+            }
+        });
+    }
+
 }

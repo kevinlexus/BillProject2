@@ -1,6 +1,6 @@
 Ext.define('TestApp.model.Model1', {
     extend: 'Ext.data.Model',
-            fields: ['id', 'name', 'cd', 'proc', 'sel', 'duration',
+            fields: ['id', 'name', 'cd', 'proc', 'sel', 'duration', 'prev_duration',
                 {
                     name: 'dt1',
                     dateFormat: 'Y-m-d H:i:s',

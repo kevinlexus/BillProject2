@@ -132,7 +132,7 @@ public class ExecMngImpl implements ExecMng {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public void setMenuElemDuration(SprGenItm spr, int duration) {
+    public void setMenuElemDuration(SprGenItm spr, double duration) {
         SprGenItm sprFound = em.find(SprGenItm.class, spr.getId());
         sprFound.setDuration(duration);
     }
@@ -187,6 +187,8 @@ public class ExecMngImpl implements ExecMng {
             t.setDt1(null);
             t.setDt2(null);
             t.setState(null);
+            t.setPrevDuration(t.getDuration());
+            t.setDuration(null);
         });
     }
 

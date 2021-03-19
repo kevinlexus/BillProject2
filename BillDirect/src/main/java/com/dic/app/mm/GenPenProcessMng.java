@@ -1,5 +1,6 @@
 package com.dic.app.mm;
 
+import com.dic.app.RequestConfigDirect;
 import com.dic.bill.RequestConfig;
 import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.CalcStoreLocal;
@@ -16,7 +17,7 @@ import java.util.concurrent.Future;
 
 public interface GenPenProcessMng {
 
-    void genDebitPen(CalcStore calcStore, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen;
+    void genDebitPen(RequestConfigDirect reqConf, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen;
 
     @Transactional(
             propagation = Propagation.REQUIRED,

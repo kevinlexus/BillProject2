@@ -5,6 +5,7 @@ import com.dic.bill.SpringContext;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.ChrgCountAmount;
+import com.dic.bill.dto.SumDebPenLskRec;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
 import lombok.Getter;
@@ -29,6 +30,17 @@ import java.util.stream.Collectors;
 @Setter
 @Slf4j
 public class RequestConfigDirect implements Cloneable {
+
+
+    // диапазон расчета
+    enum CalcScope {
+        PREMISE,
+        UK,
+        HOUSE,
+        VVOD,
+        ALL,
+        NOT_SPECIFIED
+    }
 
     // Id запроса
     int rqn;
@@ -124,8 +136,7 @@ public class RequestConfigDirect implements Cloneable {
             case 1:
             case 2:
             case 3:
-            case 4:
-                {
+            case 4: {
                 // задолженность и пеня, - проверить текущую дату
                 if (genDt == null) {
                     return "ERROR! некорректная дата расчета!";
@@ -152,24 +163,27 @@ public class RequestConfigDirect implements Cloneable {
      * Подготовка списка Id (помещений, вводов)
      */
     public void prepareId() {
-        if (Utl.in(tp, 0,1,3,4)) {
+        CalcScope calcScope = CalcScope.NOT_SPECIFIED;
+        if (Utl.in(tp, 0, 1, 3, 4)) {
             // начисление, начисление для распределения объемов, начисление по одной услуге, для автоначисления
             KartDAO kartDao = SpringContext.getBean(KartDAO.class);
             if (ko != null) {
                 // по помещению
+                calcScope = CalcScope.PREMISE;
                 isLockForLongLastingProcess = false;
                 setTpSel(1);
                 lstItems = new ArrayList<>(1);
                 lstItems.add(ko.getId());
-                cntThreads=1;
+                cntThreads = 1;
                 isSingleObjectCalc = true;
             } else if (uk != null) {
                 // по УК
+                calcScope = CalcScope.UK;
                 isLockForLongLastingProcess = true;
                 setTpSel(4); // почему 0 как и по всему фонду???
                 lstItems = kartDao.findAllKlskIdByReuId(uk.getReu())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
-                if (tp==3) {
+                if (tp == 3) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
                 } else {
@@ -177,12 +191,13 @@ public class RequestConfigDirect implements Cloneable {
                 }
             } else if (house != null) {
                 // по дому
+                calcScope = CalcScope.HOUSE;
                 isLockForLongLastingProcess = false;
                 setTpSel(3);
                 //lstItems = kartMng.getKoByHouse(house).stream().map(Ko::getId).collect(Collectors.toList());
                 lstItems = kartDao.findAllKlskIdByHouseId(house.getId())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
-                if (tp==3) {
+                if (tp == 3) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
                 } else {
@@ -190,25 +205,27 @@ public class RequestConfigDirect implements Cloneable {
                 }
             } else if (vvod != null) {
                 // по вводу
+                calcScope = CalcScope.VVOD;
                 isLockForLongLastingProcess = false;
                 setTpSel(2);
                 //lstItems = kartMng.getKoByVvod(vvod).stream().map(Ko::getId).collect(Collectors.toList());
                 lstItems = kartDao.findAllKlskIdByVvodId(vvod.getId())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
-                if (tp==3) {
+                if (tp == 3) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
                 } else {
                     cntThreads = CNT_THREADS_FOR_COMMON_TASKS;
                 }
             } else {
+                // по всему фонду
+                calcScope = CalcScope.ALL;
                 isLockForLongLastingProcess = true;
                 setTpSel(5);
-                // по всему фонду
                 // конвертировать из List<BD> в List<Long> (native JPA представляет k_lsk_id только в BD и происходит type Erasure)
                 lstItems = kartDao.findAllKlskId()
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
-                if (tp==3) {
+                if (tp == 3) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
                 } else {
@@ -220,21 +237,25 @@ public class RequestConfigDirect implements Cloneable {
             VvodDAO vvodDAO = SpringContext.getBean(VvodDAO.class);
             if (vvod != null) {
                 // распределить конкретный ввод
+                calcScope = CalcScope.VVOD;
                 lstItems = new ArrayList<>(1);
                 lstItems.add(vvod.getId());
-                cntThreads=1;
+                cntThreads = 1;
             } else if (uk != null) {
                 // по УК
+                calcScope = CalcScope.UK;
                 lstItems = vvodDAO.findVvodByReu(uk.getReu())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
                 cntThreads = CNT_THREADS_FOR_COMMON_TASKS;
             } else if (house != null) {
                 // по дому
+                calcScope = CalcScope.HOUSE;
                 lstItems = vvodDAO.findVvodByHouse(house.getId())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
-                cntThreads=1;
+                cntThreads = 1;
             } else {
                 // все вводы
+                calcScope = CalcScope.ALL;
                 isLockForLongLastingProcess = true;
                 lstItems = vvodDAO.findVvodAll()
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
@@ -248,8 +269,12 @@ public class RequestConfigDirect implements Cloneable {
             lstStrItems = saldoUslDao.getAllWithNonZeroDeb(lskFrom, lskTo,
                     config.getPeriodBack());
         } else {
-            throw new IllegalArgumentException("Параметр tp="+tp+" не обслуживается методом");
+            throw new IllegalArgumentException("Параметр tp=" + tp + " не обслуживается методом");
         }
+
+        // построить хранилище, для запроса
+        setCalcStore(buildCalcStore(genDt, tp, calcScope));
+
     }
 
     /**
@@ -263,13 +288,15 @@ public class RequestConfigDirect implements Cloneable {
     /**
      * Построить CalcStore
      *
-     * @param genDt - дата формирования
-     * @param tp    - тип операции
+     * @param genDt     дата формирования
+     * @param tp        тип операции
+     * @param calcScope диапазон расчета
      */
-    private CalcStore buildCalcStore(Date genDt, int tp) {
+    private CalcStore buildCalcStore(Date genDt, int tp, CalcScope calcScope) {
         ConfigApp config = SpringContext.getBean(ConfigApp.class);
         SprPenDAO sprPenDAO = SpringContext.getBean(SprPenDAO.class);
         StavrDAO stavrDAO = SpringContext.getBean(StavrDAO.class);
+        ChargePayDAO chargePayDAO = SpringContext.getBean(ChargePayDAO.class);
         CalcStore calcStore = new CalcStore();
         // дата начала периода
         calcStore.setCurDt1(config.getCurDt1());
@@ -290,6 +317,16 @@ public class RequestConfigDirect implements Cloneable {
             // справочник ставок рефинансирования
             calcStore.setLstStavr(stavrDAO.findAll());
             log.info("Загружен справочник ставок рефинансирования");
+            // note этот код ведёт к OOM
+/*
+            if (calcScope.equals(CalcScope.ALL)) {
+                log.info("*** Продолжительный процесс *** Начало загрузки долгов предыдущ. периода по всем лиц.счетам");
+                Integer periodBack = Integer.valueOf(Utl.getStrFromDate(Utl.addMonths(genDt, -1), "yyyyMM"));
+                List<SumDebPenLskRec> debits = chargePayDAO.getDebitsAll(periodBack);
+                calcStore.setMapDeb(debits);
+                log.info("*** Продолжительный процесс *** Окончание загрузки долгов предыдущ. периода по всем лиц.счетам");
+            }
+*/
         }
         return calcStore;
     }
@@ -454,11 +491,10 @@ public class RequestConfigDirect implements Cloneable {
 
             requestConfigDirect.setUsl(usl);
             requestConfigDirect.setLstItems(lstItems);
-            requestConfigDirect.setCalcStore(calcStore);
+            //requestConfigDirect.setCalcStore(calcStore);
             requestConfigDirect.setStopMark(stopMark);
             requestConfigDirect.isMultiThreads = this.isMultiThreads;
 
-            requestConfigDirect.setCalcStore(requestConfigDirect.buildCalcStore(genDt, tp));
             return requestConfigDirect;
         }
     }

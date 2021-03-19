@@ -3,7 +3,10 @@ package com.dic.app.mm.impl;
 import com.dic.app.mm.DebitByLskThrMng;
 import com.dic.app.mm.GenPenMng;
 import com.dic.bill.dao.*;
-import com.dic.bill.dto.*;
+import com.dic.bill.dto.CalcStore;
+import com.dic.bill.dto.CalcStoreLocal;
+import com.dic.bill.dto.PenCurRec;
+import com.dic.bill.dto.SumRecMgDt;
 import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.PenCur;
 import com.dic.bill.model.scott.Penya;
@@ -111,7 +114,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         BigDecimal chrgSumm = localStore.getChrgSum();
         List<SumRecMgDt> lst = new ArrayList<>();
         lst.add(new TempSumRec(chrgSumm, null, dt1, null));
-        process(lst.stream(), mapDebPart1, null, null, false, calcStore.getPeriod());
+        process(lst.stream(), mapDebPart1, null, null, false, calcStore.getPeriod(), false);
 
         // обновить mgTo записей, если они были расширены до текущего периода
         //debDAO.delByLskPeriod(kart.getLsk(), calcStore.getPeriod());
@@ -120,6 +123,8 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         HashMap<Integer, PeriodSumma> mapDebPart2;
         // свернутые долги для расчета пени по дням - совокупно все услуги - упорядоченный по ключу (дата) LinkedHashMap
         Map<Date, Map<Integer, BigDecimal>> mapDebForPen = new LinkedHashMap<>();
+        // итоговая сумма долга по дню расчета
+        Map<Date, BigDecimal> mapDebAmount = new LinkedHashMap<>();
         // долги на последнюю дату - совокупно все услуги
         Map<Integer, BigDecimal> mapDeb = new LinkedHashMap<>();
 
@@ -137,22 +142,24 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
 
             // перерасчеты, включая текущий день
             lst = localStore.getLstChngFlow().stream()
-                    .map(t -> new TempSumRec(t.getSumma(), t.getMg(), dt1, null))
+                    .map(t -> new TempSumRec(t.getSumma(), t.getMg(), t.getDt(), null))
                     .collect(Collectors.toList());
-            process(lst.stream(), mapDebPart2, dt, null, false, null);
+            process(lst.stream(), mapDebPart2, dt, dt, false, null, true);
 
             // вычесть оплату включая текущий день поступления - для обычного долга
             // и не включая для расчета пени
             lst = localStore.getLstPayFlow().stream()
-                    .map(t -> new TempSumRec(t.getSumma(), t.getMg(), t.getDt(), null))
+                    .map(t -> new TempSumRec(t.getSumma(), t.getMg(),
+                            t.getDt().getTime() < calcStore.getCurDt1().getTime() ? calcStore.getCurDt1() : t.getDt(), // исправить дату оплаты, если была принята предыдущим периодом
+                            null))
                     .collect(Collectors.toList());
-            process(lst.stream(), mapDebPart2, dt, dt, true, null);
+            process(lst.stream(), mapDebPart2, dt, dt, true, null, false);
 
             // вычесть корректировки оплаты - для расчета долга, включая текущий день
             lst = localStore.getLstPayCorrFlow().stream()
                     .map(t -> new TempSumRec(t.getSumma(), t.getMg(), dt1, null))
                     .collect(Collectors.toList());
-            process(lst.stream(), mapDebPart2, dt, null, true, null);
+            process(lst.stream(), mapDebPart2, dt, null, true, null, false);
 
             log.trace("********** Долги на дату: dt={}, lsk={}", Utl.getStrFromDate(dt), kart.getLsk());
             mapDebPart2.forEach((key, value) -> {
@@ -171,7 +178,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                     });
 
             // сгруппировать сумму свернутых долгов для расчета пени по всем услугам, по датам
-            groupByDateMg(mapDebPart2, mapDebForPen, dt);
+            groupByDateMg(mapDebPart2, mapDebForPen, mapDebAmount, dt);
 
             if (dt.getTime() == dt2.getTime()) {
                 // сгруппировать сумму свернутых основных долгов по всем услугам, на последнюю дату
@@ -180,7 +187,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
 
         }
         // рассчитать и сохранить пеню
-        genSavePen(kart, calcStore, mapDebForPen, mapDeb);
+        genSavePen(kart, calcStore, mapDebForPen, mapDeb, mapDebAmount);
     }
 
 
@@ -263,9 +270,10 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
      * @param calcStore    - хранилище справочников
      * @param mapDebForPen - долги для расчета пени
      * @param mapDeb       - долги
+     * @param mapDebAmount
      */
     private void genSavePen(Kart kart, CalcStore calcStore, Map<Date,
-            Map<Integer, BigDecimal>> mapDebForPen, Map<Integer, BigDecimal> mapDeb) throws ErrorWhileChrgPen {
+            Map<Integer, BigDecimal>> mapDebForPen, Map<Integer, BigDecimal> mapDeb, Map<Date, BigDecimal> mapDebAmount) throws ErrorWhileChrgPen {
         // расчитать пеню по долгам
         // пеня для C_PEN_CUR
         List<PenCurRec> lstPenCurRec = new ArrayList<>(10);
@@ -288,6 +296,10 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                     // расчет пени
                     Optional<GenPenMngImpl.PenDTO> penDto = genPenMng.calcPen(calcStore, debForPen, mg, kart, dt);
                     penDto.ifPresent(t -> {
+                        if (mapDebAmount.get(dt) == null || mapDebAmount.get(dt).compareTo(BigDecimal.ZERO) <= 0) {
+                            // занулить пеню, если совокупный долг по дню <= 0
+                            t.penya = BigDecimal.ZERO;
+                        }
                         // сохранить кол-во дней долга (будет сохранено последнее значение)
                         mapDebDays.put(mg, t.getDays());
                         PenCurRec lastRec = mapLastPenCurRec.get(mg);
@@ -387,24 +399,27 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
      *
      * @param mapDebPart2  - исходная коллекция
      * @param mapDebForPen - результат
+     * @param mapDebAmount - итого долг по дням
      * @param curDt        - дата группировки
      */
     private void groupByDateMg(HashMap<Integer, PeriodSumma> mapDebPart2, Map<Date,
-            Map<Integer, BigDecimal>> mapDebForPen, Date curDt) {
+            Map<Integer, BigDecimal>> mapDebForPen, Map<Date, BigDecimal> mapDebAmount, Date curDt) {
         // взять только положительную составляющую, так как для данного периода долга нужно
         // брать только задолженности по услугам, но не переплаты
-        mapDebPart2.entrySet().stream()
-                .filter(t -> t.getValue().getDebForPen().compareTo(BigDecimal.ZERO) > 0)
-                .forEach(t -> {
-                    Map<Integer, BigDecimal> mapByDt = mapDebForPen.get(curDt);
-                    if (mapByDt != null) {
-                        mapByDt.merge(t.getKey(), t.getValue().getDebForPen(), BigDecimal::add);
-                    } else {
-                        Map<Integer, BigDecimal> map = new HashMap<>();
-                        map.put(t.getKey(), t.getValue().getDebForPen());
-                        mapDebForPen.put(curDt, map);
-                    }
-                });
+        mapDebPart2.forEach((key, value) -> {
+            if (value.getDebForPen().compareTo(BigDecimal.ZERO) > 0) {
+                Map<Integer, BigDecimal> mapByDt = mapDebForPen.get(curDt);
+                if (mapByDt != null) {
+                    mapByDt.merge(key, value.getDebForPen(), BigDecimal::add);
+                } else {
+                    Map<Integer, BigDecimal> map = new HashMap<>();
+                    map.put(key, value.getDebForPen());
+                    mapDebForPen.put(curDt, map);
+                }
+            }
+            mapDebAmount.computeIfPresent(curDt, (k, v) -> v.add(value.getDebForPen()));
+            mapDebAmount.putIfAbsent(curDt, value.getDebForPen());
+        });
     }
 
     /**
@@ -485,15 +500,16 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
     /**
      * Обработка финансового потока, группировка долгов по услугам, орг, периоду
      *
-     * @param stream         - поток
-     * @param mapDeb         - результат
-     * @param beforeDt       - ограничивать до даты, включительно
-     * @param beforeDtForPen - ограничивать до даты, не включая, для пени
-     * @param isNegate       - делать отрицательный знак (для оплаты)
-     * @param curMg          - текущий период
+     * @param stream         поток
+     * @param mapDeb         результат
+     * @param beforeDt       ограничивать до даты, включительно
+     * @param beforeDtForPen ограничивать до даты, не включая, для пени
+     * @param isNegate       делать отрицательный знак (для оплаты)
+     * @param curMg          текущий период
+     * @param isChange       перерасчет?
      */
     private void process(Stream<SumRecMgDt> stream, Map<Integer, PeriodSumma> mapDeb,
-                         Date beforeDt, Date beforeDtForPen, boolean isNegate, Integer curMg) {
+                         Date beforeDt, Date beforeDtForPen, boolean isNegate, Integer curMg, boolean isChange) {
         stream
                 .forEach(t -> {
                             //log.info("Обработка: t.getSumma()={}, t.getDt()={}, t.getMg()={}",
@@ -505,7 +521,8 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                             }
                             BigDecimal debForPen = BigDecimal.ZERO;
                             // ограничить по дате для долга для расчета пени
-                            if (beforeDtForPen == null || t.getDt().getTime() < beforeDtForPen.getTime()) {
+                            if (beforeDtForPen == null || isChange && t.getDt().getTime() <= beforeDtForPen.getTime()
+                                    || t.getDt().getTime() < beforeDtForPen.getTime()) {
                                 debForPen = isNegate ? t.getSumma().negate() : t.getSumma();
                             }
 

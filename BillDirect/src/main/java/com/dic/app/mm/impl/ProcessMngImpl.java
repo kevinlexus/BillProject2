@@ -243,7 +243,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                                 }
                                 if (Utl.in(reqConf.getTp(), 1)) {
                                     // расчет пени
-                                    genPenProcessMng.genDebitPen(reqConf.getCalcStore(), true, id);
+                                    genPenProcessMng.genDebitPen(reqConf, true, id);
                                 } else {
                                     // расчет начисления и начисления для распределения объемов
                                     genChrgProcessMng.genChrg(reqConf, id);

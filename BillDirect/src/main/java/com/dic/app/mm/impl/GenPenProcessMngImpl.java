@@ -1,5 +1,6 @@
 package com.dic.app.mm.impl;
 
+import com.dic.app.RequestConfigDirect;
 import com.dic.app.mm.DebitByLskThrMng;
 import com.dic.app.mm.GenPenProcessMng;
 import com.dic.app.mm.ReferenceMng;
@@ -57,19 +58,19 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
     /**
      * Рассчет задолженности и пени по всем лиц.счетам помещения
      *
-     * @param calcStore - хранилище объемов, справочников
-     * @param isCalcPen - рассчитывать пеню?
-     * @param klskId    - klskId помещения
+     * @param reqConf   запрос
+     * @param isCalcPen рассчитывать пеню?
+     * @param klskId    klskId помещения
      */
     @Override
     @Transactional(
             propagation = Propagation.REQUIRES_NEW,
             isolation = Isolation.READ_COMMITTED, // читать только закомиченные данные, не ставить другое, не даст запустить поток!
             rollbackFor = Exception.class)
-    public void genDebitPen(CalcStore calcStore, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen {
+    public void genDebitPen(RequestConfigDirect reqConf, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen {
         Ko ko = em.find(Ko.class, klskId);
         for (Kart kart : ko.getKart()) {
-            genDebitPen(calcStore, kart);
+            genDebitPenKart(reqConf.getCalcStore(), kart);
         }
     }
 
@@ -88,7 +89,7 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
     public void genDebitPenForTest(CalcStore calcStore, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen {
         Ko ko = em.find(Ko.class, klskId);
         for (Kart kart : ko.getKart()) {
-            genDebitPen(calcStore, kart);
+            genDebitPenKart(calcStore, kart);
         }
     }
 
@@ -98,17 +99,37 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
      * @param calcStore - хранилище справочников
      * @param kart      - лиц.счет
      */
-    private void genDebitPen(CalcStore calcStore, Kart kart) throws ErrorWhileChrgPen {
+    private void genDebitPenKart(CalcStore calcStore, Kart kart) throws ErrorWhileChrgPen {
         // метод в разработке с 09.12.20
         Integer period = calcStore.getPeriod();
         Integer periodBack = calcStore.getPeriodBack();
 
         // сформировать движение по лиц.счету (для пени - не нужно, сделал сюда, чтобы выполнялось многопоточно)
-        chargePayDAO.genChrgPay(kart.getLsk(), 0, calcStore.getGenDt());
+        //chargePayDAO.genChrgPay(kart.getLsk(), 0, calcStore.getGenDt());
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
+        // note ОТКЛЮЧЕНО
         // загрузить все финансовые операции по лиц.счету
         CalcStoreLocal localStore = new CalcStoreLocal();
         // задолженность предыдущего периода
+        //if (calcStore.getMapDebit().size() > 0) {
+        //    localStore.setLstDebFlow(calcStore.getMapDebit().get(kart.getLsk()));
+        //} else {
         localStore.setLstDebFlow(chargePayDAO.getDebitByLsk(kart.getLsk(), periodBack));
+
         // текущее начисление - 2
         localStore.setChrgSum(chargeDao.getChargeByPeriodAndLsk(kart.getLsk()));
         // перерасчеты - 5
