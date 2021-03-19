@@ -378,7 +378,8 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                     penya.setPenya(v.setScale(2, RoundingMode.HALF_UP));
                 }
                 penya.setSumma(Utl.nvl(mapDeb.get(k), BigDecimal.ZERO));
-                if (Utl.nvl(mapDeb.get(k), BigDecimal.ZERO).compareTo(BigDecimal.ZERO) != 0) {
+                if (Utl.nvl(mapDeb.get(k), BigDecimal.ZERO).compareTo(BigDecimal.ZERO) != 0
+                        && mapDebDays.get(k) != null && mapDebDays.get(k) > 0) {
                     penya.setDays(mapDebDays.get(k));
                 } else {
                     penya.setDays(0);

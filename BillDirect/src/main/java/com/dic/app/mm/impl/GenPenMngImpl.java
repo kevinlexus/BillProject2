@@ -69,7 +69,7 @@ public class GenPenMngImpl implements GenPenMng {
         PenDTO penDTO = new PenDTO();
         penDTO.proc = BigDecimal.ZERO;
         penDTO.penya = BigDecimal.ZERO;
-        penDTO.days = 0;
+        penDTO.days = days;
         if (days > 0 && !(kart.getPnDt() != null && curDt.getTime() >= kart.getPnDt().getTime())) {
             // пеня возможна, если есть кол-во дней долга
             //log.info(" spr={}, cur={}, curDays={}", sprPenUsl.getTs(), curDt, curDays);
