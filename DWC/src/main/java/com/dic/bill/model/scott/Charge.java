@@ -15,8 +15,8 @@ import java.math.BigDecimal;
  */
 @SuppressWarnings("serial")
 @Entity
-//@Table(name = "C_CHARGE", schema="SCOTT")
-@Table(name = "C_CHARGE", schema="LOADER1")
+@Table(name = "C_CHARGE", schema="SCOTT")
+//@Table(name = "C_CHARGE", schema="LOADER1")
 @Getter @Setter
 public class Charge implements java.io.Serializable  {
 

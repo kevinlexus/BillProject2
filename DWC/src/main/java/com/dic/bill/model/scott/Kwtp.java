@@ -22,8 +22,8 @@ import java.util.Objects;
  */
 @SuppressWarnings("serial")
 @Entity
-//@Table(name = "C_KWTP", schema = "SCOTT")
-@Table(name = "C_KWTP", schema = "LOADER1")
+@Table(name = "C_KWTP", schema = "SCOTT")
+//@Table(name = "C_KWTP", schema = "LOADER1")
 @Getter
 @Setter
 public class Kwtp implements java.io.Serializable, KwtpPay {

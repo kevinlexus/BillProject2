@@ -15,8 +15,8 @@ import java.util.Date;
  */
 @SuppressWarnings("serial")
 @Entity
-//@Table(name = "C_PEN_CORR", schema="SCOTT")
-@Table(name = "C_PEN_CORR", schema="LOADER1")
+@Table(name = "C_PEN_CORR", schema="SCOTT")
+//@Table(name = "C_PEN_CORR", schema="LOADER1")
 @Getter @Setter
 @NoArgsConstructor
 public class PenCorr implements java.io.Serializable {
