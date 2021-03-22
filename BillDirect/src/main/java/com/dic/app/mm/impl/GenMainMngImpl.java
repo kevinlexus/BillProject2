@@ -570,7 +570,7 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
 
         if (strErr != null && strErr.length() > 0) {
             // ошибки
-            menuCheckBG.setState("Var=" + var + " " + strMes + strErr);
+            menuCheckBG.setState("Var=" + var + " " + (strMes!=null?strMes:"") + strErr);
             return true;
         } else {
             // нет ошибок
