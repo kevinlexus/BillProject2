@@ -397,33 +397,6 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
     }
 
     /**
-     * Выполнение в потоках
-     *
-     * @param lst - список Id вводов
-     * @param spr - элемент меню
-     */
-    private boolean doInThread(List<Long> lst, SprGenItm spr) {
-        // будет выполнено позже, в создании потока
-        PrepThread<Long> reverse = (item, proc) -> {
-            // сохранить процент выполнения
-            //execMng.setPercent(spr, proc);
-            // потоковый сервис
-            GenThrMng genThrMng = ctx.getBean(GenThrMng.class);
-            return genThrMng.doJob(3, item, spr, proc);
-        };
-
-        // вызвать в потоках
-        try {
-            // вызвать потоки, проверять наличие маркера работы процесса
-            threadMng.invokeThreads(reverse, 5, lst, true, 0, "AmountGeneration");
-        } catch (InterruptedException | ExecutionException | WrongParam | ErrorWhileChrg | ErrorWhileGen e) {
-            log.error(Utl.getStackTraceString(e));
-            return false;
-        }
-        return true;
-    }
-
-    /**
      * Проверка ошибок до формирования
      * вернуть false - если нет ошибок
      *

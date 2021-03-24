@@ -619,7 +619,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                             UslPriceVolKart uslPriceVolKart = mapUslPriceVol.get(nabor.getUsl().getParentUsl().getId());
                             isMeterExist = uslPriceVolKart != null && uslPriceVolKart.isMeter();
                         } else {
-                            log.error("Не найдена главная услуга PARENT_USL в справочнике услуг: usl={}",
+                            log.error("Пустая главная услуга в поле PARENT_USL, в справочнике услуг, по услуге: usl={}",
                                     nabor.getUsl().getId());
                         }
                     }
