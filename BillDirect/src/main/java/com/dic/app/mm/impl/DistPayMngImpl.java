@@ -194,7 +194,7 @@ public class DistPayMngImpl implements DistPayMng {
 */
                         }
                     } else {
-                        saveKwtpDayLog(amount, "4.0 Сумма оплаты < долг (недоплата)");
+                        saveKwtpDayLog(amount, "4.0 Сумма оплаты < долг за период (недоплата)");
                         final BigDecimal rangeBegin = new BigDecimal("0.01");
                         final BigDecimal rangeEnd = new BigDecimal("100");
                         boolean flag = false;

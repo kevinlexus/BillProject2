@@ -35,16 +35,10 @@ public class CalcStore {
     // справочник дат начала пени
     //List<SprPen> lstSprPen;
     // справочник ставок рефинансирования
-    List<Stavr> lstStavr;
+    //List<Stavr> lstStavr;
 
-    // справочник дат начала пени
-    Map<SprPenKey, SprPen> mapSprPen = new HashMap<>();
     // долги по всем лиц.счетам
     Map<String, List<SumDebPenRec>> mapDebit = new HashMap<>();
-
-    public void prepareSprPen(List<SprPen> lstSprPen) {
-        lstSprPen.forEach(t -> mapSprPen.put(new SprPenKey(t.getTp(), t.getMg(), t.getReu()), t));
-    }
 
     // справочник дат начала пени по типу услуг (пока отказался, решил использовать старый справочник ред.31.05.2019)
     //List<PenDt> lstPenDt;

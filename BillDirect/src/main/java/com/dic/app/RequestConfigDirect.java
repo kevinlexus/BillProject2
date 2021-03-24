@@ -310,15 +310,17 @@ public class RequestConfigDirect implements Cloneable {
         calcStore.setPeriodBack(Integer.valueOf(config.getPeriodBack()));
         log.trace("Начало получения справочников");
         if (tp == 1) {
+            // перенёс загузку в ConfigAppImpl
             // справочник дат начала пени
             //calcStore.setLstSprPen(sprPenDAO.findAll());
-            calcStore.prepareSprPen(sprPenDAO.findAll());
-            log.info("Загружен справочник дат начала обязательства по оплате");
+            //calcStore.prepareSprPen(sprPenDAO.findAll());
+            //log.info("Загружен справочник дат начала обязательства по оплате");
             // справочник ставок рефинансирования
-            calcStore.setLstStavr(stavrDAO.findAll());
-            log.info("Загружен справочник ставок рефинансирования");
-            // note этот код ведёт к OOM
-/*
+            //calcStore.setLstStavr(stavrDAO.findAll());
+            //log.info("Загружен справочник ставок рефинансирования");
+
+
+/* note этот код ведёт к OOM
             if (calcScope.equals(CalcScope.ALL)) {
                 log.info("*** Продолжительный процесс *** Начало загрузки долгов предыдущ. периода по всем лиц.счетам");
                 Integer periodBack = Integer.valueOf(Utl.getStrFromDate(Utl.addMonths(genDt, -1), "yyyyMM"));

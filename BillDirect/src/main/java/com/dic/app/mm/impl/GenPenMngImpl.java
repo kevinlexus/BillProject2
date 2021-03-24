@@ -1,5 +1,6 @@
 package com.dic.app.mm.impl;
 
+import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.GenPenMng;
 import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.SprPenKey;
@@ -26,6 +27,13 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class GenPenMngImpl implements GenPenMng {
+
+    private final ConfigApp configApp;
+
+    public GenPenMngImpl(ConfigApp configApp) {
+        this.configApp = configApp;
+    }
+
 
     /**
      * Внутренний класс DTO расчета пени
@@ -56,7 +64,7 @@ public class GenPenMngImpl implements GenPenMng {
     @Override
     public Optional<PenDTO> calcPen(CalcStore calcStore, BigDecimal deb, Integer mg, Kart kart, Date curDt) {
         // дата начала начисления пени
-        SprPen penDt = getPenDt(calcStore, mg, kart);
+        SprPen penDt = getPenDt(mg, kart);
         // вернуть кол-во дней между датой расчета пени и датой начала пени по справочнику
         if (penDt == null) {
             // некритическая ошибка отсутствия записи в справочнике пени, просто не начислить пеню!
@@ -73,7 +81,7 @@ public class GenPenMngImpl implements GenPenMng {
         if (days > 0 && !(kart.getPnDt() != null && curDt.getTime() >= kart.getPnDt().getTime())) {
             // пеня возможна, если есть кол-во дней долга
             //log.info(" spr={}, cur={}, curDays={}", sprPenUsl.getTs(), curDt, curDays);
-            Stavr stavr = calcStore.getLstStavr().stream()
+            Stavr stavr = configApp.getLstStavr().stream()
                     .filter(t -> t.getTp().equals(kart.getTp())) // фильтр по типу лиц.счета
                     .filter(t -> days >= t.getDays1() && days <= t.getDays2()) // фильтр по кол-ву дней долга
                     .filter(t -> Utl.between(curDt, t.getDt1(), t.getDt2())) // фильтр по дате расчета в справочнике
@@ -93,18 +101,11 @@ public class GenPenMngImpl implements GenPenMng {
     /**
      * Получить строку даты начала пени по типу лиц.счета
      *
-     * @param calcStore - хранилище справочников
      * @param mg        - период задолженности
      * @param kart      - лиц.счет
      */
-    private SprPen getPenDt(CalcStore calcStore, Integer mg, Kart kart) {
-        return calcStore.getMapSprPen().get(new SprPenKey(kart.getTp(), mg, kart.getUk().getReu()));
-/*
-        return calcStore.getLstSprPen().stream()
-                .filter(t -> t.getTp().equals(kart.getTp()) && t.getMg().equals(mg)) // фильтр по типу лиц.сч. и периоду
-                .filter(t -> t.getReu().equals(kart.getUk().getReu()))
-                .findFirst().orElse(null);
-*/
+    private SprPen getPenDt(Integer mg, Kart kart) {
+        return configApp.getMapSprPen().get(new SprPenKey(kart.getTp(), mg, kart.getUk().getReu()));
     }
 
 }

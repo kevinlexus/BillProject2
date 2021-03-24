@@ -107,7 +107,8 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                 if (Utl.in(reqConf.getTp(), 0, 1, 2, 4)) {
                     // расчет начисления, распределение объемов, расчет пени
                     reqConf.prepareChrgCountAmount();
-                    log.info("Будет обработано {} объектов", reqConf.getLstItems().size());
+
+                    if (reqConf.getLstItems().size() > 1) log.info("Будет обработано {} объектов", reqConf.getLstItems().size());
                     ProcessMng processMng = ctx.getBean(ProcessMng.class);
                     processMng.processAll(reqConf);
                 }

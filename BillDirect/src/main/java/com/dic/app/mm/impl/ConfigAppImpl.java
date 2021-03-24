@@ -2,12 +2,22 @@ package com.dic.app.mm.impl;
 
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.Lock;
+import com.dic.bill.SpringContext;
+import com.dic.bill.dao.ChargePayDAO;
+import com.dic.bill.dao.SprPenDAO;
+import com.dic.bill.dao.StavrDAO;
 import com.dic.bill.dao.TuserDAO;
+import com.dic.bill.dto.SprPenKey;
 import com.dic.bill.model.scott.Param;
+import com.dic.bill.model.scott.SprPen;
+import com.dic.bill.model.scott.Stavr;
 import com.dic.bill.model.scott.Tuser;
 import com.ric.cmn.Utl;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +36,12 @@ import java.util.*;
  */
 @Service
 @Slf4j
+@Getter
+@Setter
 public class ConfigAppImpl implements ConfigApp {
 
+    @Autowired
+    ApplicationContext ctx;
     @PersistenceContext
     private EntityManager em;
     @Autowired
@@ -40,6 +54,12 @@ public class ConfigAppImpl implements ConfigApp {
 
     // блокировщик выполнения процессов
     private Lock lock;
+    // справочник дат начала пени
+    private List<SprPen> lstSprPen;
+    // справочник ставок рефинансирования
+    private List<Stavr> lstStavr;
+    // справочник дат начала пени
+    Map<SprPenKey, SprPen> mapSprPen = new HashMap<>();
 
     @PostConstruct
     private void setUp() {
@@ -50,6 +70,13 @@ public class ConfigAppImpl implements ConfigApp {
         log.info("Конец расчетного периода = {}", getCurDt2());
         log.info("-----------------------------------------------------------------");
         log.info("");
+        SprPenDAO sprPenDAO = ctx.getBean(SprPenDAO.class);
+        StavrDAO stavrDAO = ctx.getBean(StavrDAO.class);
+        lstSprPen = sprPenDAO.findAll();
+        lstSprPen.forEach(t -> mapSprPen.put(new SprPenKey(t.getTp(), t.getMg(), t.getReu()), t));
+        log.info("Загружен справочник дат начала обязательства по оплате");
+        lstStavr= stavrDAO.findAll();
+        log.info("Загружен справочник ставок рефинансирования");
 
         TimeZone.setDefault(TimeZone.getTimeZone("GMT+7"));
         // блокировщик процессов

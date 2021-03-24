@@ -6,9 +6,7 @@ import com.dic.app.mm.PrepThread;
 import com.dic.app.mm.ProcessMng;
 import com.dic.app.mm.ThreadMng;
 import com.ric.cmn.Utl;
-import com.ric.cmn.excp.ErrorWhileChrg;
 import com.ric.cmn.excp.ErrorWhileGen;
-import com.ric.cmn.excp.WrongParam;
 import com.ric.dto.CommonResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
@@ -45,18 +42,19 @@ public class ThreadMngImpl<T> implements ThreadMng<T> {
 
     /**
      * Вызвать выполнение потоков распределения объемов/ начисления - новый метод
+     *
      * @param reqConf - кол-во потоков
-     * @param rqn - номер запроса
+     * @param rqn     - номер запроса
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void invokeThreads(RequestConfigDirect reqConf, int rqn)
             throws ErrorWhileGen {
-        log.info("Будет создано {} потоков", reqConf.getCntThreads());
+        if (reqConf.getLstItems().size() > 1) log.info("Будет создано {} потоков", reqConf.getCntThreads());
         List<CompletableFuture<CommonResult>> lst = new ArrayList<>();
         for (int i = 0; i < reqConf.getCntThreads(); i++) {
             // создать новый поток, передать информацию о % выполнения
-            log.info("********* Создан новый поток-1 tpName={}", reqConf.getTpName());
+            if (reqConf.getLstItems().size() > 1) log.info("********* Создан новый поток-1 tpName={}", reqConf.getTpName());
             ProcessMng processMng = ctx.getBean(ProcessMng.class);
             //log.info("********* Создан новый поток-2 tpName={}", reqConf.getTpName());
             CompletableFuture<CommonResult> ret = processMng.process(reqConf);
@@ -73,18 +71,19 @@ public class ThreadMngImpl<T> implements ThreadMng<T> {
 
     /**
      * Вызвать выполнение потоков распределения объемов/ начисления - старый метод
-     * @param reverse -   lambda функция
-     * @param cntThreads - кол-во потоков
-     * @param lstItem    - список Id на обработку
+     *
+     * @param reverse     -   lambda функция
+     * @param cntThreads  - кол-во потоков
+     * @param lstItem     - список Id на обработку
      * @param isCheckStop - проверять остановку главного процесса?
-     * @param rqn - номер запроса
-     * @param stopMark - маркер остановки процесса
+     * @param rqn         - номер запроса
+     * @param stopMark    - маркер остановки процесса
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void invokeThreads(PrepThread<T> reverse,
                               int cntThreads, List<T> lstItem, boolean isCheckStop, int rqn, String stopMark)
-            throws InterruptedException, ExecutionException, WrongParam, ErrorWhileChrg, ErrorWhileGen {
+            throws ErrorWhileGen {
         log.trace("Будет создано {} потоков", cntThreads);
         long startTime = System.currentTimeMillis();
         // размер очереди
@@ -124,7 +123,7 @@ public class ThreadMngImpl<T> implements ThreadMng<T> {
                     }
                     if (itemWork != null) {
                         // создать новый поток, передать информацию о % выполнения
-                        log.info("********* Создан новый поток по itemWork={}", itemWork);
+                        log.info("********* Создан новый поток по itemWork={} ={}", itemWork, lstItem.size());
                         fut = reverse.lambdaFunction(itemWork, proc);
                         frl.set(i, fut);
                     }
