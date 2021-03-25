@@ -16,6 +16,8 @@ public interface ConfigApp {
 
 	Integer getProgress();
 
+    void reloadSprPen();
+
     String getPeriod();
 
 	Tuser getCurUser();

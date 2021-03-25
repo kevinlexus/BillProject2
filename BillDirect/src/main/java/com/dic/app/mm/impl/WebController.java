@@ -473,6 +473,17 @@ public class WebController implements CommonConstants {
         return "OK";
     }
 
+    /**
+     * Перезагрузить справочники по пене
+     */
+    @RequestMapping("/reloadSprPen")
+    @ResponseBody
+    @Transactional
+    public String reloadSprPen() {
+        config.reloadSprPen();
+        log.info("ВНИМАНИЕ! Справочники пени перезагружены!");
+        return "OK";
+    }
 
     /**
      * Загрузить файл внешних лиц.сч. во временную таблицу

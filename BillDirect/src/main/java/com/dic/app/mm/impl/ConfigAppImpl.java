@@ -2,8 +2,6 @@ package com.dic.app.mm.impl;
 
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.Lock;
-import com.dic.bill.SpringContext;
-import com.dic.bill.dao.ChargePayDAO;
 import com.dic.bill.dao.SprPenDAO;
 import com.dic.bill.dao.StavrDAO;
 import com.dic.bill.dao.TuserDAO;
@@ -16,7 +14,6 @@ import com.ric.cmn.Utl;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -24,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import java.text.ParseException;
 import java.util.*;
 
@@ -40,12 +36,8 @@ import java.util.*;
 @Setter
 public class ConfigAppImpl implements ConfigApp {
 
-    @Autowired
-    ApplicationContext ctx;
-    @PersistenceContext
-    private EntityManager em;
-    @Autowired
-    private TuserDAO tuserDAO;
+    private final ApplicationContext ctx;
+    private final EntityManager em;
     // номер текущего запроса
     private int reqNum = 0;
 
@@ -60,6 +52,17 @@ public class ConfigAppImpl implements ConfigApp {
     private List<Stavr> lstStavr;
     // справочник дат начала пени
     Map<SprPenKey, SprPen> mapSprPen = new HashMap<>();
+    private final SprPenDAO sprPenDAO;
+    private final StavrDAO stavrDAO;
+    private final TuserDAO tuserDAO;
+
+    public ConfigAppImpl(ApplicationContext ctx, EntityManager em, TuserDAO tuserDAO, SprPenDAO sprPenDAO, StavrDAO stavrDAO) {
+        this.ctx = ctx;
+        this.em = em;
+        this.tuserDAO = tuserDAO;
+        this.sprPenDAO = sprPenDAO;
+        this.stavrDAO = stavrDAO;
+    }
 
     @PostConstruct
     private void setUp() {
@@ -70,17 +73,23 @@ public class ConfigAppImpl implements ConfigApp {
         log.info("Конец расчетного периода = {}", getCurDt2());
         log.info("-----------------------------------------------------------------");
         log.info("");
-        SprPenDAO sprPenDAO = ctx.getBean(SprPenDAO.class);
-        StavrDAO stavrDAO = ctx.getBean(StavrDAO.class);
+
+        reloadSprPen();
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT+7"));
+        // блокировщик процессов
+        setLock(new Lock());
+    }
+
+    /**
+     * Перезагрузить справочники пени
+     */
+    @Override
+    public void reloadSprPen() {
         lstSprPen = sprPenDAO.findAll();
         lstSprPen.forEach(t -> mapSprPen.put(new SprPenKey(t.getTp(), t.getMg(), t.getReu()), t));
         log.info("Загружен справочник дат начала обязательства по оплате");
         lstStavr= stavrDAO.findAll();
         log.info("Загружен справочник ставок рефинансирования");
-
-        TimeZone.setDefault(TimeZone.getTimeZone("GMT+7"));
-        // блокировщик процессов
-        setLock(new Lock());
     }
 
     /**

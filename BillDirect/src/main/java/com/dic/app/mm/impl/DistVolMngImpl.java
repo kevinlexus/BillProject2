@@ -78,8 +78,8 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
     /**
      * Распределить объемы по вводу
      *
-     * @param reqConf - параметры запроса
-     * @param vvodId  - ввод
+     * @param reqConf параметры запроса
+     * @param vvodId  ввод
      */
     private void distVolByVvod(RequestConfigDirect reqConf, Long vvodId)
             throws ErrorWhileDist {
