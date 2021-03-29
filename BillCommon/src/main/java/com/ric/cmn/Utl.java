@@ -827,7 +827,7 @@ public class Utl {
         BigDecimal sum = lst.stream().map(DistributableBigDecimal::getBdForDist).reduce(BigDecimal.ZERO, BigDecimal::add);
         if (sum.compareTo(BigDecimal.ZERO) != 0) {
             ListIterator<? extends DistributableBigDecimal> iter = lst.listIterator();
-            while (iter.hasNext()) {
+            while (iter.hasNext() && sum.compareTo(BigDecimal.ZERO) != 0) {
                 DistributableBigDecimal elem = iter.next();
                 // найти пропорцию снятия с данного элемента
                 BigDecimal sumSubstract =
