@@ -455,7 +455,7 @@ public class WebController implements CommonConstants {
         SessionFactory sessionFactory = em.getEntityManagerFactory().unwrap(SessionFactory.class);
         sessionFactory.getCache().evictEntityData();
         sessionFactory.getCache().evictCollectionData();
-        log.info("ВНИМАНИЕ! Hbernate L2 Кэш очищен!");
+        log.info("Hbernate L2 Кэш очищен!");
         return "OK";
     }
 
@@ -469,7 +469,7 @@ public class WebController implements CommonConstants {
         Param param = em.find(Param.class, 1);
         em.refresh(param);
         log.info("refreshed period={}", config.getPeriod());
-        log.info("ВНИМАНИЕ! Сущность Params перезагружена!");
+        log.info("Сущность Params перезагружена!");
         return "OK";
     }
 
@@ -481,7 +481,7 @@ public class WebController implements CommonConstants {
     @Transactional
     public String reloadSprPen() {
         config.reloadSprPen();
-        log.info("ВНИМАНИЕ! Справочники пени перезагружены!");
+        log.info("Справочники пени перезагружены!");
         return "OK";
     }
 
