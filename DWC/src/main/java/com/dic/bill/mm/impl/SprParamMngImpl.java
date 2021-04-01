@@ -1,27 +1,26 @@
 package com.dic.bill.mm.impl;
 
 import com.dic.bill.dao.SprParamDAO;
-import com.dic.bill.dao.TaskDAO;
+import com.dic.bill.dao.SprPenDAO;
+import com.dic.bill.dao.StavrDAO;
+import com.dic.bill.dto.SprPenKey;
 import com.dic.bill.mm.SprParamMng;
-import com.dic.bill.mm.TaskMng;
-import com.dic.bill.model.exs.Eolink;
-import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.scott.SprParam;
-import com.dic.bill.model.scott.Vvod;
-import com.ric.cmn.Utl;
+import com.dic.bill.model.scott.SprPen;
+import com.dic.bill.model.scott.Stavr;
 import com.ric.cmn.excp.WrongParam;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.persistence.QueryHint;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Сервис обслуживания справочника параметров
@@ -31,8 +30,15 @@ import java.util.List;
 @Slf4j
 public class SprParamMngImpl implements SprParamMng {
 
-	@Autowired
     private SprParamDAO sprParamDao;
+	private final SprPenDAO sprPenDAO;
+	private final StavrDAO stavrDAO;
+
+	public SprParamMngImpl(SprParamDAO sprParamDao, SprPenDAO sprPenDAO, StavrDAO stavrDAO) {
+		this.sprParamDao = sprParamDao;
+		this.sprPenDAO = sprPenDAO;
+		this.stavrDAO = stavrDAO;
+	}
 
 	/**
 	 * Получить параметр типа Double
@@ -103,4 +109,32 @@ public class SprParamMngImpl implements SprParamMng {
 			throw new WrongParam("Несуществующий параметр в справочнике SPR_PARAMS: CD="+cd+" cdTp="+0);
 		}
 	}
+
+	@Value
+	public static class StavPen {
+		// справочник дат начала пени
+		List<SprPen> lstSprPen;
+		// справочник ставок рефинансирования
+		List<Stavr> lstStavr;
+		// справочник дат начала пени
+		Map<SprPenKey, SprPen> mapSprPen;
+	}
+
+	/**
+	 * Перезагрузить справочники пени
+	 * @return DTO кранящий оба справочника
+	 */
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public StavPen getStavPen() {
+		List<SprPen> lstSprPen = sprPenDAO.findAll();
+		Map<SprPenKey, SprPen> mapSprPen = new HashMap<>();
+		lstSprPen.forEach(t -> mapSprPen.put(new SprPenKey(t.getTp(), t.getMg(), t.getReu()), t));
+		log.info("Загружен справочник дат начала обязательства по оплате");
+		List<Stavr> lstStavr = stavrDAO.findAll();
+		log.info("Загружен справочник ставок рефинансирования");
+		return new StavPen(lstSprPen, lstStavr, mapSprPen);
+	}
+
+
 }

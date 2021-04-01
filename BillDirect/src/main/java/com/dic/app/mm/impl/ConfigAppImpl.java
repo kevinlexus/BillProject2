@@ -2,10 +2,10 @@ package com.dic.app.mm.impl;
 
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.Lock;
-import com.dic.bill.dao.SprPenDAO;
-import com.dic.bill.dao.StavrDAO;
 import com.dic.bill.dao.TuserDAO;
 import com.dic.bill.dto.SprPenKey;
+import com.dic.bill.mm.SprParamMng;
+import com.dic.bill.mm.impl.SprParamMngImpl;
 import com.dic.bill.model.scott.Param;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
@@ -38,6 +38,9 @@ public class ConfigAppImpl implements ConfigApp {
 
     private final ApplicationContext ctx;
     private final EntityManager em;
+    private final SprParamMng sprParamMng;
+    private final TuserDAO tuserDAO;
+
     // номер текущего запроса
     private int reqNum = 0;
 
@@ -52,59 +55,44 @@ public class ConfigAppImpl implements ConfigApp {
     private List<Stavr> lstStavr;
     // справочник дат начала пени
     Map<SprPenKey, SprPen> mapSprPen = new HashMap<>();
-    private final SprPenDAO sprPenDAO;
-    private final StavrDAO stavrDAO;
-    private final TuserDAO tuserDAO;
 
-    public ConfigAppImpl(ApplicationContext ctx, EntityManager em, TuserDAO tuserDAO, SprPenDAO sprPenDAO, StavrDAO stavrDAO) {
+    public ConfigAppImpl(ApplicationContext ctx, EntityManager em, SprParamMng sprParamMng, TuserDAO tuserDAO) {
         this.ctx = ctx;
         this.em = em;
+        this.sprParamMng = sprParamMng;
         this.tuserDAO = tuserDAO;
-        this.sprPenDAO = sprPenDAO;
-        this.stavrDAO = stavrDAO;
     }
 
     @PostConstruct
     private void setUp() {
         log.info("");
         log.info("-----------------------------------------------------------------");
-        log.info("Версия модуля - {}", "1.1.0 (+расчет пени Java)");
+        log.info("Версия модуля - {}", "1.1.1 (+расчет пени Java)");
         log.info("Начало расчетного периода = {}", getCurDt1());
         log.info("Конец расчетного периода = {}", getCurDt2());
         log.info("-----------------------------------------------------------------");
         log.info("");
 
         reloadSprPen();
+
         TimeZone.setDefault(TimeZone.getTimeZone("GMT+7"));
         // блокировщик процессов
         setLock(new Lock());
     }
 
     /**
-     * Перезагрузить справочники пени
-     */
-    @Override
-    public void reloadSprPen() {
-        lstSprPen = sprPenDAO.findAll();
-        lstSprPen.forEach(t -> mapSprPen.put(new SprPenKey(t.getTp(), t.getMg(), t.getReu()), t));
-        log.info("Загружен справочник дат начала обязательства по оплате");
-        lstStavr= stavrDAO.findAll();
-        log.info("Загружен справочник ставок рефинансирования");
-    }
-
-    /**
      * Проверка необходимости выйти из приложения
-
-    @Scheduled(fixedDelay = 2000)
-    public void checkTerminate() {
-        // проверка файла "stop" на завершение приложения (для обновления)
-        File tempFile = new File("stop");
-        boolean exists = tempFile.exists();
-        if (exists) {
-            log.info("ВНИМАНИЕ! ЗАПРОШЕНА ОСТАНОВКА ПРИЛОЖЕНИЯ! - БЫЛ СОЗДАН ФАЙЛ c:\\Progs\\GisExchanger\\stop");
-            SpringApplication.exit(ctx, () -> 0);
-        }
-    }
+     *
+     * @Scheduled(fixedDelay = 2000)
+     * public void checkTerminate() {
+     * // проверка файла "stop" на завершение приложения (для обновления)
+     * File tempFile = new File("stop");
+     * boolean exists = tempFile.exists();
+     * if (exists) {
+     * log.info("ВНИМАНИЕ! ЗАПРОШЕНА ОСТАНОВКА ПРИЛОЖЕНИЯ! - БЫЛ СОЗДАН ФАЙЛ c:\\Progs\\GisExchanger\\stop");
+     * SpringApplication.exit(ctx, () -> 0);
+     * }
+     * }
      */
     // Получить Calendar текущего периода
     private List<Calendar> getCalendarCurrentPeriod() {
@@ -219,6 +207,14 @@ public class ConfigAppImpl implements ConfigApp {
     @Override
     public void incProgress() {
         progress++;
+    }
+
+    @Override
+    public void reloadSprPen() {
+        SprParamMngImpl.StavPen stavPen = sprParamMng.getStavPen();
+        lstSprPen = stavPen.getLstSprPen();
+        lstStavr = stavPen.getLstStavr();
+        mapSprPen = stavPen.getMapSprPen();
     }
 
 }

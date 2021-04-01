@@ -269,7 +269,7 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
 
                     log.info("*** Ввод vvodId={}, услуга usl={}, площадь={}, кол-во лиц сч.={}, кол-во лиц норм.={}, кол-во прож.={}, " +
                                     "объем={}, объем сч={}, объем норм.={}" +
-                                    " объем за искл.аренд.={},  введено={}, вкл.счетчики={}",
+                                    " объем за искл.аренд.={}, введено={}, вкл.счетчики={}",
                             vvod.getId(), vvod.getUsl().getId(), amnt.areaAmnt, amnt.cntSchAmnt, amnt.cntNormAmnt,
                             amnt.kprAmnt, amnt.volAmnt, amnt.volSchAmnt, amnt.volNormAmnt, amnt.volAmntResident, kub,
                             isUseSch);
@@ -309,7 +309,7 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                                                             t.getKart().getNabor().stream()
                                                                     .anyMatch((d ->
                                                                             distTp!=8 && d.getUsl().equals(t.getUsl().getUslChild()) ||
-                                                                                    distTp==8 && d.getUsl().equals(t.getUsl()) // распределение только для информации
+                                                                                    distTp==8 && d.getUsl().equals(t.getUsl())
                                                                     )) // где есть наборы по дочерним усл.
                                                             && getIsCountOpl(tp, distTp, isUseSch, t)).collect(Collectors.toList());
                                             Iterator<UslVolKartGrp> iter = lstUslVolKartGrp.iterator();
@@ -348,23 +348,27 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                                                             .filter(t->t.getNabor().stream().anyMatch(n->n.getUsl().equals(usl.getUslChild())))
                                                             .findAny();
 
-                                                    kartMain.ifPresent(kartMainUsl-> kartMainUsl.getNabor().stream()
+                                                    kartMain.flatMap(kartMainUsl -> kartMainUsl.getNabor().stream()
                                                             .filter(n -> n.getUsl().equals(usl.getUslChild()))
-                                                            .findFirst().ifPresent(n -> {
-                                                        log.info("Перерасход lsk={}, usl={}, vol={}",
+                                                            .findFirst()).ifPresent(n -> {
+                                                        log.info("Перерасход lsk={}, usl={}, volDist={}",
                                                                 n.getKart().getLsk(), n.getUsl().getId(), volDist);
                                                         n.setLimit(limit);
                                                         //log.info("$$$$$3, nabor.id={}, nabor.volAdd={}", n.getId(), volDist);
-                                                        //n.setVolAdd(volDist);
+                                                        n.setVolAdd(volDist);
+
+                                                        // информационная строка ред.30.03.21 - пока закомментил
+/*
                                                         Charge charge = new Charge();
                                                         kartMainUsl.getCharge().add(charge);
                                                         charge.setKart(kartMainUsl);
                                                         charge.setUsl(uslVolKartGrp.getUsl().getUslChild());
                                                         charge.setTestOpl(volDist);
                                                         charge.setType(5);
+*/
                                                         // добавить итоговые объемы доначисления
                                                         addAmnt(amnt, volDist, uslVolKartGrp);
-                                                    }));
+                                                    });
                                                 }
                                             }
                                         }

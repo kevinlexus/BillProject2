@@ -16,8 +16,6 @@ public interface ConfigApp {
 
 	Integer getProgress();
 
-    void reloadSprPen();
-
     String getPeriod();
 
 	Tuser getCurUser();
@@ -42,5 +40,5 @@ public interface ConfigApp {
 
 	List<Stavr> getLstStavr();
 
-
+	void reloadSprPen();
 }
