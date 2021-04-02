@@ -72,7 +72,7 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
     }
 
     /**
-    /**
+     * /**
      * Распределить объемы по вводу
      *
      * @param reqConf параметры запроса
@@ -167,8 +167,8 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                                         .filter(t ->
                                                 t.getKart().getNabor().stream()
                                                         .anyMatch((d ->
-                                                                distTp!=8 && d.getUsl().equals(t.getUsl().getUslChild()) || // должна быть дочерняя услуга в карточках! например 011->124 для Кис! ред.03.10.2019
-                                                                        distTp==8 && d.getUsl().equals(t.getUsl()) // распределение только для информации
+                                                                distTp != 8 && d.getUsl().equals(t.getUsl().getUslChild()) || // должна быть дочерняя услуга в карточках! например 011->124 для Кис! ред.03.10.2019
+                                                                        distTp == 8 && d.getUsl().equals(t.getUsl()) // распределение только для информации
                                                         )) // где есть наборы по дочерним усл.
                                                         && getIsCountOpl(tp, distTp, isUseSch, t)
                                         ).collect(Collectors.toList());
@@ -308,8 +308,8 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                                                     .filter(t -> t.getUsl().equals(usl) &&
                                                             t.getKart().getNabor().stream()
                                                                     .anyMatch((d ->
-                                                                            distTp!=8 && d.getUsl().equals(t.getUsl().getUslChild()) ||
-                                                                                    distTp==8 && d.getUsl().equals(t.getUsl())
+                                                                            distTp != 8 && d.getUsl().equals(t.getUsl().getUslChild()) ||
+                                                                                    distTp == 8 && d.getUsl().equals(t.getUsl())
                                                                     )) // где есть наборы по дочерним усл.
                                                             && getIsCountOpl(tp, distTp, isUseSch, t)).collect(Collectors.toList());
                                             Iterator<UslVolKartGrp> iter = lstUslVolKartGrp.iterator();
@@ -345,7 +345,7 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                                                 // добавить инфу по ОДН.
                                                 if (volDist.compareTo(BigDecimal.ZERO) != 0) {
                                                     Optional<Kart> kartMain = kart.getKoKw().getKart().stream()
-                                                            .filter(t->t.getNabor().stream().anyMatch(n->n.getUsl().equals(usl.getUslChild())))
+                                                            .filter(t -> t.getNabor().stream().anyMatch(n -> n.getUsl().equals(usl.getUslChild())))
                                                             .findAny();
 
                                                     kartMain.flatMap(kartMainUsl -> kartMainUsl.getNabor().stream()
@@ -371,6 +371,103 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                                                     });
                                                 }
                                             }
+                                        } else {
+                                            // ЭКОНОМИЯ - рассчитывается пропорционально кол-во проживающих, кроме Нежилых
+                                            // считается без ОКРУГЛЕНИЯ, так как экономия может быть срезана текущим объемом!
+                                            if (amnt.kprAmnt.compareTo(BigDecimal.ZERO) != 0) {
+                                                BigDecimal diffPerPers = diffDist.divide(amnt.kprAmnt, 20, BigDecimal.ROUND_HALF_UP);
+                                                log.info("*** экономия={}, на 1 прожив={}", diffDist, diffPerPers);
+                                                // лиц.счет, объем, лимит
+                                                // по счетчику
+                                                Map<Kart, Pair<BigDecimal, BigDecimal>> mapDistMeterVol = new HashMap<>();
+                                                // по нормативу
+                                                Map<Kart, Pair<BigDecimal, BigDecimal>> mapDistNormVol = new HashMap<>();
+                                                // общий
+                                                Map<Kart, Pair<BigDecimal, BigDecimal>> mapDistVol = new HashMap<>();
+                                                boolean isRestricted = false;
+                                                List<UslVolKartGrp> lstUslVolKartGrp = lstUslVolKartGrpBase.stream()
+                                                        .filter(t -> t.isResidental() && // здесь только жилые помещения
+                                                                t.getKart().getNabor().stream()
+                                                                        .anyMatch((d ->
+                                                                                distTp != 8 && d.getUsl().equals(t.getUsl().getUslChild()) ||
+                                                                                        distTp == 8 && d.getUsl().equals(t.getUsl()) // распределение только для информации
+                                                                        )) // где есть наборы по дочерним усл.
+
+                                                                && getIsCountOpl(tp, distTp, isUseSch, t)).collect(Collectors.toList());
+                                                Iterator<UslVolKartGrp> iter = lstUslVolKartGrp.iterator();
+                                                while (iter.hasNext()) {
+                                                    UslVolKartGrp uslVolKartGrp = iter.next();
+
+                                                    // лимит (информационно)
+                                                    BigDecimal limitTmp = null;
+                                                    if (Utl.in(tp, 0)) {
+                                                        // х.в. г.в.
+                                                        limitTmp = limitODN.limitByArea.multiply(uslVolKartGrp.getArea());
+                                                    } else if (tp == 2) {
+                                                        // эл.эн.
+                                                        limitTmp = limitODN.amntVolODN // взято из P_VVOD строка 591
+                                                                .multiply(uslVolKartGrp.getArea())
+                                                                .divide(amnt.areaAmnt, 3, BigDecimal.ROUND_HALF_UP);
+                                                    }
+                                                    BigDecimal limit = limitTmp;
+                                                    // установить лимит
+                                                    Kart kart = em.find(Kart.class, uslVolKartGrp.getKart().getLsk());
+                                                    kart.getNabor().stream()
+                                                            .filter(d -> d.getUsl().equals(uslVolKartGrp.getUsl().getUslChild()))
+                                                            .findFirst().ifPresent(d -> d.setLimit(limit));
+                                                    // распределить экономию в доле на кол-во проживающих
+                                                    List<UslVolKart> lstUslVolKart2 = lstUslVolKart.stream()
+                                                            .filter(t -> uslVolKartGrp.getKart().equals(t.getKart()) &&
+                                                                    t.getKprNorm().compareTo(BigDecimal.ZERO) > 0)
+                                                            .collect(Collectors.toList());
+                                                    Iterator<UslVolKart> iter2 = lstUslVolKart2.iterator();
+                                                    while (iter2.hasNext()) {
+                                                        UslVolKart uslVolKart = iter2.next();
+                                                        BigDecimal volDist = uslVolKart.getKprNorm().multiply(diffPerPers)
+                                                                .setScale(5, BigDecimal.ROUND_HALF_UP);
+                                                        // ограничить объем экономии текущим общим объемом норматив+счетчик
+                                                        if (volDist.compareTo(uslVolKart.getVol()) > 0) {
+                                                            log.info("ОГРАНИЧЕНИЕ экономии: lsk={}, vol={}",
+                                                                    uslVolKart.getKart().getLsk(),
+                                                                    volDist.subtract(uslVolKart.getVol()));
+                                                            isRestricted = true;
+                                                            volDist = uslVolKart.getVol();
+                                                        }
+
+                                                        diffDist = diffDist.subtract(volDist);
+                                                        if (!iter.hasNext() && !iter2.hasNext() && !isRestricted) {
+                                                            // остаток на последнюю строку, если не было ограничений экономии
+                                                            if (diffDist.abs().compareTo(new BigDecimal("0.05")) > 0) {
+                                                                throw new ErrorWhileDist("ОШИБКА! Некорректный объем округления, " +
+                                                                        "lsk=" + uslVolKart.getKart().getLsk() + ", usl="
+                                                                        + uslVolKart.getUsl().getId() +
+                                                                        ", diffDist=" + diffDist);
+                                                            }
+                                                            volDist = volDist.add(diffDist);
+                                                        }
+                                                        log.info("экономия: lsk={}, kpr={}, собств.объем={}, к распр={}",
+                                                                uslVolKartGrp.getKart().getLsk(),
+                                                                uslVolKartGrp.getKprNorm(), uslVolKart.getVol(), volDist);
+
+                                                        // добавить объем для сохранения в C_CHARGE_PREP
+                                                        if (uslVolKart.isMeter()) {
+                                                            addDistVol(mapDistMeterVol, mapDistVol, uslVolKart, limit, volDist);
+                                                        } else {
+                                                            addDistVol(mapDistNormVol, mapDistVol, uslVolKart, limit, volDist);
+                                                        }
+                                                        // добавить итоговые объемы экономии
+                                                        addAmnt(amnt, volDist.negate(), uslVolKartGrp);
+                                                    }
+                                                }
+
+                                                // СОХРАНИТЬ объем экономии и инфу по ОДН. по нормативу и счетчику в C_CHARGE_PREP
+                                                // по счетчику
+                                                mapDistMeterVol.entrySet().forEach(t -> addChargePrep(usl, t, true));
+                                                // по нормативу
+                                                mapDistNormVol.entrySet().forEach(t -> addChargePrep(usl, t, false));
+                                                // в целом, по C_CHARGE
+                                                mapDistVol.entrySet().forEach(t -> addCharge(usl, t));
+                                            }
                                         }
                                     }
                                 }
@@ -385,7 +482,7 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                                     BigDecimal diff;
                                     if (Utl.in(usl.getCd(), "эл.эн.ОДН", "эл.эн.МОП2", "эл.эн.учет УО ОДН") && !isWithoutLimit
                                             && kub.compareTo(limitODN.amntVolODN) > 0 // ограничение распределения по законодательству
-                                            ) {
+                                    ) {
                                         diff = limitODN.amntVolODN;
                                     } else {
                                         diff = kub.setScale(5, RoundingMode.HALF_UP);
@@ -413,11 +510,11 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                                             }*/
                                                 if (usl.getFkCalcTp().equals(14)) {
                                                     //log.info("$$$$$4, nabor.id={}, nabor.vol={}",
-                                                            //nabor.getId(), volDistKart);
+                                                    //nabor.getId(), volDistKart);
                                                     nabor.setVol(volDistKart);
                                                 } else {
                                                     //log.info("$$$$$5, nabor.id={}, nabor.volAdd={}",
-                                                            //nabor.getId(), volDistKart);
+                                                    //nabor.getId(), volDistKart);
                                                     nabor.setVolAdd(volDistKart);
                                                 }
                                                 // добавить итоговые объемы доначисления
@@ -442,8 +539,8 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                                     .filter(t -> t.isResidental() && // здесь только жилые помещения
                                             t.getKart().getNabor().stream()
                                                     .anyMatch((d ->
-                                                            distTp!=8 && d.getUsl().equals(t.getUsl().getUslChild()) ||
-                                                                    distTp==8 && d.getUsl().equals(t.getUsl()) // распределение только для информации
+                                                            distTp != 8 && d.getUsl().equals(t.getUsl().getUslChild()) ||
+                                                                    distTp == 8 && d.getUsl().equals(t.getUsl()) // распределение только для информации
                                                     )) // где есть наборы по дочерним усл.
                                             && getIsCountOpl(tp, distTp, isUseSch, t)).collect(Collectors.toList());
 
