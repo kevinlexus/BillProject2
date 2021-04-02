@@ -5,8 +5,10 @@ import com.dic.bill.model.scott.Kart;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
+import javax.persistence.QueryHint;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -45,6 +47,7 @@ public interface KartDAO extends JpaRepository<Kart, String> {
 
     @Query("select t.lsk as lsk, t.koKw.id as klskId, t.psch as psch, t.num as num from Kart t " +
             "where t.house.id = :houseId")
+    @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
     List<KartLsk> findByHouseId(@Param("houseId") Integer houseId);
 
     @EntityGraph(attributePaths = {"kartDetail"})

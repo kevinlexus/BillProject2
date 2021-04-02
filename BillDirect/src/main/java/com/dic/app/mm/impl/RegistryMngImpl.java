@@ -914,6 +914,7 @@ public class RegistryMngImpl implements RegistryMng {
 
     /**
      * Cоздать внешний лиц.счет
+     *
      * @param uk          УК
      * @param loadKartExt временный вн.лс., для загрузки
      * @param kart        лиц.сч.
@@ -1105,7 +1106,7 @@ public class RegistryMngImpl implements RegistryMng {
                             // найти фин.лиц.счет по адресу
                             lstKart = kartMng.findByHouseId(kartExtInfo.house.getId());
                             String finalStrKw = strKw;
-                            lstKart.removeIf(t -> !t.getNum().equals(finalStrKw));
+                            lstKart.removeIf(t -> !t.getNum().toUpperCase().equals(finalStrKw));
                             if (lstKart.size() == 0) {
                                 comm = "Будет создано новое помещение и внешний лиц.счет";
                                 status = EXT_LSK_PREMISE_NOT_EXISTS;

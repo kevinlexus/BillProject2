@@ -514,7 +514,6 @@ public class KartMngImpl implements KartMng {
     }
 
     @Override
-    @Cacheable(cacheNames="KartMngImpl.findByHouseId", key="{#houseId}" )
     public List<KartLsk> findByHouseId(Integer houseId) {
         return kartDao.findByHouseId(houseId);
     }
