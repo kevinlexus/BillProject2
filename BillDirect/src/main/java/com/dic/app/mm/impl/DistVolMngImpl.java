@@ -817,6 +817,13 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
         vvod.setKpr(BigDecimal.ZERO);
         vvod.setSchKpr(BigDecimal.ZERO);
 
+        vvod.setKubNrmFact(BigDecimal.ZERO);
+        vvod.setKubSchFact(BigDecimal.ZERO);
+        vvod.setKubFact(BigDecimal.ZERO);
+
+        vvod.setKubDist(BigDecimal.ZERO);
+        vvod.setKubFactUpNorm(BigDecimal.ZERO);
+
         for (Nabor nabor : vvod.getNabor()) {
             // удалить информацию по корректировкам ОДН
             if (nabor.getUsl().equals(vvod.getUsl())) {
@@ -829,12 +836,27 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
 
                 // занулить по вводу-услуге
                 //log.info("$$$$$1, nabor.id={}, nabor.vol=null, nabor.volAdd=null, nabor.limit=null", nabor.getId());
+
                 nabor.setVol(null);
                 nabor.setVolAdd(null);
                 nabor.setLimit(null);
 
             }
 
+            // занулить по зависимым услугам, по всем связанным лиц.счетам
+            nabor.getKart().getKoKw().getKart().stream().flatMap(t -> t.getNabor().stream())
+                    .filter(t -> t.getUsl().equals(vvod.getUsl().getUslChild()))
+                    .forEach(t -> {
+                        t.setVol(null);
+                        t.setVolAdd(null);
+                        t.setLimit(null);
+/*
+                        log.info("Обнулено в : lsk={}, usl={}",
+                                t.getKart().getLsk(), t.getUsl().getId());
+*/
+                    });
+
+/*
             for (Nabor nabor2 : nabor.getKart().getNabor()) {
                 if (nabor2.getUsl().equals(vvod.getUsl().getUslChild())) {
                     // занулить по зависимым услугам
@@ -844,6 +866,7 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                     nabor2.setLimit(null);
                 }
             }
+*/
         }
     }
 
