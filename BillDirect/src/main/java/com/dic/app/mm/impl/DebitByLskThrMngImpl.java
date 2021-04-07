@@ -116,17 +116,15 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         lst.add(new TempSumRec(chrgSumm, null, dt1, null));
         process(lst.stream(), mapDebPart1, null, null, false, calcStore.getPeriod(), false);
 
-        // обновить mgTo записей, если они были расширены до текущего периода
-        //debDAO.delByLskPeriod(kart.getLsk(), calcStore.getPeriod());
-        //debDAO.updByLskPeriod(kart.getLsk(), calcStore.getPeriod(), calcStore.getPeriodBack());
-
-        HashMap<Integer, PeriodSumma> mapDebPart2;
+        // долги потоком, текущего, расчетного дня
+        HashMap<Integer, PeriodSumma> mapDebCurrentDay;
         // свернутые долги для расчета пени по дням - совокупно все услуги - упорядоченный по ключу (дата) LinkedHashMap
-        Map<Date, Map<Integer, BigDecimal>> mapDebForPen = new LinkedHashMap<>();
-        // итоговая сумма долга по дню расчета
+        // только положительные значения
+        Map<Date, Map<Integer, BigDecimal>> mapDebPositiveValues = new LinkedHashMap<>();
+        // общая сумма долга по периодам, сгруппированная по дням
         Map<Date, BigDecimal> mapDebAmount = new LinkedHashMap<>();
         // долги на последнюю дату - совокупно все услуги
-        Map<Integer, BigDecimal> mapDeb = new LinkedHashMap<>();
+        Map<Integer, BigDecimal> mapDebLastDay = new LinkedHashMap<>();
 
         // перебрать все дни с начала месяца по дату расчета, включительно
         Calendar c = Calendar.getInstance();
@@ -134,7 +132,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
             Date dt = c.getTime();
 
             // восстановить неизменную часть
-            mapDebPart2 =
+            mapDebCurrentDay =
                     mapDebPart1.entrySet().stream().collect(toMap(
                             Map.Entry::getKey,
                             v -> new PeriodSumma(v.getValue().getDeb(), v.getValue().getDebForPen()),
@@ -144,7 +142,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
             lst = localStore.getLstChngFlow().stream()
                     .map(t -> new TempSumRec(t.getSumma(), t.getMg(), t.getDt(), null))
                     .collect(Collectors.toList());
-            process(lst.stream(), mapDebPart2, dt, dt, false, null, true);
+            process(lst.stream(), mapDebCurrentDay, dt, dt, false, null, true);
 
             // вычесть оплату включая текущий день поступления - для обычного долга
             // и не включая для расчета пени
@@ -153,127 +151,55 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                             t.getDt().getTime() < calcStore.getCurDt1().getTime() ? calcStore.getCurDt1() : t.getDt(), // исправить дату оплаты, если была принята предыдущим периодом
                             null))
                     .collect(Collectors.toList());
-            process(lst.stream(), mapDebPart2, dt, dt, true, null, false);
+            process(lst.stream(), mapDebCurrentDay, dt, dt, true, null, false);
 
             // вычесть корректировки оплаты - для расчета долга, включая текущий день
             lst = localStore.getLstPayCorrFlow().stream()
                     .map(t -> new TempSumRec(t.getSumma(), t.getMg(), dt1, null))
                     .collect(Collectors.toList());
-            process(lst.stream(), mapDebPart2, dt, null, true, null, false);
+            process(lst.stream(), mapDebCurrentDay, dt, null, true, null, false);
 
             log.trace("********** Долги на дату: dt={}, lsk={}", Utl.getStrFromDate(dt), kart.getLsk());
-            mapDebPart2.forEach((key, value) -> {
+            mapDebCurrentDay.forEach((key, value) -> {
                 log.trace("долг: mg={}, deb={}, debForPen={}",
                         key, value.getDeb(), value.getDebForPen());
             });
 
             // перенести переплату
-            moveOverpay(mapDebPart2);
+            moveOverpay(mapDebCurrentDay);
 
-            mapDebPart2.entrySet().stream().sorted((Comparator.comparing(o -> o.getKey())))
+            mapDebCurrentDay.entrySet().stream().sorted((Map.Entry.comparingByKey()))
                     .forEach(t -> {
                         log.trace("Свернуто: mg={}, deb={}, debForPen={}",
                                 t.getKey(),
                                 t.getValue().getDeb(), t.getValue().getDebForPen());
                     });
 
-            // сгруппировать сумму свернутых долгов для расчета пени по всем услугам, по датам
-            groupByDateMg(mapDebPart2, mapDebForPen, mapDebAmount, dt);
+            // добавить долг для расчета пени по дате, периоду в общий MAP
+            addDebByDate(mapDebCurrentDay, mapDebPositiveValues, mapDebAmount, dt);
 
             if (dt.getTime() == dt2.getTime()) {
-                // сгруппировать сумму свернутых основных долгов по всем услугам, на последнюю дату
-                groupByDateMg(mapDebPart2, mapDeb);
+                // сохранить сумму свернутых основных долгов по всем услугам, на последнюю дату
+                saveDebByDateForLastDay(mapDebCurrentDay, mapDebLastDay);
             }
 
         }
         // рассчитать и сохранить пеню
-        genSavePen(kart, calcStore, mapDebForPen, mapDeb, mapDebAmount);
+        genSavePen(kart, calcStore, mapDebPositiveValues, mapDebLastDay, mapDebAmount);
     }
-
-
-    /**
-     * Сохранить запись долга fixme удалить потом ред.09.12.20
-     *  @param calcStore  - хранилище справочников
-     * @param kart       - лиц.счет
-     * @param localStore - хранилище всех операций по лиц.счету
-     * @param uslId      - ID услуги
-     * @param orgId      - ID организации
-     * @param mg         - период
-     * @param periodSumma     - долг
-     */
-/*
-    private void saveDeb(CalcStore calcStore, Kart kart, CalcStoreLocal localStore, String uslId,
-                         int orgId, int mg, PeriodSumma periodSumma) {
-        // флаг создания новой записи
-        boolean isCreate = false;
-        // найти запись долгов предыдущего периода
-        SumDebPenRec foundDeb = localStore.getLstDebFlow().stream()
-                .filter(d -> d.getUslId().equals(uslId))
-                .filter(d -> d.getOrgId().equals(orgId))
-                .filter(d -> d.getMg().equals(mg))
-                .findFirst().orElse(null);
-        if (foundDeb == null) {
-            // не найдена, создать новую запись
-            isCreate = true;
-        } else {
-            // найдена, проверить равенство по полям
-            if (periodSumma.getDeb().compareTo(foundDeb.getDebOut()) == 0 &&
-                    periodSumma.getDebForPen().compareTo(foundDeb.getDebRolled()) == 0) {
-                // равны, расширить период
-                Deb deb = em.find(Deb.class, foundDeb.getId());
-                deb.setMgTo(calcStore.getPeriod());
-            } else {
-                // не равны, создать запись нового периода
-                isCreate = true;
-            }
-        }
-        if (isCreate) {
-            // создать запись нового периода
-            if (periodSumma.getDeb().compareTo(BigDecimal.ZERO) != 0 ||
-                    periodSumma.getDebForPen().compareTo(BigDecimal.ZERO) != 0) {
-                // если хотя бы одно поле != 0
-                Usl usl = em.find(Usl.class, uslId);
-                if (usl == null) {
-                    // так как внутри потока, то только RuntimeException
-                    throw new RuntimeException("Ошибка при сохранении записей долгов,"
-                            + " некорректные данные в таблице SCOTT.DEB!"
-                            + " Не найдена услуга с кодом usl=" + uslId);
-                }
-                Org org = em.find(Org.class, orgId);
-                if (org == null) {
-                    // так как внутри потока, то только RuntimeException
-                    throw new RuntimeException("Ошибка при сохранении записей долгов,"
-                            + " некорректные данные в таблице SCOTT.DEB!"
-                            + " Не найдена организация с кодом org=" + orgId);
-                }
-                Deb deb = Deb.builder()
-                        .withUsl(usl)
-                        .withOrg(org)
-                        .withDebOut(periodSumma.getDeb())
-                        .withDebRolled(periodSumma.getDebForPen())
-                        .withKart(kart)
-                        .withMgFrom(calcStore.getPeriod())
-                        .withMgTo(calcStore.getPeriod())
-                        .withMg(mg)
-                        .build();
-                kart.getDeb().add(deb);
-                em.persist(deb);
-            }
-        }
-    }
-*/
 
     /**
      * Рассчитать пеню
      *
-     * @param kart         - текущий лиц.счет
-     * @param calcStore    - хранилище справочников
-     * @param mapDebForPen - долги для расчета пени
-     * @param mapDeb       - долги
-     * @param mapDebAmount
+     * @param kart                 текущий лиц.счет
+     * @param calcStore            хранилище справочников
+     * @param mapDebPositiveValues долги для расчета пени
+     * @param mapDebLastDay        долги на последний день
+     * @param mapDebAmount         общая сумма долга по периодам, сгруппированная по дням
      */
     private void genSavePen(Kart kart, CalcStore calcStore, Map<Date,
-            Map<Integer, BigDecimal>> mapDebForPen, Map<Integer, BigDecimal> mapDeb, Map<Date, BigDecimal> mapDebAmount) throws ErrorWhileChrgPen {
+            Map<Integer, BigDecimal>> mapDebPositiveValues, Map<Integer, BigDecimal> mapDebLastDay,
+                            Map<Date, BigDecimal> mapDebAmount) throws ErrorWhileChrgPen {
         // расчитать пеню по долгам
         // пеня для C_PEN_CUR
         List<PenCurRec> lstPenCurRec = new ArrayList<>(10);
@@ -285,8 +211,8 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         // кол-во дней долга, на последнюю дату расчета
         Map<Integer, Integer> mapDebDays = new HashMap<>();
 
-        // перебрать все элементы долгов для пени mapDebForPen, (LinkedHashMap - отсортированный по дате)
-        for (Map.Entry<Date, Map<Integer, BigDecimal>> dtEntry : mapDebForPen.entrySet()) {
+        // перебрать все элементы долгов для пени mapDebPositiveValues, (LinkedHashMap - отсортированный по дате)
+        for (Map.Entry<Date, Map<Integer, BigDecimal>> dtEntry : mapDebPositiveValues.entrySet()) {
             Date dt = dtEntry.getKey();
             for (Map.Entry<Integer, BigDecimal> entry : dtEntry.getValue().entrySet()) {
                 // получить одну запись долга по дате
@@ -350,35 +276,39 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         });
 
         // формировать C_PENYA:
-        Map<Integer, BigDecimal> mapPenResult = new HashMap<>();
+        Map<Integer, BigDecimal> mapForCpenya = new HashMap<>();
         // вх.сальдо по пене - APENYA
         apenyaDAO.getByLsk(kart.getLsk(), String.valueOf(calcStore.getPeriodBack()))
-                .forEach(t -> mapPenResult.put(Integer.parseInt(t.getMg1()), Utl.nvl(t.getPenya(), BigDecimal.ZERO)));
+                .forEach(t -> mapForCpenya.put(Integer.parseInt(t.getMg1()), Utl.nvl(t.getPenya(), BigDecimal.ZERO)));
         // прибавить корректировки пени C_PEN_CORR
         penCorrDAO.getByLsk(kart.getLsk())
-                .forEach(t -> mapPenResult.merge(Integer.parseInt(t.getDopl()),
+                .forEach(t -> mapForCpenya.merge(Integer.parseInt(t.getDopl()),
                         Utl.nvl(t.getPenya(), BigDecimal.ZERO), BigDecimal::add));
         // вычесть поступление оплаты пени C_KWTP_MG
         kwtpMgDAO.getByLsk(kart.getLsk())
-                .forEach(t -> mapPenResult.merge(Integer.parseInt(t.getDopl()),
+                .forEach(t -> mapForCpenya.merge(Integer.parseInt(t.getDopl()),
                         Utl.nvl(t.getPenya(), BigDecimal.ZERO).negate(), BigDecimal::add));
         // добавить текущий период, для отображения свернутой переплаты, если имеется
-        mapPenResult.merge(calcStore.getPeriod(), BigDecimal.ZERO, BigDecimal::add);
+        mapForCpenya.merge(calcStore.getPeriod(), BigDecimal.ZERO, BigDecimal::add);
         // прибавить текущее начисление пени
-        lstPenCurRec.forEach(t -> mapPenResult.merge(t.getMg(), t.getPen(), BigDecimal::add));
+        lstPenCurRec.forEach(t -> mapForCpenya.merge(t.getMg(), t.getPen(), BigDecimal::add));
+        // добавить недостающие периоды из долгов на последний день (периоды, а не суммы, чтобы потом сохранились в C_PENYA)
+        mapDebLastDay.forEach((k, v) -> mapForCpenya.merge(k, BigDecimal.ZERO, BigDecimal::add));
+
         // сохранить в C_PENYA
         penDAO.deleteByLsk(kart.getLsk());
-        mapPenResult.forEach((k, v) -> {
-            if (v != null && v.compareTo(BigDecimal.ZERO) != 0 || mapDeb.get(k) != null
-                    && mapDeb.get(k).compareTo(BigDecimal.ZERO) != 0) {
+
+        mapForCpenya.forEach((k, v) -> {
+            if (v != null && v.compareTo(BigDecimal.ZERO) != 0 || mapDebLastDay.get(k) != null
+                    && mapDebLastDay.get(k).compareTo(BigDecimal.ZERO) != 0) {
                 Penya penya = new Penya();
                 penya.setKart(kart);
                 penya.setMg1(String.valueOf(k));
                 if (v != null) {
                     penya.setPenya(v.setScale(2, RoundingMode.HALF_UP));
                 }
-                penya.setSumma(Utl.nvl(mapDeb.get(k), BigDecimal.ZERO));
-                if (Utl.nvl(mapDeb.get(k), BigDecimal.ZERO).compareTo(BigDecimal.ZERO) != 0
+                penya.setSumma(Utl.nvl(mapDebLastDay.get(k), BigDecimal.ZERO));
+                if (Utl.nvl(mapDebLastDay.get(k), BigDecimal.ZERO).compareTo(BigDecimal.ZERO) != 0
                         && mapDebDays.get(k) != null && mapDebDays.get(k) > 0) {
                     penya.setDays(mapDebDays.get(k));
                 } else {
@@ -396,26 +326,26 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
     }
 
     /**
-     * Сгруппировать долг для расчета пени по дате, периоду
+     * Добавить долг для расчета пени по дате, периоду в общий MAP
      *
-     * @param mapDebPart2  - исходная коллекция
-     * @param mapDebForPen - результат
-     * @param mapDebAmount - итого долг по дням
-     * @param curDt        - дата группировки
+     * @param mapDeb               свернутые долги по дням и периодам
+     * @param mapDebPositiveValues результат, только положительные значения
+     * @param mapDebAmount         общая сумма долга по периодам, сгруппированная по дням
+     * @param curDt                дата группировки
      */
-    private void groupByDateMg(HashMap<Integer, PeriodSumma> mapDebPart2, Map<Date,
-            Map<Integer, BigDecimal>> mapDebForPen, Map<Date, BigDecimal> mapDebAmount, Date curDt) {
-        // взять только положительную составляющую, так как для данного периода долга нужно
-        // брать только задолженности по услугам, но не переплаты
-        mapDebPart2.forEach((key, value) -> {
+    private void addDebByDate(HashMap<Integer, PeriodSumma> mapDeb, Map<Date,
+            Map<Integer, BigDecimal>> mapDebPositiveValues, Map<Date, BigDecimal> mapDebAmount, Date curDt) {
+        mapDeb.forEach((key, value) -> {
             if (value.getDebForPen().compareTo(BigDecimal.ZERO) > 0) {
-                Map<Integer, BigDecimal> mapByDt = mapDebForPen.get(curDt);
+                // взять только положительную составляющую, так как для данного периода долга нужно
+                // брать только задолженности по услугам, но не переплаты
+                Map<Integer, BigDecimal> mapByDt = mapDebPositiveValues.get(curDt);
                 if (mapByDt != null) {
                     mapByDt.merge(key, value.getDebForPen(), BigDecimal::add);
                 } else {
                     Map<Integer, BigDecimal> map = new HashMap<>();
                     map.put(key, value.getDebForPen());
-                    mapDebForPen.put(curDt, map);
+                    mapDebPositiveValues.put(curDt, map);
                 }
             }
             mapDebAmount.computeIfPresent(curDt, (k, v) -> v.add(value.getDebForPen()));
@@ -424,17 +354,17 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
     }
 
     /**
-     * Сгруппировать долг
+     * Сохранить долг на последний дату
      *
-     * @param mapDebPart2 - исходная коллекция
-     * @param mapDeb      - результат
+     * @param mapDebCurrentDay исходная коллекция
+     * @param mapDebLastDay    результат
      */
-    private void groupByDateMg(HashMap<Integer, PeriodSumma> mapDebPart2,
-                               Map<Integer, BigDecimal> mapDeb) {
+    private void saveDebByDateForLastDay(HashMap<Integer, PeriodSumma> mapDebCurrentDay,
+                                         Map<Integer, BigDecimal> mapDebLastDay) {
         // брать и задолженности по услугам, и переплаты
-        mapDebPart2.entrySet().stream()
+        mapDebCurrentDay.entrySet().stream()
                 .filter(t -> t.getValue().getDeb().compareTo(BigDecimal.ZERO) != 0)
-                .forEach(t -> mapDeb.merge(t.getKey(), t.getValue().getDeb(), BigDecimal::add));
+                .forEach(t -> mapDebLastDay.merge(t.getKey(), t.getValue().getDeb(), BigDecimal::add));
     }
 
     /**
@@ -447,7 +377,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         // отсортировать по периоду
         List<Map.Entry<Integer, PeriodSumma>> mapSorted =
                 mapDebPart2.entrySet().stream()
-                        .sorted(Comparator.comparing(Map.Entry::getKey))
+                        .sorted(Map.Entry.comparingByKey())
                         .collect(Collectors.toList());
 
         // перенести переплату
