@@ -527,9 +527,9 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                         BigDecimal summa = kartExt.getChrg();
 
                         // тип 1
-                        addCharge(i, 1, u, area, summa);
-                        // тип 0
-                        addCharge(i, 0, u, area, summa);
+                        addCharge(i, u, area, summa);
+                        // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
+                        //addCharge(i, 0, u, area, summa);
 
                         i++;
                         log.trace("lsk={}, usl={}, testOpl={}, opl={}, testCena={}, isSch={}, summa={}",
@@ -545,9 +545,9 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     summa = u.vol.multiply(u.price).setScale(2, BigDecimal.ROUND_HALF_UP);
                 }
                 // тип 1
-                addCharge(i, 1, u, area, summa);
-                // тип 0
-                addCharge(i, 0, u, area, summa);
+                addCharge(i, u, area, summa);
+                // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
+                //addCharge(i, 0, u, area, summa);
 
                 i++;
                 log.trace("lsk={}, usl={}, testOpl={}, opl={}, testCena={}, isSch={}, summa={}",
@@ -574,11 +574,11 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     summa = parentUslSumma.multiply(u.vol).setScale(2, BigDecimal.ROUND_HALF_UP);
                 }
                 // тип 1
-                addCharge(i, 1, u, area,
+                addCharge(i, u, area,
                         summa);
-                // тип 0
-                addCharge(i, 0, u, area,
-                        summa);
+                // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
+                //addCharge(i, 0, u, area,
+                //        summa);
                 i++;
                 log.trace("lsk={}, usl={}, testOpl={}, opl={}, testCena={}, isSch={}, summa={}",
                         u.kart.getLsk(), u.usl.getId(), u.vol, area, u.price, u.isMeter, summa);
@@ -696,17 +696,15 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
 
     /**
      * Добавить строку начисления
-     *
-     * @param npp   - № п.п.
-     * @param tp    - тип записи
+     *  @param npp   - № п.п.
      * @param u     - объем
      * @param area  - площадь
      * @param summa - сумма
      */
-    private void addCharge(int npp, int tp, UslVolCharge u, BigDecimal area, BigDecimal summa) {
+    private void addCharge(int npp, UslVolCharge u, BigDecimal area, BigDecimal summa) {
         Charge charge = new Charge();
         charge.setNpp(npp);
-        charge.setType(tp);
+        charge.setType(1);
         charge.setUsl(u.usl);
         charge.setKart(u.kart);
         charge.setTestOpl(u.vol);
