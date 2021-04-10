@@ -31,12 +31,12 @@ public class KartPrMngImpl implements KartPrMng {
     /**
      * Получить кол-во проживающих по лиц.счету и услуге, на дату
      *
-     * @param kartMain        - основной лиц.счет
-     * @param nabor           - строка набора услуг
-     * @param parVarCntKpr    - параметр, тип расчета, 0 - Кис, 1 - Полыс, 2 - ТСЖ
-     * @param parCapCalcKprTp - параметр учета проживающих для капремонта (0,1-учёт ВЗ, 2=льготы отключены)
-     * @param dt              - дата расчета
-     * @param isMeterExist    - наличие счетчика в расчетный день (работает только в КИС)
+     * @param kartMain        основной лиц.счет
+     * @param nabor           строка набора услуг
+     * @param parVarCntKpr    параметр, тип расчета, 0 - Кис, 1 - Полыс, 2 - ТСЖ
+     * @param parCapCalcKprTp параметр учета проживающих для капремонта (0,1-учёт ВЗ, 2=льготы отключены)
+     * @param dt              дата расчета
+     * @param isMeterExist    наличие счетчика в расчетный день (работает только в КИС)
      */
     @Override
     public CountPers getCountPersByDate(Kart kartMain, Nabor nabor, int parVarCntKpr, int parCapCalcKprTp,
@@ -150,7 +150,6 @@ public class KartPrMngImpl implements KartPrMng {
                         // коммунальная услуга
                         countPers.kprNorm++;
                     }
-                    countPers.kpr++;
                     countPers.kprWr++;
                     //countPers.kprMax++;
                 } else if ((status == 1 || status == 5) && (statusTemp == 0)) {
@@ -239,9 +238,10 @@ public class KartPrMngImpl implements KartPrMng {
                 norm = Utl.nvl(nabor.getNorm(), BigDecimal.ZERO);
                 break;
             }
-            case 54: // отопление гкал. по норме/свыше
+            case 54: // отопление гкал. по норме/свыше (по гигакал. расчет)
+            case 58: // отопление по норме/свыше (по м2 расчет)
             case 25: {  // тек содерж
-                norm = getCommonSocStdt(countPers);
+                norm = getCommonSocStdt(countPers.kprNorm);
                 break;
             }
             case 31: { // эл.эн
@@ -261,7 +261,7 @@ public class KartPrMngImpl implements KartPrMng {
 
         socStandart.procNorm = BigDecimal.ONE;
         // отопление гкал. по норме/свыше, х.в. г.в., водоотв.
-        if (!countPers.isEmpty && factVol.compareTo(BigDecimal.ZERO)>0 && Utl.in(nabor.getUsl().getFkCalcTp(), 54, 55, 56, 57)) {
+        if (!countPers.isEmpty && factVol.compareTo(BigDecimal.ZERO)>0 && Utl.in(nabor.getUsl().getFkCalcTp(), 54, 55, 56, 57, 58)) {
             BigDecimal proc = socStandart.vol.divide(factVol, 10, RoundingMode.HALF_UP);
             if (proc.compareTo(BigDecimal.ONE) < 1) {
                 socStandart.procNorm = proc;
@@ -274,11 +274,11 @@ public class KartPrMngImpl implements KartPrMng {
     /**
      * Получить соцнорму по отоплению, тек.содержанию, по справочнику
      *
-     * @param countPers - DTO кол-ва проживающих
+     * @param kprNorm - кол-во проживающих
      */
-    private BigDecimal getCommonSocStdt(CountPers countPers) {
+    private BigDecimal getCommonSocStdt(int kprNorm) {
         BigDecimal socNorm;
-        switch (countPers.kprNorm) {
+        switch (kprNorm) {
             case 0: { // 0 проживающих - берется соцнорма на 1 человека
                 socNorm = new BigDecimal("33");
                 break;

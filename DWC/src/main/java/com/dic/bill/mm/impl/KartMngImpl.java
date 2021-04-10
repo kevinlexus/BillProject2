@@ -93,25 +93,6 @@ public class KartMngImpl implements KartMng {
         return vvod.getNabor().stream().map(t -> t.getKart().getKoKw()).distinct().collect(Collectors.toList());
     }
 
-    /**
-     * Получить кол-во проживающих в лиц.счете
-     *
-     * @param kart - лиц.счет
-     * @param dt   - рассчитываемая дата
-     */
-    @Override
-    public boolean getPersCountByDate(Kart kart, Date dt) {
-        log.info("*** kart.lsk={}", kart.getLsk());
-        for (KartPr kartPr : kart.getKartPr()) {
-            log.info("*** kartPr.id={}, kartPr.fio={}", kartPr.getId(), kartPr.getFio());
-            for (StatePr statePr : kartPr.getStatePr()) {
-                log.info("*** statePr.id={}, statePr.dtFrom={}, statePr.dtTo={}",
-                        statePr.getId(), statePr.getDtFrom(), statePr.getDtTo());
-            }
-        }
-        return true;
-    }
-
     /*
      */
 

@@ -148,7 +148,7 @@ public class MeterMngImpl implements MeterMng {
     public boolean isExistAnyMeter(List<SumMeterVol> lstMeterVol, String uslId, Date dt) {
         SumMeterVol meterVol = lstMeterVol.stream().filter(t -> t.getUslId().equals(uslId) &&
                 Utl.between(dt, t.getDtFrom(), t.getDtTo())).findFirst().orElse(null);
-        return meterVol != null ? true : false;
+        return meterVol != null;
     }
 
     /**
@@ -164,7 +164,7 @@ public class MeterMngImpl implements MeterMng {
         Date dt = Utl.truncDateToSeconds(Utl.getDateFromXmlGregCal(ts));
         MeterData meterData = lst.stream().filter(t -> t.getGuid().equals(guid) && t.getTs().compareTo(dt) == 0)
                 .findFirst().orElse(null);
-        return meterData != null ? true : false;
+        return meterData != null;
     }
 
 

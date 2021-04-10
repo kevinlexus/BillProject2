@@ -25,13 +25,14 @@ public class PriceMngImpl implements PriceMng {
 
     /**
      * умножить расценку на коэффициент, округлить
-     * @param nabor - строка набора
+     *
+     * @param nabor       - строка набора
      * @param priceColumn - колонку цены, которую использовать
      * @return - итогововая цена со всеми коэффициентами
      */
     @Override
-    @Cacheable(cacheNames="PriceMng.multiplyPrice", key="{#nabor.getUsl(), " +
-            "#nabor.getOrg(), #nabor.getKoeff(), #nabor.getNorm(), #priceColumn}" )
+    @Cacheable(cacheNames = "PriceMng.multiplyPrice", key = "{#nabor.getUsl(), " +
+            "#nabor.getOrg(), #nabor.getKoeff(), #nabor.getNorm(), #priceColumn}")
     public BigDecimal multiplyPrice(Nabor nabor, int priceColumn) throws ErrorWhileChrg {
         log.trace("ИСПОЛЬЗОВАН МЕТОД, НО НЕ КЭШ #nabor.getUsl()={}, " +
                         "#nabor.getOrg()={}, #nabor.getKoeff()={}, #nabor.getNorm()={}, #priceColumn={}",
@@ -40,15 +41,16 @@ public class PriceMngImpl implements PriceMng {
         BigDecimal coeff = Utl.nvl(nabor.getKoeff(), BigDecimal.ZERO);
         BigDecimal norm = Utl.nvl(nabor.getNorm(), BigDecimal.ZERO);
         if (nabor.getUsl().getSptarn().equals(3) ||
-                nabor.getUsl().getFkCalcTp()!=null && Utl.in(nabor.getUsl().getFkCalcTp(), 24)) {
+                nabor.getUsl().getFkCalcTp() != null && Utl.in(nabor.getUsl().getFkCalcTp(), 24)) {
             // если поле norm является коэффициентом к расценке или тип расчета услуги fkCalcTp=24
             // (Бред! может поменять потом sptarn на 3 для таких услуг?) FIXME
-            coeff=coeff.multiply(norm);
+            coeff = coeff.multiply(norm);
         }
         // получить базовую расценку, зависящую от организации
         Price basePrice = getBasePrice(nabor);
         if (basePrice == null) {
-            throw new ErrorWhileChrg("ОШИБКА! Не найдена цена по услуге usl.id="+nabor.getUsl().getId());
+            throw new ErrorWhileChrg("ОШИБКА! Не найдена цена по услуге lsk="
+                    + nabor.getKart().getLsk() + ", usl.id=" + nabor.getUsl().getId());
         }
         // рассчитать цену
         BigDecimal price = BigDecimal.ZERO;
@@ -66,15 +68,16 @@ public class PriceMngImpl implements PriceMng {
     /**
      * Получить базовую запись расценки, зависящей от организации -
      * найти или расценку с указанным кодом организации (приоритет), или без указанного кода организации
+     *
      * @param nabor - строка набора услуги
      */
     private Price getBasePrice(Nabor nabor) {
         Price foundPrice = null;
         for (Price price : nabor.getUsl().getPrice()) {
-            if (price.getOrg()!=null && price.getOrg().equals(nabor.getOrg())) {
+            if (price.getOrg() != null && price.getOrg().equals(nabor.getOrg())) {
                 return price;
-            } else if (price.getOrg()==null) {
-                foundPrice=price;
+            } else if (price.getOrg() == null) {
+                foundPrice = price;
             }
         }
         // не найдено по организации, вернуть без организации

@@ -95,6 +95,10 @@ public class Kart {
     @Column(name = "KPR_OT", nullable = false)
     private Integer kprOt;
 
+    // Кол-во собственников
+    @Column(name = "KPR_OWN", nullable = false)
+    private Integer kprOwn;
+
     // тип лиц.счета
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "FK_TP", referencedColumnName = "ID")

@@ -60,8 +60,9 @@ public class NaborMngImpl implements NaborMng {
 
     /**
      * Вернуть ввод по списку действующих лицевых-услуг
+     *
      * @param lstNabor - список услуг
-     * @param usl - услуга
+     * @param usl      - услуга
      */
     @Override
     public Vvod getVvod(List<Nabor> lstNabor, Usl usl) {
@@ -76,8 +77,9 @@ public class NaborMngImpl implements NaborMng {
 
     /**
      * Вернуть тип распределения по вводу
+     *
      * @param lstNabor - список услуг
-     * @param usl - услуга
+     * @param usl      - услуга
      */
     @Override
     public Integer getVvodDistTp(List<Nabor> lstNabor, Usl usl) {
@@ -261,13 +263,14 @@ public class NaborMngImpl implements NaborMng {
 
     /**
      * Создать запись набора услуг
-     * @param usl услуга
-     * @param org организация
-     * @param koeff коэффициент
-     * @param norm норматив
-     * @param vol объем
+     *
+     * @param usl    услуга
+     * @param org    организация
+     * @param koeff  коэффициент
+     * @param norm   норматив
+     * @param vol    объем
      * @param volAdd доп.объем
-     * @param vvod ввод
+     * @param vvod   ввод
      */
     @Override
     public Nabor createNabor(Kart kart, Usl usl, Org org,

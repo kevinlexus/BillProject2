@@ -21,8 +21,6 @@ public interface KartMng {
 
     List<Ko> getKoByVvod(Vvod vvod);
 
-    boolean getPersCountByDate(Kart kart, Date dt);
-
     String getKartMainLsk(Kart kart);
 
     Kart getKartMain(Kart kart);

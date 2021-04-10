@@ -454,8 +454,8 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                     List<UslPriceVolKart> lstColdHotWater =
                             chrgCountAmountLocal.getLstUslPriceVolKartDetailed().stream()
                                     .filter(t -> t.getDt().equals(curDt)
-                                                    && t.getKart().getKoKw().equals(nabor.getKart().getKoKw())
-                                                    && t.getUsl().getIsUseVolCan()
+                                            && t.getKart().getKoKw().equals(nabor.getKart().getKoKw())
+                                            && t.getUsl().getIsUseVolCan()
                                     ).collect(Collectors.toList());
                     // сложить предварительно рассчитанные объемы х.в.+г.в., найти признаки наличия счетчиков
                     for (UslPriceVolKart t : lstColdHotWater) {
@@ -528,6 +528,14 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                         dayVolOverSoc = tempVol.subtract(dayVol);
                     }
 
+                } else if (Utl.in(fkCalcTp, 58)) {
+                    // Отопление м2 с уровнем соцнормы/свыше (ТСЖ)
+                    socStandart = kartPrMng.getSocStdtVol(kartArea, nabor, countPers);
+                    tempVol = kartArea.multiply(calcStore.getPartDayMonth());
+                    //  в доле на 1 день
+                    dayVol = tempVol.multiply(socStandart.procNorm);
+                    dayVolOverSoc = tempVol.subtract(dayVol);
+
                 } else if (Utl.in(fkCalcTp, 55, 56)) {
                     // Х.В., Г.В., с соцнормой/свыше
                     // получить объем по нормативу в доле на 1 день
@@ -577,21 +585,17 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                     // сложить предварительно рассчитанные объемы х.в.+г.в., найти признаки наличия счетчиков
                     BigDecimal coldWaterVol = BigDecimal.ZERO;
                     BigDecimal hotWaterVol = BigDecimal.ZERO;
-                    BigDecimal ttt = BigDecimal.ZERO;
                     for (UslPriceVolKart t : lstColdHotWater) {
                         if (t.getUsl().getFkCalcTp().equals(55)) {
                             // х.в.
                             coldWaterVol = coldWaterVol.add(t.getVol().add(t.getVolOverSoc()));
                             isColdMeterExist = t.isMeter();
-                            ttt=ttt.add(t.getVol().add(t.getVolOverSoc()));
                         } else if (t.getUsl().getFkCalcTp().equals(56)) {
                             // г.в.
                             hotWaterVol = hotWaterVol.add(t.getVol().add(t.getVolOverSoc()));
                             isHotMeterExist = t.isMeter();
-                            ttt=ttt.add(t.getVol().add(t.getVolOverSoc()));
                         }
                     }
-
                     BigDecimal amountVol = coldWaterVol.add(hotWaterVol);
                     // получить соцнорму
                     socStandart = kartPrMng.getSocStdtVol(
@@ -828,12 +832,12 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
     /**
      * Получить совокупное кол-во проживающих (родительский и дочерний лиц.счета)
      *
-     * @param parVarCntKpr    - тип подсчета кол-во проживающих
-     * @param parCapCalcKprTp - тип подсчета кол-во проживающих для капремонта
-     * @param curDt           - дата расчета
-     * @param nabor           - строка услуги
-     * @param kartMain        - основной лиц.счет
-     * @param isMeterExist    - наличие счетчика в расчетный день (работает только в КИС)
+     * @param parVarCntKpr    тип подсчета кол-во проживающих
+     * @param parCapCalcKprTp тип подсчета кол-во проживающих для капремонта
+     * @param curDt           дата расчета
+     * @param nabor           строка услуги
+     * @param kartMain        основной лиц.счет
+     * @param isMeterExist    наличие счетчика в расчетный день (работает только в КИС)
      */
     private CountPers getCountPersAmount(int parVarCntKpr, int parCapCalcKprTp,
                                          Date curDt, Nabor nabor, Kart kartMain, boolean isMeterExist) {
@@ -909,6 +913,13 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                 } else if (parVarCntKpr == 1 && countPers.kprOt == 0) {
                     // Полысаево
                     countPers.kprNorm = 1;
+                } else if (parVarCntKpr == 2) {
+                    // ТСЖ
+                    if (nabor.getUsl().getFkCalcTp().equals(49)) {
+                        // услуга по обращению с ТКО
+                        countPers.kpr = Utl.nvl(kartMain.getKprOwn(), 0);
+                        countPers.kprNorm = Utl.nvl(kartMain.getKprOwn(), 0);
+                    }
                 }
             }
         }

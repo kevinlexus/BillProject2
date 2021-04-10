@@ -83,8 +83,8 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
 
         // если услуга usl.cd="х.в. для гвс", то сохранить для услуг типа Тепл.энергия для нагрева ХВС (Кис.)
         // или х.в., г.в. для водоотведения
-        if (u.usl.getCd() != null && (u.usl.isBaseWaterCalc()
-                || u.usl.getCd().equals("х.в. для гвс"))) {
+        if (u.usl.isBaseWaterCalc() || (u.usl.getCd() != null &&
+                u.usl.getCd().equals("х.в. для гвс"))) {
             lstUslPriceVolKartDetailed.add(u);
         }
 
@@ -696,7 +696,8 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
 
     /**
      * Добавить строку начисления
-     *  @param npp   - № п.п.
+     *
+     * @param npp   - № п.п.
      * @param u     - объем
      * @param area  - площадь
      * @param summa - сумма
