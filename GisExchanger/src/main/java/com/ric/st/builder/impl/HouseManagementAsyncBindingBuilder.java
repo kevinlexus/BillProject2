@@ -18,7 +18,7 @@ import com.ric.st.ReqProps;
 import com.ric.st.SoapConfigs;
 import com.ric.st.builder.HouseManagementAsyncBindingBuilders;
 import com.ric.st.builder.PseudoTaskBuilders;
-import com.ric.st.dao.UlistDAO;
+import com.dic.bill.UlistDAO;
 import com.ric.st.excp.CantPrepSoap;
 import com.ric.st.excp.CantSendSoap;
 import com.ric.st.impl.RetStateHouse;

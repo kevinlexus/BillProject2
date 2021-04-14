@@ -5,7 +5,7 @@ import com.dic.bill.model.exs.UlistTp;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.st.builder.NsiCommonAsyncBindingBuilders;
-import com.ric.st.dao.UlistDAO;
+import com.dic.bill.UlistDAO;
 import com.ric.st.excp.CantGetNSI;
 import com.ric.st.excp.CantSendSoap;
 import com.ric.st.excp.CantSignSoap;

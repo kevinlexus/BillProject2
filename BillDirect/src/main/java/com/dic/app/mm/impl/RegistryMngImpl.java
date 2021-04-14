@@ -2,6 +2,7 @@ package com.dic.app.mm.impl;
 
 import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.RegistryMng;
+import com.dic.bill.UlistDAO;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.KartExtPaymentRec;
 import com.dic.bill.dto.KartLsk;
@@ -16,7 +17,6 @@ import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileLoad;
 import com.ric.cmn.excp.WrongParam;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +61,7 @@ public class RegistryMngImpl implements RegistryMng {
     private final int EXT_NON_LIVING_NOT_USE = 12; // не загружать нежилые
     private final int EXT_KW_EXCEED_CHAR_NUM = 13; // кол-во символов в номере квартиры превысило допустимое число
     private final int EXT_EMPTY_TURNOVER = 14; // отсутствует движение по лиц.счету
+    private final int EXT_NOT_IN_REGISTRY = 15; // будет закрыт, отсутствует в реестре
 
     @PersistenceContext
     private final EntityManager em;
@@ -76,12 +77,13 @@ public class RegistryMngImpl implements RegistryMng {
     private final KartExtDAO kartExtDAO;
     private final AkwtpDAO akwtpDAO;
     private final HouseDAO houseDAO;
+    private final UlistDAO ulistDAO;
 
     public RegistryMngImpl(EntityManager em,
                            PenyaDAO penyaDAO, OrgDAO orgDAO, EolinkMng eolinkMng,
                            KartMng kartMng, MeterMng meterMng, NaborMng naborMng, KartDAO kartDAO, ConfigApp configApp,
                            LoadKartExtDAO loadKartExtDAO, KartExtDAO kartExtDAO,
-                           AkwtpDAO akwtpDAO, HouseDAO houseDAO) {
+                           AkwtpDAO akwtpDAO, HouseDAO houseDAO, UlistDAO ulistDAO) {
         this.em = em;
         this.penyaDAO = penyaDAO;
         this.orgDAO = orgDAO;
@@ -95,6 +97,7 @@ public class RegistryMngImpl implements RegistryMng {
         this.kartExtDAO = kartExtDAO;
         this.akwtpDAO = akwtpDAO;
         this.houseDAO = houseDAO;
+        this.ulistDAO = ulistDAO;
     }
 
     /**
@@ -321,20 +324,18 @@ public class RegistryMngImpl implements RegistryMng {
      * @return - кол-во успешно обработанных записей
      */
     @Override
-    @CacheEvict(value = {"KartMngImpl.findByHouseId"}, allEntries = true)
     @Transactional(rollbackFor = Exception.class)
     public int loadFileKartExt(Org org, String fileName) throws FileNotFoundException, WrongParam, ErrorWhileLoad {
-        log.info("Начало загрузки файла внешних лиц.счетов fileName={} v 1.3", fileName);
+        log.info("Начало загрузки файла внешних лиц.счетов fileName={} v 1.4", fileName);
         String cityName;
         switch (orgDAO.getByOrgTp("Город").getCd()) {
             case "г.Полысаево":
                 cityName = "г Полысаево";
-                // note uslId = "107", // услуга Вывоз ТКО и утил.
                 break;
             case "г.Киселевск":
                 cityName = "г.Киселевск";
                 break;
-            case "548": // note для тестирования подстановка
+            case "548": // для отладки
                 cityName = "г.Киселевск";
                 break;
             default:
@@ -380,9 +381,36 @@ public class RegistryMngImpl implements RegistryMng {
                             " по T_ORG.ID=" + org.getId());
                 }
             }
+            if (org.getExtLskFormatTp().equals(1)) {
+                // Кис (ФКП)
+                markAsClosed(mapLoadedKart);
+            }
+
             log.info("Окончание загрузки файла внешних лиц.счетов fileName={}, загружено {} строк", fileName, cntLoaded);
             return cntLoaded;
         }
+    }
+
+    /**
+     * Пометить на закрытие вн.лиц.счета, созданные в прошлых периодах, и которых не было в реестре
+     *
+     * @param mapLoadedKart отстуствующие вн.лиц.счета
+     */
+    private void markAsClosed(Map<String, LoadedKartExt> mapLoadedKart) {
+        mapLoadedKart.forEach((k, v) -> {
+            Optional<KartExt> kartExt = kartExtDAO.findByExtLsk(k);
+            kartExt.ifPresent(t -> {
+                if (t.getDtCrt().getTime() < configApp.getCurDt1().getTime()) {
+                    LoadKartExt loadKartExt =
+                            LoadKartExt.LoadKartExtBuilder.aLoadKartExt()
+                                    .withExtLsk(k)
+                                    .withComm("Будет закрыт вн.лиц.счет и соответствующий в БД")
+                                    .withStatus(EXT_NOT_IN_REGISTRY)
+                                    .build();
+                    loadKartExtDAO.save(loadKartExt);
+                }
+            });
+        });
     }
 
     /**
@@ -763,8 +791,8 @@ public class RegistryMngImpl implements RegistryMng {
                             t.setPayment(loadKartExt.getPayment());
                             t.setOutsal(loadKartExt.getSumma());
                             t.setRSchet(loadKartExt.getRSchet());
-                            // проверить статус соотв.лиц.счета
-                            kartMng.checkStateSch(t.getKart(), configApp.getCurDt1(), 0);
+                            // установить статус соотв.лиц.счета
+                            kartMng.setStateSch(t.getKart(), configApp.getCurDt1(), 0);
                             // проверить наличие услуги в наборах
                             checkNaborUsl(org, t.getKart());
                             loadKartExt.setApproveResult("Движение перенесено");
@@ -797,8 +825,8 @@ public class RegistryMngImpl implements RegistryMng {
                             }
                             kart = kartMng.createKart(null, 3, "LSK_TP_RSO", org.getReu(), loadKartExt.getKw(),
                                     houseOpt.get().getId(), null, null, fam, im, ot);
-                            // проверить статус соотв.лиц.счета
-                            kartMng.checkStateSch(kart, configApp.getCurDt1(), 0);
+                            // установить статус соотв.лиц.счета
+                            kartMng.setStateSch(kart, configApp.getCurDt1(), 0);
                             // проверить наличие услуги в наборах
                             checkNaborUsl(org, kart);
                         } else {
@@ -820,8 +848,8 @@ public class RegistryMngImpl implements RegistryMng {
                             Kart kart = kartMng.createKart(loadKartExt.getLsk(), 0,
                                     "LSK_TP_RSO", org.getReu(), null, null, null, null,
                                     null, null, null);
-                            // проверить статус соотв.лиц.счета
-                            kartMng.checkStateSch(kart, configApp.getCurDt1(), 0);
+                            // установить статус соотв.лиц.счета
+                            kartMng.setStateSch(kart, configApp.getCurDt1(), 0);
                             // проверить наличие услуги в наборах
                             checkNaborUsl(org, kart);
 
@@ -838,14 +866,13 @@ public class RegistryMngImpl implements RegistryMng {
                         // проверить открыт ли соотв.лиц.сч.
                         kartExtOpt.ifPresent(t -> {
                             t.setV(1);
-                            // проверить статус соотв.лиц.счета
-                            kartMng.checkStateSch(t.getKart(), configApp.getCurDt1(), 0);
+                            // установить статус соотв.лиц.счета
+                            kartMng.setStateSch(t.getKart(), configApp.getCurDt1(), 0);
                             // проверить наличие услуги в наборах
                             checkNaborUsl(org, t.getKart());
                         });
                         loadKartExt.setApproveResult("Внешний лиц.сч. открыт заново");
                         break;
-
                     }
                     case FOUND_MANY_ACTUAL_KO_KW:
                     case NOT_FOUND_ACTUAL_KO_KW:
@@ -856,8 +883,8 @@ public class RegistryMngImpl implements RegistryMng {
                             Kart kart = kartMng.createKart(loadKartExt.getLsk(), 0,
                                     "LSK_TP_RSO", org.getReu(), null, null, null, null,
                                     null, null, null);
-                            // проверить статус соотв.лиц.счета
-                            kartMng.checkStateSch(kart, configApp.getCurDt1(), 0);
+                            // установить статус соотв.лиц.счета
+                            kartMng.setStateSch(kart, configApp.getCurDt1(), 0);
                             // проверить наличие услуги в наборах
                             checkNaborUsl(org, kart);
 
@@ -867,14 +894,21 @@ public class RegistryMngImpl implements RegistryMng {
                         }
                         break;
                     }
+                    case EXT_NOT_IN_REGISTRY: {
+                        Optional<KartExt> kartExtOpt = kartExtDAO.findByExtLsk(loadKartExt.getExtLsk());
+                        kartExtOpt.ifPresent(t -> {
+                            t.setV(0);
+                            // установить статус соотв.лиц.счета
+                            kartMng.setStateSch(t.getKart(), configApp.getCurDt1(), 9);
+                        });
+                        break;
+                    }
                     default: {
                         throw new WrongParam("Необрабатываемый статус " +
                                 "LOAD_KART_EXT.STATUS=" + loadKartExt.getStatus());
                     }
                 }
-
             }
-
         } else {
             throw new WrongParam("Некорректный тип формата загрузочного файла ORG.EXT_LSK_FORMAT_TP=" + org.getExtLskFormatTp() +
                     " по T_ORG.ID=" + org.getId());
@@ -1137,6 +1171,8 @@ public class RegistryMngImpl implements RegistryMng {
                             }
                         }
                     }
+                    // удалить, чтобы узнать, вн.лиц.счета, которых не было в реестре
+                    mapLoadedKart.remove(kartExtInfo.extLsk);
                 }
             } else {
                 comm = "Не найден дом с данным GUID в C_HOUSES!";

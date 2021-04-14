@@ -20,7 +20,7 @@ import com.ric.st.SoapConfigs;
 import com.ric.st.TaskControllers;
 import com.ric.st.builder.DeviceMeteringAsyncBindingBuilders;
 import com.ric.st.builder.PseudoTaskBuilders;
-import com.ric.st.dao.UlistDAO;
+import com.dic.bill.UlistDAO;
 import com.ric.st.excp.CantPrepSoap;
 import com.ric.st.excp.CantSendSoap;
 import com.ric.st.impl.SoapBuilder;

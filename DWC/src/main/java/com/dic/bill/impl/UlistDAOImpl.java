@@ -1,4 +1,4 @@
-package com.ric.st.dao.impl;
+package com.dic.bill.impl;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Ulist;
 import com.dic.bill.model.exs.UlistTp;
-import com.ric.st.dao.UlistDAO;
+import com.dic.bill.UlistDAO;
 
 import lombok.extern.slf4j.Slf4j;
 

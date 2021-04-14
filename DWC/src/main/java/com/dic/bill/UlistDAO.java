@@ -1,4 +1,4 @@
-package com.ric.st.dao;
+package com.dic.bill;
 
 import java.util.List;
 

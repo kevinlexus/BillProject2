@@ -1,8 +1,10 @@
 package com.dic.bill.mm.impl;
 
+import com.dic.bill.UlistDAO;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.KartLsk;
 import com.dic.bill.mm.KartMng;
+import com.dic.bill.model.exs.Ulist;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.DifferentKlskBySingleAdress;
@@ -32,16 +34,18 @@ public class KartMngImpl implements KartMng {
     private final KartDetailDAO kartDetailDAO;
     private final OrgDAO orgDao;
     private final UlstDAO ulstDAO;
+    private final UlistDAO ulistDAO;
     private final HouseDAO houseDAO;
 
     @PersistenceContext
     private EntityManager em;
 
-    public KartMngImpl(KartDAO kartDAO, KartDetailDAO kartDetailDAO, OrgDAO orgDao, UlstDAO ulstDAO, HouseDAO houseDAO) {
+    public KartMngImpl(KartDAO kartDAO, KartDetailDAO kartDetailDAO, OrgDAO orgDao, UlstDAO ulstDAO, UlistDAO ulistDAO, HouseDAO houseDAO) {
         this.kartDao = kartDAO;
         this.kartDetailDAO = kartDetailDAO;
         this.orgDao = orgDao;
         this.ulstDAO = ulstDAO;
+        this.ulistDAO = ulistDAO;
         this.houseDAO = houseDAO;
     }
 
@@ -443,10 +447,15 @@ public class KartMngImpl implements KartMng {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void checkStateSch(Kart kart, Date curDt, int psch) {
+    public void setStateSch(Kart kart, Date curDt, int psch) {
         kart.setPsch(psch);
         ArrayList<StateSch> removeLst = new ArrayList<>();
         ArrayList<StateSch> addLst = new ArrayList<>();
+        Ulist reason = null;
+        if (Utl.in(psch, 8, 9)) {
+            reason = ulistDAO.getListElem("NSI", 22, "Причина закрытия лицевого счета",
+                    "Расторжение договора");
+        }
         boolean isSetStatus = false;
         for (StateSch st : kart.getStateSch()) {
             Date firstDtMonth = Utl.getFirstDate(curDt);
@@ -470,6 +479,7 @@ public class KartMngImpl implements KartMng {
                         st.setDt1(firstDtMonth);
                         st.setDt2(null);
                         st.setFkStatus(psch);
+                        st.setReason(reason);
                         isSetStatus = true;
                     } else {
                         removeLst.add(st);
@@ -482,6 +492,7 @@ public class KartMngImpl implements KartMng {
                     stateSch.setFkStatus(psch);
                     stateSch.setDt1(firstDtMonth);
                     stateSch.setDt2(null);
+                    stateSch.setReason(reason);
                     addLst.add(stateSch);
                     isSetStatus = true;
                 }

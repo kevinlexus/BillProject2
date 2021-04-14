@@ -10,4 +10,5 @@ public interface LoadedKartExt {
     Integer getV();
 
     Integer getPsch();
+
 }

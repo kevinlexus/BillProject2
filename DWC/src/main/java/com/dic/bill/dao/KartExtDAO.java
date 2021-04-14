@@ -23,7 +23,6 @@ public interface KartExtDAO extends JpaRepository<KartExt, Integer> {
     @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
     Optional<KartExt> findByExtLsk(String extLsk);
 
-
     /**
      * Получить загруженные внешние лиц.счета
      */
