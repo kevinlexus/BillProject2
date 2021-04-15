@@ -900,6 +900,7 @@ public class RegistryMngImpl implements RegistryMng {
                             t.setV(0);
                             // установить статус соотв.лиц.счета
                             kartMng.setStateSch(t.getKart(), configApp.getCurDt1(), 9);
+                            loadKartExt.setApproveResult("Внешний лиц.сч. закрыт");
                         });
                         break;
                     }
