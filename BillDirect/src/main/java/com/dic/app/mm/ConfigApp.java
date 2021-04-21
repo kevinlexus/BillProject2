@@ -5,9 +5,11 @@ import com.dic.bill.dto.SprPenKey;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
 import com.dic.bill.model.scott.Tuser;
+import org.apache.xpath.operations.Bool;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +32,8 @@ public interface ConfigApp {
 
 	Lock getLock();
 
+	Date getDtMiddleMonth();
+
 	int incNextReqNum();
 
 	void setProgress(Integer progress);
@@ -37,8 +41,13 @@ public interface ConfigApp {
 	void incProgress();
 
 	Map<SprPenKey, SprPen> getMapSprPen();
+	Map<String, Boolean> getMapParams();
 
 	List<Stavr> getLstStavr();
 
 	void reloadSprPen();
+
+	void reloadParam() throws ParseException;
+
+
 }

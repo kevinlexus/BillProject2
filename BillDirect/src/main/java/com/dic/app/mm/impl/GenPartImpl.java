@@ -1,6 +1,7 @@
 package com.dic.app.mm.impl;
 
 import com.dic.app.RequestConfigDirect;
+import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.GenPart;
 import com.dic.bill.dao.NaborDAO;
 import com.dic.bill.dao.UslDAO;
@@ -32,8 +33,10 @@ public class GenPartImpl implements GenPart {
     private final SprParamMng sprParamMng;
     private final UslDAO uslDao;
     private final NaborDAO naborDao;
+    private final ConfigApp configApp;
 
-    public GenPartImpl(KartMng kartMng, MeterMng meterMng, NaborMng naborMng, KartPrMng kartPrMng, SprParamMng sprParamMng, UslDAO uslDao, NaborDAO naborDao) {
+    public GenPartImpl(KartMng kartMng, MeterMng meterMng, NaborMng naborMng, KartPrMng kartPrMng,
+                       SprParamMng sprParamMng, UslDAO uslDao, NaborDAO naborDao, ConfigApp configApp) {
         this.kartMng = kartMng;
         this.meterMng = meterMng;
         this.naborMng = naborMng;
@@ -41,6 +44,7 @@ public class GenPartImpl implements GenPart {
         this.sprParamMng = sprParamMng;
         this.uslDao = uslDao;
         this.naborDao = naborDao;
+        this.configApp = configApp;
     }
 
     @PersistenceContext
@@ -166,8 +170,15 @@ public class GenPartImpl implements GenPart {
                     // х.в.,г.в узнать, работал ли хоть один счетчик в данном дне
                     isMeterExist = meterMng.isExistAnyMeter(lstMeterVol, factUslVol.getId(), curDt);
                 }
-                CountPers countPers = getCountPersAmount(parVarCntKpr, parCapCalcKprTp, curDt,
-                        nabor, kartMain, isMeterExist);
+                CountPers countPers = null;
+                if (fkCalcTp != 53) {
+                    countPers = getCountPersAmount(parVarCntKpr, parCapCalcKprTp, curDt,
+                            nabor, kartMain, isMeterExist);
+                } else if (!configApp.getMapParams().get("isDetChrg") && Utl.in(fkCalcTp, 55, 56)) {
+                    // ТСЖ расчет до 15 числа и после, по выборочным услугам
+                    countPers = getCountPersAmount(parVarCntKpr, parCapCalcKprTp, configApp.getDtMiddleMonth(),
+                            nabor, kartMain, isMeterExist);
+                }
 
                 SocStandart socStandart = null;
                 // наличие счетчика х.в.
@@ -387,7 +398,7 @@ public class GenPartImpl implements GenPart {
                     dayVolOverSoc = tempVol.subtract(dayVol);
 
                 } else if (Utl.in(fkCalcTp, 55, 56)) {
-                    // Х.В., Г.В., с соцнормой/свыше
+                    // Х.В., Г.В., с соцнормой/свыше (ТСЖ)
                     // получить объем по нормативу в доле на 1 день
                     if (Utl.in(fkCalcTp, 55) || (Utl.in(fkCalcTp, 56) &&
                             (!Utl.nvl(kartMain.getIsKran1(), false) ||

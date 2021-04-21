@@ -6,30 +6,36 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.Type;
 
 /**
  * Таблица параметров
  * @author lev
  *
  */
-@SuppressWarnings("serial")
 @Entity
 @Table(name = "PARAMS", schema="SCOTT")
 @Immutable
 @Cacheable // note как быть при переходе месяца, если закэшировано?
 @org.hibernate.annotations.Cache(region = "BillDirectNeverClearCache", usage = CacheConcurrencyStrategy.READ_ONLY)
 @Getter @Setter
-public class Param implements java.io.Serializable {
+public class Param {
 
 	public Param() {
 	}
 
     @Id
 	@Column(name = "ID", updatable = false, nullable = false)
-	private Integer id; // ID
+	private Integer id;
 
-	@Column(name = "PERIOD", updatable = true, nullable = false)
-	private String period; // период
+	// период
+	@Column(name = "PERIOD", nullable = false)
+	private String period;
+
+	// считать ли услуги по дням, или укрупнёнными периодами до 15 числа и после?
+	@Type(type = "org.hibernate.type.NumericBooleanType")
+	@Column(name = "IS_DET_CHRG", nullable = false)
+	private Boolean isDetChrg;
 
 }
 

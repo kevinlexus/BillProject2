@@ -4,9 +4,9 @@ import com.dic.app.mm.ConfigApp;
 import com.dic.bill.Lock;
 import com.dic.bill.dao.TuserDAO;
 import com.dic.bill.dto.SprPenKey;
+import com.dic.bill.mm.ParMng;
 import com.dic.bill.mm.SprParamMng;
 import com.dic.bill.mm.impl.SprParamMngImpl;
-import com.dic.bill.model.scott.Param;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
 import com.dic.bill.model.scott.Tuser;
@@ -22,7 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import java.text.ParseException;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Конфигуратор приложения
@@ -39,6 +43,7 @@ public class ConfigAppImpl implements ConfigApp {
     private final ApplicationContext ctx;
     private final EntityManager em;
     private final SprParamMng sprParamMng;
+    private final ParMng parMng;
     private final TuserDAO tuserDAO;
 
     // номер текущего запроса
@@ -54,12 +59,17 @@ public class ConfigAppImpl implements ConfigApp {
     // справочник ставок рефинансирования
     private List<Stavr> lstStavr;
     // справочник дат начала пени
-    Map<SprPenKey, SprPen> mapSprPen = new HashMap<>();
+    private Map<SprPenKey, SprPen> mapSprPen = new ConcurrentHashMap<>();
+    // справочник дат
+    private Map<String, Date> mapDate = new ConcurrentHashMap<>();
+    // справочник булевых параметров
+    private Map<String, Boolean> mapParams = new ConcurrentHashMap<>();
 
-    public ConfigAppImpl(ApplicationContext ctx, EntityManager em, SprParamMng sprParamMng, TuserDAO tuserDAO) {
+    public ConfigAppImpl(ApplicationContext ctx, EntityManager em, SprParamMng sprParamMng, ParMng parMng, TuserDAO tuserDAO) {
         this.ctx = ctx;
         this.em = em;
         this.sprParamMng = sprParamMng;
+        this.parMng = parMng;
         this.tuserDAO = tuserDAO;
     }
 
@@ -67,13 +77,14 @@ public class ConfigAppImpl implements ConfigApp {
     private void setUp() {
         log.info("");
         log.info("-----------------------------------------------------------------");
-        log.info("Версия модуля - {}", "1.1.1 (+расчет пени Java)");
+        log.info("Версия модуля - {}", "1.1.2");
         log.info("Начало расчетного периода = {}", getCurDt1());
         log.info("Конец расчетного периода = {}", getCurDt2());
         log.info("-----------------------------------------------------------------");
         log.info("");
 
         reloadSprPen();
+        reloadParam();
 
         TimeZone.setDefault(TimeZone.getTimeZone("GMT+7"));
         // блокировщик процессов
@@ -95,6 +106,7 @@ public class ConfigAppImpl implements ConfigApp {
      * }
      */
     // Получить Calendar текущего периода
+/*
     private List<Calendar> getCalendarCurrentPeriod() {
         List<Calendar> calendarLst = new ArrayList<>();
 
@@ -103,38 +115,44 @@ public class ConfigAppImpl implements ConfigApp {
             log.error("ВНИМАНИЕ! Установить SCOTT.PARAMS.ID=1");
         }
 
-        Calendar calendar1, calendar2;
-        calendar1 = new GregorianCalendar();
-        calendar1.clear(Calendar.ZONE_OFFSET);
+        Calendar calFirstDt, calLastDt, calMiddleDt;
+        calFirstDt = new GregorianCalendar();
+        calFirstDt.clear(Calendar.ZONE_OFFSET);
 
-        calendar2 = new GregorianCalendar();
-        calendar2.clear(Calendar.ZONE_OFFSET);
+        calLastDt = new GregorianCalendar();
+        calLastDt.clear(Calendar.ZONE_OFFSET);
 
+        calMiddleDt = new GregorianCalendar();
+        calMiddleDt.clear(Calendar.ZONE_OFFSET);
 
         // получить даты начала и окончания периода
         assert param != null;
-        Date dt = null;
+        Date dt;
         try {
             dt = Utl.getDateFromPeriod(param.getPeriod().concat("01"));
         } catch (ParseException e) {
             e.printStackTrace();
+            throw new RuntimeException("Ошибка преобразования даты");
         }
         Date dt1 = Utl.getFirstDate(dt);
         Date dt2 = Utl.getLastDate(dt1);
 
-        calendar1.setTime(dt1);
-        calendarLst.add(calendar1);
+        calFirstDt.setTime(dt1);
+        calendarLst.add(calFirstDt);
 
-        calendar2.setTime(dt2);
-        calendarLst.add(calendar2);
+        calLastDt.setTime(dt2);
+        calendarLst.add(calLastDt);
+
+        calMiddleDt.set(calFirstDt.get(Calendar.YEAR), calFirstDt.get(Calendar.MONTH), 15);
+        calendarLst.add(calMiddleDt);
 
         return calendarLst;
     }
-
+*/
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String getPeriod() {
-        return Utl.getPeriodFromDate(getCalendarCurrentPeriod().get(0).getTime());
+        return Utl.getPeriodFromDate(mapDate.get("dtFirst"));
     }
 
     @Override
@@ -146,7 +164,7 @@ public class ConfigAppImpl implements ConfigApp {
     @Override
     public String getPeriodNext() {
         try {
-            return Utl.addMonths(Utl.getPeriodFromDate(getCalendarCurrentPeriod().get(0).getTime()), 1);
+            return Utl.addMonths(Utl.getPeriodFromDate(mapDate.get("dtFirst")), 1);
         } catch (ParseException e) {
             log.error(Utl.getStackTraceString(e));
             return null;
@@ -156,7 +174,7 @@ public class ConfigAppImpl implements ConfigApp {
     @Override
     public String getPeriodBack() {
         try {
-            return Utl.addMonths(Utl.getPeriodFromDate(getCalendarCurrentPeriod().get(0).getTime()), -1);
+            return Utl.addMonths(Utl.getPeriodFromDate(mapDate.get("dtFirst")), -1);
         } catch (ParseException e) {
             log.error(Utl.getStackTraceString(e));
             return null;
@@ -168,7 +186,7 @@ public class ConfigAppImpl implements ConfigApp {
      */
     @Override
     public Date getCurDt1() {
-        return getCalendarCurrentPeriod().get(0).getTime();
+        return mapDate.get("dtFirst");
     }
 
     /**
@@ -176,7 +194,13 @@ public class ConfigAppImpl implements ConfigApp {
      */
     @Override
     public Date getCurDt2() {
-        return getCalendarCurrentPeriod().get(1).getTime();
+        return mapDate.get("dtLast");
+    }
+
+    // Получить дату середины месяца
+    @Override
+    public Date getDtMiddleMonth() {
+        return mapDate.get("dtMiddle");
     }
 
     // получить следующий номер запроса
@@ -215,6 +239,11 @@ public class ConfigAppImpl implements ConfigApp {
         lstSprPen = stavPen.getLstSprPen();
         lstStavr = stavPen.getLstStavr();
         mapSprPen = stavPen.getMapSprPen();
+    }
+
+    @Override
+    public void reloadParam() {
+        parMng.reloadParam(mapDate, mapParams);
     }
 
 }

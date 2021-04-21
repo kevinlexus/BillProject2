@@ -353,19 +353,14 @@ public class Utl {
     /**
      * Вернуть дату по формату
      *
-     * @param dt
-     * @return
+     * @param dt дата в формате "dd.MM.yyyy"
      */
     public static Date getDateFromStr(String dt) throws ParseException {
 
         SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy");
-        Date date = null;
-        //try {
+        Date date;
         date = formatter.parse(dt);
 
-        //} catch (ParseException e) {
-        //    e.printStackTrace();
-        //}
         return date;
     }
 
