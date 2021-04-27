@@ -34,9 +34,6 @@ public class SoapBuilder implements SoapBuilders {
     @Autowired
     private SoapConfig config;
 
-    @Autowired
-    private TaskController taskCtrl;
-
     private BindingProvider bp;
     private WSBindingProvider ws;
 
@@ -130,7 +127,7 @@ public class SoapBuilder implements SoapBuilders {
         }
 
         UUID messGUID = Utl.getRndUuid();
-        if (rhSimple!=null) {
+        if (rhSimple != null) {
             rhSimple.setDate(cl);
             rhSimple.setMessageGUID(messGUID.toString());
             ws.setOutboundHeaders(rhSimple);

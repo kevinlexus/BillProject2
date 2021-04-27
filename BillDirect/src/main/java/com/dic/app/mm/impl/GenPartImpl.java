@@ -171,12 +171,12 @@ public class GenPartImpl implements GenPart {
                     isMeterExist = meterMng.isExistAnyMeter(lstMeterVol, factUslVol.getId(), curDt);
                 }
                 CountPers countPers = null;
-                if (fkCalcTp != 53) {
-                    countPers = getCountPersAmount(parVarCntKpr, parCapCalcKprTp, curDt,
-                            nabor, kartMain, isMeterExist);
-                } else if (!configApp.getMapParams().get("isDetChrg") && Utl.in(fkCalcTp, 55, 56)) {
+                if (!configApp.getMapParams().get("isDetChrg") && Utl.in(fkCalcTp, 55, 56)) {
                     // ТСЖ расчет до 15 числа и после, по выборочным услугам
                     countPers = getCountPersAmount(parVarCntKpr, parCapCalcKprTp, configApp.getDtMiddleMonth(),
+                            nabor, kartMain, isMeterExist);
+                } else if (fkCalcTp != 53) {
+                    countPers = getCountPersAmount(parVarCntKpr, parCapCalcKprTp, curDt,
                             nabor, kartMain, isMeterExist);
                 }
 

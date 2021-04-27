@@ -57,7 +57,7 @@ public class TaskBuilder implements TaskBuilders {
     @Transactional(propagation = Propagation.REQUIRED)
     public void activateRptTask(Task task) {
         Task foundTask = em.find(Task.class, task.getId());
-        log.trace("******* Task.id={}, Повторяемое задание CD={}", foundTask.getId(), foundTask.getAct().getCd());
+        log.trace("*** Task.id={}, Повторяемое задание CD={}", foundTask.getId(), foundTask.getAct().getCd());
 		/* найти все связи с зависимыми записями, в заданиях которых нет родителя (главные),
 		   а так же если у этих заданий либо не имеется зависимых заданий, либо имеются и
 		   они НЕ находятся в статусах INS, ACK (т.е. на обработке)
@@ -71,13 +71,13 @@ public class TaskBuilder implements TaskBuilders {
                 .filter(t -> t.getChild().getMaster() == null) // только независимые (где не заполнен DEP_ID)
                 .forEach(t -> {
 
-                    //log.info("############# t.getChild().getId()={}", t.getChild().getId());
+                    log.trace("*** t.getChild().getId()={}", t.getChild().getId());
                     ArrayList<Task> taskLst = new ArrayList<>(10);
                     if (activateTask(t.getChild(), taskLst)) {
                         // разрешить запуск по всем дочерним заданиям
                         taskLst.forEach(t2 -> {
                             t2.setState("INS");
-                      //      log.info("Разрешено!!!!!!!: id={}", t2.getId());
+                            log.trace("*** Разрешено!!!!!!!: id={}", t2.getId());
                         });
                     }
                 });
@@ -86,18 +86,22 @@ public class TaskBuilder implements TaskBuilders {
     /**
      * Рекурсивная активация заданий
      *
-     * @param task - задание
+     * @param task    - задание
+     * @param taskLst
      * @return - разрешить активацию
      */
-    private boolean activateTask(Task task, ArrayList<Task> taskLst) {
-        //log.info("###########22 task.id={}, state={}", task.getId(), task.getState());
-        if (!Utl.in(task.getState(), "INS", "ACK")) {
-
+    private boolean activateTask(Task task, List<Task> taskLst) {
+        log.trace("*** activateTask: task.id={}, state={}", task.getId(), task.getState());
+        if (Utl.in(task.getState(), "ACK")) {
+            // текущее уже выполняется
+            log.trace("Ожидается завершение выполнения задания (дочерних заданий): id={}", task.getId());
+            return false;
+        } else {
             // дочерние задания
             for (Task child : task.getChild()) {
                 if (!activateTask(child, taskLst)) {
                     // дочернее уже выполняется
-                    //log.info("Запрещено: id={}", child.getId());
+                    log.trace("*** Дочернее уже выполняется: id={}", child.getId());
                     return false;
                 }
             }
@@ -105,17 +109,13 @@ public class TaskBuilder implements TaskBuilders {
             for (Task dep : task.getSlave()) {
                 if (!activateTask(dep, taskLst)) {
                     // дочернее по DEP_ID уже выполняется
-                    //log.info("Запрещено: id={}", dep.getId());
+                    log.trace("*** По DEP_ID уже выполняется: id={}", dep.getId());
                     return false;
                 }
             }
             taskLst.add(task);
-            //log.info("Разрешено: id={}", task.getId());
+            log.trace("*** Разрешено выполнение: id={}", task.getId());
             return true;
-        } else {
-            // текущее уже выполняется
-            //log.info("Запрещено: id={}", task.getId());
-            return false;
         }
     }
 

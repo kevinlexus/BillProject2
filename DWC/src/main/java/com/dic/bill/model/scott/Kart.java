@@ -56,19 +56,19 @@ public class Kart {
     private String num;
 
     // фамилия
-    @Column(name = "K_FAM", nullable = false)
+    @Column(name = "K_FAM")
     private String kFam;
 
     // имя
-    @Column(name = "K_IM", nullable = false)
+    @Column(name = "K_IM")
     private String kIm;
 
     // отчество
-    @Column(name = "K_OT", nullable = false)
+    @Column(name = "K_OT")
     private String kOt;
 
     // дата ограничения пени
-    @Column(name = "PN_DT", nullable = false)
+    @Column(name = "PN_DT")
     private Date pnDt;
 
     // номер подъезда
@@ -84,19 +84,19 @@ public class Kart {
     private Integer schEl;
 
     // кол-во проживающих
-    @Column(name = "KPR", nullable = false)
+    @Column(name = "KPR")
     private Integer kpr;
 
     // Кол-во вр.зарег.
-    @Column(name = "KPR_WR", nullable = false)
+    @Column(name = "KPR_WR")
     private Integer kprWr;
 
     // Кол-во вр.отсут.
-    @Column(name = "KPR_OT", nullable = false)
+    @Column(name = "KPR_OT")
     private Integer kprOt;
 
     // Кол-во собственников
-    @Column(name = "KPR_OWN", nullable = false)
+    @Column(name = "KPR_OWN")
     private Integer kprOwn;
 
     // тип лиц.счета
@@ -257,7 +257,7 @@ public class Kart {
 
     // кран из системы отопления
     @Type(type = "org.hibernate.type.NumericBooleanType")
-    @Column(name = "KRAN1", nullable = false)
+    @Column(name = "KRAN1")
     private Boolean isKran1;
 
     // разделенный в ГИС ЖКХ ЕЛС?

@@ -164,47 +164,10 @@ public class HcsOrgRegistryAsyncBindingBuilder implements HcsOrgRegistryAsyncBin
 	}
 
 	/**
-	 * Экспорт данных провайдера
-	 */
-/*	@Override
-	public void exportDataProvider() {
-		ExportDataProviderRequest req = new ExportDataProviderRequest();
-		req.setVersion(req.getVersion()==null?reqProp.getGisVersion():req.getVersion());
-
-		AckRequest ack = null;
-		// для обработки ошибок
-		Boolean err = false;
-		String errMainStr = null;
-		sb.setSign(false);
-
-		try {
-			ack = port.exportDataProvider(req);
-		} catch (ru.gosuslugi.dom.schema.integration.organizations_registry_common_service_async.Fault e1) {
-			e1.printStackTrace();
-			err = true;
-		}
-
-		RetState retState = getState2(ack);
-		if (err || retState.getErr()) {
-			// Ошибка
-			log.info("Ошибка выполнения запроса = {}", retState.getErrStr());
-
-		} else {
-			// Ошибок нет
-			retState.getState().getExportDataProviderResult().stream().forEach(t->{
-				log.info("Provider={}", t.getDataProviderGUID());
-			});
-		}
-
-	}*/
-
-	/**
 	 * Экспорт данных организации
-	 * @return
-	 * @throws CantPrepSoap
 	 */
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Transactional(propagation = Propagation.REQUIRED)
 	public boolean exportOrgRegistry(Task task) throws CantPrepSoap {
 		taskMng.logTask(task, true, null);
         // Установить параметры SOAP

@@ -161,70 +161,6 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
 
     /**
-     * Старый вызов получения статуса запроса
-     *
-     * @param ack - запрос
-     */
-    public RetStateHouse getState(AckRequest ack) {
-        boolean err = false;
-        String errStr = null;
-        ru.gosuslugi.dom.schema.integration.house_management.GetStateResult state = null;
-
-        GetStateRequest gs = new GetStateRequest();
-        gs.setMessageGUID(ack.getAck().getMessageGUID());
-        sb.setSign(false); // не подписывать запрос состояния!
-
-        int i = 2;
-        int timeout = 0;
-        while (!err && (state == null || state.getRequestState() != 3)) {
-            sb.makeRndMsgGuid();
-            try {
-                state = port.getState(gs);
-            } catch (ru.gosuslugi.dom.schema.integration.house_management_service_async.Fault e) {
-                e.printStackTrace();
-                err = true;
-                errStr = "Запрос вернул ошибку!";
-            }
-            // задержка
-            try {
-                timeout = 100 * i;
-                i = i * 2;
-                log.info("timeout={}", timeout);
-                Thread.sleep(timeout);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            if (timeout > 36000000) {
-                // не более 10 часов выполнять проверку запроса
-                err = true;
-                errStr = "Превышено время выполнения запроса!";
-            } else {
-                if (state == null) {
-                    err = true;
-                    errStr = "ОШИБКА! state == null";
-                } else {
-                    log.info("Статус запроса={}", state.getRequestState());
-                }
-            }
-        }
-
-        // Показать ошибки, если есть
-        if (err) {
-            // Ошибки во время выполнения
-            log.info(errStr);
-        } else if (state.getErrorMessage() != null && state.getErrorMessage().getErrorCode() != null) {
-            // Прочие ошибки
-            err = true;
-            errStr = state.getErrorMessage().getDescription();
-            log.info("Ошибка выполнения запроса = {}", errStr);
-        }
-
-        return new RetStateHouse(state, err, errStr);
-
-    }
-
-
-    /**
      * Получить состояние запроса
      *
      * @param task - задание
@@ -2431,7 +2367,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                         task2.setState("ACP");
                         task2.setGuid(d.getGUID());
                         task2.setUn(d.getUniqueNumber());
-                        task2.setUpdDt(Utl.getDateFromXmlGregCal(d.getUpdateDate()));
+                        task2.setDtUpd(Utl.getDateFromXmlGregCal(d.getUpdateDate()));
 
                         // Переписать значения параметров в eolink из task
                         teParMng.acceptPar(task2);

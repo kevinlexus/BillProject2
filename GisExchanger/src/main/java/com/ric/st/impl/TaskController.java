@@ -1,31 +1,31 @@
 package com.ric.st.impl;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.xml.datatype.DatatypeConfigurationException;
-
-import com.dic.bill.dao.AchargeDAO;
-import com.ric.st.builder.*;
-import com.ric.st.mm.UlistMng;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-//import com.ric.bill.Config;
 import com.dic.bill.RequestConfig;
+import com.dic.bill.dao.AchargeDAO;
 import com.dic.bill.dao.TaskDAO;
-import com.ric.cmn.excp.ErrorProcessAnswer;
-import com.ric.cmn.excp.WrongGetMethod;
-import com.ric.cmn.excp.WrongParam;
 import com.dic.bill.mm.TaskMng;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.TaskPar;
 import com.ric.cmn.Utl;
+import com.ric.cmn.excp.ErrorProcessAnswer;
+import com.ric.cmn.excp.WrongGetMethod;
+import com.ric.cmn.excp.WrongParam;
 import com.ric.st.TaskControllers;
+import com.ric.st.builder.*;
 import com.ric.st.excp.CantPrepSoap;
 import com.ric.st.excp.CantSendSoap;
-
+import com.ric.st.mm.UlistMng;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.xml.datatype.DatatypeConfigurationException;
+import java.util.List;
+
+//import com.ric.bill.Config;
 
 
 /**
@@ -106,7 +106,14 @@ public class TaskController implements TaskControllers {
         // цикл
         while (flag) {
             // перебрать все необработанные задания
-            for (Task t : taskDao.getAllUnprocessed()) {
+            List<Task> unprocessedTasks = taskDao.getAllUnprocessed();
+            if (log.isTraceEnabled()) {
+                log.trace("*** Unprocessed tasks");
+                unprocessedTasks.forEach(t -> log.trace("id={}, cd={}, atCd={}, dtCr={}, dtUpd={}",
+                        t.getId(), t.getCd(), t.getAct().getCd(), t.getDtCrt(), t.getDtUpd()));
+                log.trace("*** Unprocessed tasks");
+            }
+            for (Task t : unprocessedTasks) {
                 // получить задание заново (могло измениться в базе) - WTF??? ред.05.09.2019
                 Task task = em.find(Task.class, t.getId());
                 //log.trace("Обработка задания ID={}, CD={}, ActCD={}",

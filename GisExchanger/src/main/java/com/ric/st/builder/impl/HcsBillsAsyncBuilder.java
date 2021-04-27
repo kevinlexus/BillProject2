@@ -568,7 +568,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
 
         req.setId("foo");
         // требование гис передать именно так версию
-        req.setVersion("13.1.0.4");
+        req.setVersion("13.1.0.1");
 
         String period = eolParMng.getStr(rkc, "ГИС ЖКХ.PERIOD_EXP_PD");
         if (period == null) {

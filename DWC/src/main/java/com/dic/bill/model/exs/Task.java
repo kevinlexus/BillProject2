@@ -5,6 +5,7 @@ import com.ric.cmn.Utl;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicUpdate;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Generated;
 import javax.persistence.*;
@@ -107,7 +108,7 @@ public class Task implements java.io.Serializable  {
 
 	// дата обновления
 	@Column(name = "DT_UPD")
-	private Date updDt;
+	private Date dtUpd;
 
 	// дата-время следующего старта (При опросе ACK, если не пришёл ответ, увеличить следующий старт на N секунд)
 	@Column(name = "DT_NEXTSTART")
@@ -161,6 +162,7 @@ public class Task implements java.io.Serializable  {
 	 * @param lag - через lag секунд
 	 */
 	@Transient
+	@Transactional
 	public void alterDtNextStart(int lag) {
 		GregorianCalendar cal = new GregorianCalendar();
 		int lag2 = Utl.nvl(lagNextStart, 0) + lag;
@@ -208,7 +210,7 @@ public class Task implements java.io.Serializable  {
 		this.un = builder.un;
 		this.result = builder.result;
 		this.dtCrt = builder.crtDt;
-		this.updDt = builder.updDt;
+		this.dtUpd = builder.updDt;
 		this.tguid = builder.tguid;
 		this.fk_user = builder.fk_user;
 		this.taskPar = builder.taskPar;
