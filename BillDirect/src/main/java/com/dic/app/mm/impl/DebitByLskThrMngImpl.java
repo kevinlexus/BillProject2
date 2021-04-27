@@ -26,7 +26,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -114,7 +113,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         BigDecimal chrgSumm = localStore.getChrgSum();
         List<SumRecMgDt> lst = new ArrayList<>();
         lst.add(new TempSumRec(chrgSumm, null, dt1, null));
-        process(lst.stream(), mapDebPart1, null, null, false, calcStore.getPeriod(), false);
+        process(lst, mapDebPart1, null, null, false, calcStore.getPeriod(), false);
 
         // долги потоком, текущего, расчетного дня
         HashMap<Integer, PeriodSumma> mapDebCurrentDay;
@@ -137,12 +136,23 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                             Map.Entry::getKey,
                             v -> new PeriodSumma(v.getValue().getDeb(), v.getValue().getDebForPen()),
                             (k, v) -> k, HashMap::new));
+            if (log.isTraceEnabled()) {
+                log.trace("*** Информация на дату: dt={}, lsk={}", Utl.getStrFromDate(dt), kart.getLsk());
+                mapDebCurrentDay.forEach((key, value) -> {
+                    log.trace("Долг входящий+начисление: mg={}, deb={}, debForPen={}",
+                            key, value.getDeb(), value.getDebForPen());
+                });
+            }
 
             // перерасчеты, включая текущий день
             lst = localStore.getLstChngFlow().stream()
                     .map(t -> new TempSumRec(t.getSumma(), t.getMg(), t.getDt(), null))
                     .collect(Collectors.toList());
-            process(lst.stream(), mapDebCurrentDay, dt, dt, false, null, true);
+            process(lst, mapDebCurrentDay, dt, dt, false, null, true);
+            if (log.isTraceEnabled()) {
+                lst.forEach(t -> log.trace("Перерасчеты: t.getSumma()={}, t.getDt()={}, t.getMg()={}",
+                        t.getSumma(), t.getDt(), t.getMg()));
+            }
 
             // вычесть оплату включая текущий день поступления - для обычного долга
             // и не включая для расчета пени
@@ -151,19 +161,28 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                             t.getDt().getTime() < calcStore.getCurDt1().getTime() ? calcStore.getCurDt1() : t.getDt(), // исправить дату оплаты, если была принята предыдущим периодом
                             null))
                     .collect(Collectors.toList());
-            process(lst.stream(), mapDebCurrentDay, dt, dt, true, null, false);
+            process(lst, mapDebCurrentDay, dt, dt, true, null, false);
+            if (log.isTraceEnabled()) {
+                lst.forEach(t -> log.trace("Оплата: t.getSumma()={}, t.getDt()={}, t.getMg()={}",
+                        t.getSumma(), t.getDt(), t.getMg()));
+            }
 
             // вычесть корректировки оплаты - для расчета долга, включая текущий день
             lst = localStore.getLstPayCorrFlow().stream()
                     .map(t -> new TempSumRec(t.getSumma(), t.getMg(), dt1, null))
                     .collect(Collectors.toList());
-            process(lst.stream(), mapDebCurrentDay, dt, null, true, null, false);
+            process(lst, mapDebCurrentDay, dt, null, true, null, false);
+            if (log.isTraceEnabled()) {
+                lst.forEach(t -> log.trace("Корректировки оплаты: t.getSumma()={}, t.getDt()={}, t.getMg()={}",
+                        t.getSumma(), t.getDt(), t.getMg()));
+            }
 
-            log.trace("********** Долги на дату: dt={}, lsk={}", Utl.getStrFromDate(dt), kart.getLsk());
-            mapDebCurrentDay.forEach((key, value) -> {
-                log.trace("долг: mg={}, deb={}, debForPen={}",
-                        key, value.getDeb(), value.getDebForPen());
-            });
+            if (log.isTraceEnabled()) {
+                mapDebCurrentDay.forEach((key, value) -> {
+                    log.trace("Долг исходящий: mg={}, deb={}, debForPen={}",
+                            key, value.getDeb(), value.getDebForPen());
+                });
+            }
 
             // перенести переплату
             moveOverpay(mapDebCurrentDay);
@@ -431,7 +450,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
     /**
      * Обработка финансового потока, группировка долгов по услугам, орг, периоду
      *
-     * @param stream         поток
+     * @param lst            фин.поток
      * @param mapDeb         результат
      * @param beforeDt       ограничивать до даты, включительно
      * @param beforeDtForPen ограничивать до даты, не включая, для пени
@@ -439,38 +458,35 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
      * @param curMg          текущий период
      * @param isChange       перерасчет?
      */
-    private void process(Stream<SumRecMgDt> stream, Map<Integer, PeriodSumma> mapDeb,
+    private void process(List<SumRecMgDt> lst, Map<Integer, PeriodSumma> mapDeb,
                          Date beforeDt, Date beforeDtForPen, boolean isNegate, Integer curMg, boolean isChange) {
-        stream
-                .forEach(t -> {
-                            //log.info("Обработка: t.getSumma()={}, t.getDt()={}, t.getMg()={}",
-                            //        t.getSumma(), t.getDt(), t.getMg());
-                            BigDecimal deb = BigDecimal.ZERO;
-                            // ограничить по дате для расчета долга
-                            if (beforeDt == null || t.getDt().getTime() <= beforeDt.getTime()) {
-                                deb = isNegate ? t.getSumma().negate() : t.getSumma();
-                            }
-                            BigDecimal debForPen = BigDecimal.ZERO;
-                            // ограничить по дате для долга для расчета пени
-                            if (beforeDtForPen == null || isChange && t.getDt().getTime() <= beforeDtForPen.getTime()
-                                    || t.getDt().getTime() < beforeDtForPen.getTime()) {
-                                debForPen = isNegate ? t.getSumma().negate() : t.getSumma();
-                            }
+        lst.forEach(t -> {
+                    BigDecimal deb = BigDecimal.ZERO;
+                    // ограничить по дате для расчета долга
+                    if (beforeDt == null || t.getDt().getTime() <= beforeDt.getTime()) {
+                        deb = isNegate ? t.getSumma().negate() : t.getSumma();
+                    }
+                    BigDecimal debForPen = BigDecimal.ZERO;
+                    // ограничить по дате для долга для расчета пени
+                    if (beforeDtForPen == null || isChange && t.getDt().getTime() <= beforeDtForPen.getTime()
+                            || t.getDt().getTime() < beforeDtForPen.getTime()) {
+                        debForPen = isNegate ? t.getSumma().negate() : t.getSumma();
+                    }
 
-                            if (deb.compareTo(BigDecimal.ZERO) != 0 || debForPen.compareTo(BigDecimal.ZERO) != 0) {
-                                PeriodSumma periodSumma =
-                                        new PeriodSumma(deb, debForPen);
-                                Integer debPeriod = curMg != null ? curMg : t.getMg();
-                                PeriodSumma val = mapDeb.get(debPeriod);
-                                if (val == null) {
-                                    mapDeb.put(debPeriod, periodSumma);
-                                } else {
-                                    val.setDeb(val.getDeb().add(periodSumma.getDeb()));
-                                    val.setDebForPen(val.getDebForPen().add(periodSumma.getDebForPen()));
-                                }
-                            }
+                    if (deb.compareTo(BigDecimal.ZERO) != 0 || debForPen.compareTo(BigDecimal.ZERO) != 0) {
+                        PeriodSumma periodSumma =
+                                new PeriodSumma(deb, debForPen);
+                        Integer debPeriod = curMg != null ? curMg : t.getMg();
+                        PeriodSumma val = mapDeb.get(debPeriod);
+                        if (val == null) {
+                            mapDeb.put(debPeriod, periodSumma);
+                        } else {
+                            val.setDeb(val.getDeb().add(periodSumma.getDeb()));
+                            val.setDebForPen(val.getDebForPen().add(periodSumma.getDebForPen()));
                         }
-                );
+                    }
+                }
+        );
 
     }
 }

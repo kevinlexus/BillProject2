@@ -44,7 +44,7 @@ public interface CorrectPayDAO extends JpaRepository<CorrectPay, Integer> {
 	 * Получить сгруппированные записи корректировок оплат текущего периода
 	 * @param lsk - лицевой счет
 	 */
-	@Query(value = "select t.mg, coalesce(sum(t.summa),0) as summa "
+	@Query(value = "select t.mg as mg, coalesce(sum(t.summa),0) as summa "
 			+ "from CorrectPay t "
 			+ "where t.kart.lsk=:lsk and t.mg=:mg "
 			+ "group by t.mg")
