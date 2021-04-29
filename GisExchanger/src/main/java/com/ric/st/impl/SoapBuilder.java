@@ -145,8 +145,7 @@ public class SoapBuilder implements SoapBuilders {
             ws.setOutboundHeaders(rh);
         }
 
-        String endPoint = (String) bp.getRequestContext().get(BindingProvider.ENDPOINT_ADDRESS_PROPERTY);
-        String urlStr = endPoint;
+        String urlStr = (String) bp.getRequestContext().get(BindingProvider.ENDPOINT_ADDRESS_PROPERTY);
         String path;
         try {
             path = Utl.getPathFromUrl(urlStr);
@@ -158,8 +157,8 @@ public class SoapBuilder implements SoapBuilders {
         Map<String, List<String>> requestHeaders = new HashMap<>();
         @SuppressWarnings("restriction")
         String authorization = new sun.misc.BASE64Encoder().encode((config.getBscLogin() + ":" + config.getBscPass()).getBytes());
-        requestHeaders.put("Authorization", Arrays.asList("Basic " + authorization));
-        requestHeaders.put("X-Client-Cert-Fingerprint", Arrays.asList(config.getFingerPrint()));
+        requestHeaders.put("Authorization", Collections.singletonList("Basic " + authorization));
+        requestHeaders.put("X-Client-Cert-Fingerprint", Collections.singletonList(config.getFingerPrint()));
 
         log.trace("************* SoapBuilder: endpoint: hostIp={}{}", hostIp, path);
         bp.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY,

@@ -24,6 +24,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.xml.datatype.DatatypeConfigurationException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 //import com.ric.bill.Config;
 
@@ -106,7 +107,8 @@ public class TaskController implements TaskControllers {
         // цикл
         while (flag) {
             // перебрать все необработанные задания
-            List<Task> unprocessedTasks = taskDao.getAllUnprocessed();
+            List<Task> unprocessedTasks = taskDao.getAllUnprocessed()
+                    .stream().limit(10).collect(Collectors.toList());
             if (log.isTraceEnabled()) {
                 log.trace("*** Unprocessed tasks");
                 unprocessedTasks.forEach(t -> log.trace("id={}, cd={}, atCd={}, dtCr={}, dtUpd={}",

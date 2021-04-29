@@ -1436,6 +1436,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                                 .withObjTp(addrTp)
                                 .withParent(parentEol)
                                 .withUk(task.getProcUk())
+                                .withOrg(task.getProcUk().getOrg())
                                 .withUser(config.getCurUser())
                                 .withStatus(1).build();
                         log.info("Попытка создать запись лицевого счета в Eolink: GUID={}, AccountNumber={}, ServiceId={}",
