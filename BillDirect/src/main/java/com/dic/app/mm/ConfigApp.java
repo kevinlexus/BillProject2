@@ -5,9 +5,6 @@ import com.dic.bill.dto.SprPenKey;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
 import com.dic.bill.model.scott.Tuser;
-import org.apache.xpath.operations.Bool;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
 import java.util.Date;
@@ -16,38 +13,39 @@ import java.util.Map;
 
 public interface ConfigApp {
 
-	Integer getProgress();
+    Integer getProgress();
 
     String getPeriod();
 
-	Tuser getCurUser();
+    Tuser getCurUser();
 
     String getPeriodNext();
 
-	String getPeriodBack();
+    String getPeriodBack();
 
-	Date getCurDt1();
+    Date getCurDt1();
 
-	Date getCurDt2();
+    Date getCurDt2();
 
-	Lock getLock();
+    Lock getLock();
 
-	Date getDtMiddleMonth();
+    Date getDtMiddleMonth();
 
-	int incNextReqNum();
+    int incNextReqNum();
 
-	void setProgress(Integer progress);
+    void setProgress(Integer progress);
 
-	void incProgress();
+    void incProgress();
 
-	Map<SprPenKey, SprPen> getMapSprPen();
-	Map<String, Boolean> getMapParams();
+    Map<SprPenKey, SprPen> getMapSprPen();
 
-	List<Stavr> getLstStavr();
+    Map<String, Boolean> getMapParams();
 
-	void reloadSprPen();
+    List<Stavr> getLstStavr();
 
-	void reloadParam() throws ParseException;
+    void reloadSprPen();
+
+    void reloadParam() throws ParseException;
 
 
 }

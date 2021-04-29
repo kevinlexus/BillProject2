@@ -227,6 +227,7 @@ public class GenPartImpl implements GenPart {
                                 chargePrep.setUsl(nabor.getUsl());
                                 chargePrep.setTp(9);
                                 chargePrep.setSpk(countPers.capPriv);
+                                chargePrep.setIsExistMeter(false);
                                 chrgCountAmountLocal.setCapPrivAdded(true);
                             }
                         } else {

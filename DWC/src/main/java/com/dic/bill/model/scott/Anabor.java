@@ -12,10 +12,9 @@ import javax.persistence.*;
  *
  */
 @Getter @Setter
-@SuppressWarnings("serial")
 @Entity
 @Table(name = "A_NABOR2", schema="SCOTT")
-public class Anabor extends BaseNabor implements java.io.Serializable, Compress {
+public class Anabor extends BaseNabor implements Compress {
 
 	public Anabor() {
 	}

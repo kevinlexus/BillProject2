@@ -44,7 +44,7 @@ public class ChargePrep {
     private Usl usl;
 
     // объем
-    @Column(name = "VOL", nullable = false)
+    @Column(name = "VOL")
     private BigDecimal vol;
 
     // наличие счетчика

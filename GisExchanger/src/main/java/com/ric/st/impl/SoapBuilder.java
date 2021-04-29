@@ -5,6 +5,7 @@ import com.ric.st.SoapBuilders;
 import com.ric.st.excp.CantSendSoap;
 import com.sun.xml.ws.developer.WSBindingProvider;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.xml.security.utils.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -156,7 +157,8 @@ public class SoapBuilder implements SoapBuilders {
 
         Map<String, List<String>> requestHeaders = new HashMap<>();
         @SuppressWarnings("restriction")
-        String authorization = new sun.misc.BASE64Encoder().encode((config.getBscLogin() + ":" + config.getBscPass()).getBytes());
+        //String authorization = new sun.misc.BASE64Encoder().encode((config.getBscLogin() + ":" + config.getBscPass()).getBytes());
+        String authorization = Base64.encode((config.getBscLogin() + ":" + config.getBscPass()).getBytes());
         requestHeaders.put("Authorization", Collections.singletonList("Basic " + authorization));
         requestHeaders.put("X-Client-Cert-Fingerprint", Collections.singletonList(config.getFingerPrint()));
 

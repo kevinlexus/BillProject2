@@ -38,11 +38,8 @@ public class AnaborDAOImpl implements AnaborDAO {
      */
     @Override
 	public List<Anabor> getByLsk(String lsk) {
-		log.trace("1.7");
 		Query query =em.createQuery("from Anabor t where t.kart.id=:lsk");
-		log.trace("1.8");
 		query.setParameter("lsk", lsk);
-		log.trace("1.9");
 		return query.getResultList();
 	}
 

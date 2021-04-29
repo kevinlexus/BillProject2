@@ -8,9 +8,9 @@ import com.dic.bill.model.scott.Kart;
 
 public interface AnaborDAO {
 
-	public List<Anabor> getAll();
-	public List<Anabor> getByLsk(String lsk);
-	public List<Anabor> getByLskPeriod(String lsk, Integer period);
-	public List<Kart> getAfterLsk(String firstLsk);
+	List<Anabor> getAll();
+	List<Anabor> getByLsk(String lsk);
+	List<Anabor> getByLskPeriod(String lsk, Integer period);
+	List<Kart> getAfterLsk(String firstLsk);
 
 }
