@@ -175,7 +175,7 @@ public class GenPartImpl implements GenPart {
                     // ТСЖ расчет до 15 числа и после, по выборочным услугам
                     countPers = getCountPersAmount(parVarCntKpr, parCapCalcKprTp, configApp.getDtMiddleMonth(),
                             nabor, kartMain, isMeterExist);
-                } else if (fkCalcTp != 53) {
+                } else {
                     countPers = getCountPersAmount(parVarCntKpr, parCapCalcKprTp, curDt,
                             nabor, kartMain, isMeterExist);
                 }
