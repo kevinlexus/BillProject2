@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.StoredProcedureQuery;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -910,6 +911,13 @@ public class RegistryMngImpl implements RegistryMng {
                     }
                 }
             }
+            // загрузка оплаты
+            StoredProcedureQuery qr;
+            qr = em.createStoredProcedureQuery("scott.c_gen_pay.load_ext_pay");
+            qr.execute();
+            // загрузка сальдо
+            qr = em.createStoredProcedureQuery("scott.gen.load_ext_saldo");
+            qr.execute();
         } else {
             throw new WrongParam("Некорректный тип формата загрузочного файла ORG.EXT_LSK_FORMAT_TP=" + org.getExtLskFormatTp() +
                     " по T_ORG.ID=" + org.getId());
