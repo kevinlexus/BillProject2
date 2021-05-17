@@ -33,13 +33,13 @@ public class Soap2GisApplication {
         log.info("*                                                              *");
         log.info("****************************************************************");
 
-        ClassLoader cl = ClassLoader.getSystemClassLoader();
-        URL[] urls = ((URLClassLoader) cl).getURLs();
-        log.info("*********** CLASSPATH *********");
-        for (URL url : urls) {
-            System.out.println(url.getFile());
-        }
-        log.info("*********** CLASSPATH *********");
+        //        ClassLoader cl = ClassLoader.getSystemClassLoader();
+        //        URL[] urls = ((URLClassLoader) cl).getURLs();
+        //        log.info("*********** CLASSPATH *********");
+        //        for (URL url : urls) {
+        //            System.out.println(url.getFile());
+        //        }
+        //        log.info("*********** CLASSPATH *********");
 
         String workingDir = System.getProperty("user.dir");
         log.info("Current working directory : " + workingDir);
