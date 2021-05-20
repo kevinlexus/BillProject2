@@ -11,6 +11,7 @@ import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileChrg;
 import com.ric.cmn.excp.WrongParam;
+import com.ric.dto.SumMeterVol;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -5,14 +5,13 @@ import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.GenChrgProcessMng;
 import com.dic.app.mm.GenPart;
 import com.dic.bill.dao.MeterDAO;
-import com.dic.bill.dao.NaborDAO;
-import com.dic.bill.dao.UslDAO;
 import com.dic.bill.dto.*;
 import com.dic.bill.mm.*;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileChrg;
 import com.ric.cmn.excp.WrongParam;
+import com.ric.dto.SumMeterVol;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -99,7 +98,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             }
 
             // все действующие счетчики объекта и их объемы
-            List<SumMeterVol> lstMeterVol = meterDao.findMeterVolUsingKlsk(ko.getId(),
+            List<SumMeterVol> lstMeterVol = meterDao.getMeterVolByKlskId(ko.getId(),
                     calcStore.getCurDt1(), calcStore.getCurDt2());
             /*System.out.println("Счетчики:");
             for (SumMeterVol t : lstMeterVol) {

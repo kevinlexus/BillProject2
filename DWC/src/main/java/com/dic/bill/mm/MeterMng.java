@@ -2,7 +2,8 @@ package com.dic.bill.mm;
 
 import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.MeterData;
-import com.dic.bill.dto.SumMeterVol;
+import com.ric.dto.ListMeter;
+import com.ric.dto.SumMeterVol;
 import com.dic.bill.dto.UslMeterDateVol;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.scott.Ko;
@@ -42,4 +43,6 @@ public interface MeterMng {
                      String prevValue, String value, String period,
                      int userId, int docParId,
                      boolean isSetPreviosVal) throws IOException;
+
+    ListMeter getListMeterByKlskId(Long koObjId, Date dt1, Date dt2);
 }

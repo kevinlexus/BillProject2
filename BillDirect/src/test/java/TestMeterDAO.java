@@ -1,7 +1,7 @@
 import com.dic.app.Config;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dto.MeterData;
-import com.dic.bill.dto.SumMeterVol;
+import com.ric.dto.SumMeterVol;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.model.scott.Meter;
 import com.ric.cmn.Utl;
@@ -78,7 +78,7 @@ public class TestMeterDAO {
 	public void isWorkFindMeterVolByKlsk() throws Exception {
 		Date dtFrom = Utl.getDateFromStr("01.04.2014");
 		Date dtTo = Utl.getDateFromStr("30.04.2014");
-		List<SumMeterVol> lstVol = meterDao.findMeterVolUsingKlsk(104882L, dtFrom, dtTo);
+		List<SumMeterVol> lstVol = meterDao.getMeterVolByKlskId(104882L, dtFrom, dtTo);
 		lstVol.forEach(t-> {
 				log.info("t.getMeterId()={}, t.getDtFrom={}, t.getDtTo={}, t.getVol()={}",
 						t.getMeterId(), t.getDtFrom(), t.getDtTo(), t.getVol());

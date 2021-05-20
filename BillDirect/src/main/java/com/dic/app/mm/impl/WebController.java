@@ -6,13 +6,17 @@ import com.dic.bill.dao.PrepErrDAO;
 import com.dic.bill.dao.SprGenItmDAO;
 import com.dic.bill.dto.KwtpMgRec;
 import com.dic.bill.mm.KartMng;
+import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.NaborMng;
+import com.dic.bill.mm.ObjParMng;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.CommonConstants;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileDistPay;
 import com.ric.cmn.excp.ErrorWhileGen;
 import com.ric.cmn.excp.WrongParam;
+import com.ric.dto.ListKoAddress;
+import com.ric.dto.ListMeter;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.SessionFactory;
 import org.springframework.boot.SpringApplication;
@@ -51,7 +55,9 @@ public class WebController implements CommonConstants {
     private final DistPayQueueMng distPayQueueMng;
     private final CorrectsMng correctsMng;
     private final RegistryMng registryMng;
+    private final ObjParMng objParMng;
     private final KartMng kartMng;
+    private final MeterMng meterMng;
     private final MntBase mntBase;
 
     public WebController(NaborMng naborMng, MigrateMng migrateMng, ExecMng execMng,
@@ -60,7 +66,7 @@ public class WebController implements CommonConstants {
                          DistPayMng distPayMng,
                          DistPayQueueMng distPayQueueMng,
                          ProcessMng processMng,
-                         CorrectsMng correctsMng, RegistryMng registryMng, KartMng kartMng, MntBase mntBase) {
+                         CorrectsMng correctsMng, RegistryMng registryMng, ObjParMng objParMng, KartMng kartMng, MeterMng meterMng, MntBase mntBase) {
         this.naborMng = naborMng;
         this.migrateMng = migrateMng;
         this.execMng = execMng;
@@ -74,7 +80,9 @@ public class WebController implements CommonConstants {
         this.processMng = processMng;
         this.correctsMng = correctsMng;
         this.registryMng = registryMng;
+        this.objParMng = objParMng;
         this.kartMng = kartMng;
+        this.meterMng = meterMng;
         this.mntBase = mntBase;
     }
 
@@ -702,5 +710,18 @@ public class WebController implements CommonConstants {
                 period, config.getPeriod());
     }
 
+    @RequestMapping(value = "/getListKoAddressByTelegramUserId/{userId}", method = RequestMethod.GET)
+    @ResponseBody
+    public ListKoAddress getListKoAddressByTelegramUserId(@PathVariable Long userId) {
+        log.info("GOT /getListKoAddressByTelegramUserId with userId={}", userId);
+        return objParMng.getListKoAddressByObjPar("TelegramId", userId);
+    }
+
+    @RequestMapping(value = "/getListMeterByKlskId/{klskId}", method = RequestMethod.GET)
+    @ResponseBody
+    public ListMeter getListMeterByKlskId(@PathVariable Long klskId) {
+        log.info("GOT /getListMeterByKlskId with klskId={}", klskId);
+        return meterMng.getListMeterByKlskId(klskId, config.getCurDt1(), config.getCurDt2());
+    }
 
 }

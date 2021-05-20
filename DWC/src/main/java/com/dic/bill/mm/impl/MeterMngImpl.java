@@ -3,7 +3,8 @@ package com.dic.bill.mm.impl;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.MeterData;
-import com.dic.bill.dto.SumMeterVol;
+import com.ric.dto.ListMeter;
+import com.ric.dto.SumMeterVol;
 import com.dic.bill.dto.UslMeterDateVol;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.model.exs.Eolink;
@@ -13,7 +14,6 @@ import com.ric.cmn.MeterValConsts;
 import com.ric.cmn.Utl;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.procedure.ProcedureOutputs;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,10 +34,14 @@ import java.util.stream.Collectors;
 @Service
 public class MeterMngImpl implements MeterMng {
 
-    @Autowired
-    private MeterDAO meterDao;
+    private final MeterDAO meterDao;
+
     @PersistenceContext
     private EntityManager em;
+
+    public MeterMngImpl(MeterDAO meterDao) {
+        this.meterDao = meterDao;
+    }
 
 
     /**
@@ -421,5 +425,9 @@ public class MeterMngImpl implements MeterMng {
         return 0; // нет данных для отправки
     }
 
+    @Override
+    public ListMeter getListMeterByKlskId(Long koObjId, Date dt1, Date dt2) {
+        return new ListMeter(meterDao.getMeterVolByKlskId(koObjId, dt1, dt2));
+    }
 
 }

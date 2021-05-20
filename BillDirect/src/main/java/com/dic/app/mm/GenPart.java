@@ -2,7 +2,7 @@ package com.dic.app.mm;
 
 import com.dic.app.RequestConfigDirect;
 import com.dic.bill.dto.ChrgCountAmountLocal;
-import com.dic.bill.dto.SumMeterVol;
+import com.ric.dto.SumMeterVol;
 import com.dic.bill.dto.UslMeterDateVol;
 import com.dic.bill.model.scott.Ko;
 import com.dic.bill.model.scott.Nabor;

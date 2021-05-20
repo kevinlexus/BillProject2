@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Logger;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileChrg;
+import com.ric.dto.SumMeterVol;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
