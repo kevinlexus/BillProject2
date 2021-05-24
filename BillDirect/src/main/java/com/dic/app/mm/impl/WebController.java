@@ -419,7 +419,7 @@ public class WebController implements CommonConstants {
     }
 
     private boolean checkValidKey(String key) {
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHH24mm");
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmm");
         String str = "lasso_the_moose_" + formatter.format(new Date());
         log.info("Compare password with {}", str);
         return key.equals(str);

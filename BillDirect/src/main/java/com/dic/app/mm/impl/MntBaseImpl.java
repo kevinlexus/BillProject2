@@ -7,112 +7,94 @@ import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.Param;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.WrongTableException;
-import com.ric.dto.Result;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.list.TreeList;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
+
 /**
  * Cервис обслуживания базы данных
- * @author lev
  *
+ * @author lev
  */
 @Slf4j
 @Service
 public class MntBaseImpl implements MntBase {
 
-	private final AnaborDAO anaborDao;
-	private final AchargeDAO achargeDao;
-	private final AchargePrepDAO achargePrepDao;
-	private final AkartPrDAO akartPrDAO;
-	private final ParamDAO paramDao;
-	private final ChargePayDAO chargePayDAO;
+    private final AnaborDAO anaborDao;
+    private final AchargeDAO achargeDao;
+    private final AchargePrepDAO achargePrepDao;
+    private final AkartPrDAO akartPrDAO;
+    private final ParamDAO paramDao;
+    private final ChargePayDAO chargePayDAO;
+    private final ComprTbl comprTbl;
 
-	private final ApplicationContext ctx;
-	// текущий период
-	private Integer curPeriod;
-	// период -2 от текущего
-	private Integer backPeriod;
-	// анализировать все периоды?
-	private boolean isAllPeriods;
+    // текущий период
+    private Integer curPeriod;
+    // период -2 от текущего
+    private Integer backPeriod;
+    // анализировать все периоды?
+    private boolean isAllPeriods;
 
-	public MntBaseImpl(AnaborDAO anaborDao, AchargeDAO achargeDao, AchargePrepDAO achargePrepDao,
-					   AkartPrDAO akartPrDAO, ParamDAO paramDao, ChargePayDAO chargePayDAO, ApplicationContext ctx) {
-		this.anaborDao = anaborDao;
-		this.achargeDao = achargeDao;
-		this.achargePrepDao = achargePrepDao;
-		this.akartPrDAO = akartPrDAO;
-		this.paramDao = paramDao;
-		this.chargePayDAO = chargePayDAO;
-		this.ctx = ctx;
-	}
+    public MntBaseImpl(AnaborDAO anaborDao, AchargeDAO achargeDao, AchargePrepDAO achargePrepDao,
+                       AkartPrDAO akartPrDAO, ParamDAO paramDao, ChargePayDAO chargePayDAO, ComprTbl comprTbl) {
+        this.anaborDao = anaborDao;
+        this.achargeDao = achargeDao;
+        this.achargePrepDao = achargePrepDao;
+        this.akartPrDAO = akartPrDAO;
+        this.paramDao = paramDao;
+        this.chargePayDAO = chargePayDAO;
+        this.comprTbl = comprTbl;
+    }
 
-	/**
-	 * Сжать таблицу
-	 * @param table - класс таблицы
-	 * @param firstLsk - начать с лицевого
-	 * @param oneLsk - только этот лицевой
-	 */
-	private void comprTable(String table, String firstLsk, String oneLsk) throws Exception {
-		Integer startTime;
-		Integer endTime;
-		int totalTime;
-		// Кол-во потоков, начать от 10, иначе может быть Out of Memory Error, Java heap space, на слабых серверах
-		int cntThread = 10;
-		// Кол-во потоков, лучшее
-		boolean setBestCntThread = false;
-		int bestCntThread = 0;
-		int cnt;
-		// каждую пачку исполнять по N раз
-		int batchCnt = 1;
-		// лучшее время исполнения, мс
-		int bestTime = 5000;
-		Integer batchTime;
-		List<Integer> avgLst;
+    /**
+     * Сжать таблицу
+     *
+     * @param table    - класс таблицы
+     * @param firstLsk - начать с лицевого
+     * @param oneLsk   - только этот лицевой
+     */
+    private void comprTable(String table, String firstLsk, String oneLsk) throws ExecutionException, InterruptedException, WrongTableException {
+        int startTime;
+        int endTime;
+        int totalTime;
+        log.info("Compress table:{}", table);
+        startTime = (int) System.currentTimeMillis();
 
-		log.info("Compress table:{},  threads count:{}", table, cntThread);
-		startTime = (int) System.currentTimeMillis();
+        List<String> lstLsk;
+        // Получить список лс
+        if (oneLsk != null) {
+            lstLsk = new ArrayList<>();
+            lstLsk.add(oneLsk);
+        } else {
+            switch (table) {
+                case "anabor" -> lstLsk = anaborDao.getAfterLsk(firstLsk).stream().map(Kart::getLsk)
+                        .collect(Collectors.toList());
+                case "acharge" -> lstLsk = achargeDao.getAfterLsk(firstLsk).stream().map(Kart::getLsk)
+                        .collect(Collectors.toList());
+                case "achargeprep" -> lstLsk = achargePrepDao.getAfterLsk(firstLsk).stream().map(Kart::getLsk)
+                        .collect(Collectors.toList());
+                case "akartpr" -> lstLsk = akartPrDAO.getAfterLsk(firstLsk).stream().map(Kart::getLsk)
+                        .collect(Collectors.toList());
+                case "chargepay" -> lstLsk = chargePayDAO.getAfterLsk(firstLsk).stream().map(Kart::getLsk)
+                        .collect(Collectors.toList());
+                default -> {
+                    log.error("Ошибка! Некорректный класс таблицы:{}", table);
+                    throw new WrongTableException("Некорректный класс таблицы!");
+                }
+            }
 
-		List<String> lstLsk;
-		// Получить список лс
-		if (oneLsk != null) {
-			lstLsk = new ArrayList<>();
-			lstLsk.add(oneLsk);
-		} else {
+        }
+        ForkJoinPool forkJoinPool = new ForkJoinPool(16);
+        forkJoinPool.submit(() -> lstLsk.parallelStream().forEach(lsk ->
+                comprTbl.comprTableByLsk(table, lsk, backPeriod, curPeriod, isAllPeriods))).get();
 
-			switch (table) {
-				case "anabor":
-					lstLsk = anaborDao.getAfterLsk(firstLsk).stream().map(Kart::getLsk)
-							.collect(Collectors.toList());
-					break;
-				case "acharge":
-					lstLsk = achargeDao.getAfterLsk(firstLsk).stream().map(Kart::getLsk)
-							.collect(Collectors.toList());
-					break;
-				case "achargeprep":
-					lstLsk = achargePrepDao.getAfterLsk(firstLsk).stream().map(Kart::getLsk)
-							.collect(Collectors.toList());
-					break;
-				case "akartpr":
-					lstLsk = akartPrDAO.getAfterLsk(firstLsk).stream().map(Kart::getLsk)
-							.collect(Collectors.toList());
-					break;
-				case "chargepay":
-					lstLsk = chargePayDAO.getAfterLsk(firstLsk).stream().map(Kart::getLsk)
-							.collect(Collectors.toList());
-					break;
-				default:
-					log.error("Ошибка! Некорректный класс таблицы:{}", table);
-					throw new WrongTableException("Некорректный класс таблицы!");
-			}
-
-		}
+/*
 		Queue<String> qu = new LinkedList<>(lstLsk);
 			cnt = 1;
 			avgLst = new TreeList<>();
@@ -141,7 +123,7 @@ public class MntBaseImpl implements MntBase {
 			// Начать потоки
 			for (String lsk : batch) {
 				ComprTbl comprTbl = ctx.getBean(ComprTbl.class);
-				Future<Result> fut = comprTbl.comprTableByLsk(table, lsk, backPeriod, curPeriod, isAllPeriods);
+				//Future<Result> fut = comprTbl.comprTableByLsk(table, lsk, backPeriod, curPeriod, isAllPeriods);
 				frl.add(fut);
 				if (cnt == 1000) {
 					log.info("Последний лс на обработке={}", lsk);
@@ -211,47 +193,46 @@ public class MntBaseImpl implements MntBase {
 			}
 
 		}
+*/
 
-		endTime = (int) System.currentTimeMillis();
-		totalTime = endTime - startTime;
-		log.info("Overall time for compress:{} sec", totalTime/1000);
+        endTime = (int) System.currentTimeMillis();
+        totalTime = endTime - startTime;
+        log.info("Overall time for compress:{} sec", totalTime / 1000);
 
-	}
+    }
 
-	/**
-	 * Сжать все необходимые таблицы
-	 * @param firstLsk - начать с лиц.сч.
-	 * @param oneLsk - только этот лицевой
-	 */
-	@Override
-	public boolean comprAllTables(String firstLsk, String oneLsk, String table, boolean isAllPeriods) {
-		log.info("**************** СomprAllTables Version 2.0.3 ****************");
-		this.isAllPeriods = isAllPeriods;
-		// Получить параметры
-		// параметры
-		Param param = paramDao.findAll().stream().findFirst().orElse(null);
-		assert param != null;
-		curPeriod = Integer.valueOf(param.getPeriod());
-    	// Период -2 от текущего (минус два месяца, так как сжимаем только архивный и сравниваем его с доархивным)
-		try {
-			backPeriod = Integer.valueOf(Utl.addMonths(String.valueOf(curPeriod), -2));
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-		log.trace("Текущий период={}", curPeriod);
-		log.trace("Период -2 от текущего={}", backPeriod);
-		try {
-			comprTable(table, firstLsk, oneLsk);
-		} catch (Exception e) {
-			// Ошибка при выполнении
-			e.printStackTrace();
-			return false;
-		}
-		return true;
-	}
-
-
-
+    /**
+     * Сжать все необходимые таблицы
+     *
+     * @param firstLsk - начать с лиц.сч.
+     * @param oneLsk   - только этот лицевой
+     */
+    @Override
+    public boolean comprAllTables(String firstLsk, String oneLsk, String table, boolean isAllPeriods) {
+        log.info("**************** СomprAllTables Version 2.0.3 ****************");
+        this.isAllPeriods = isAllPeriods;
+        // Получить параметры
+        // параметры
+        Param param = paramDao.findAll().stream().findFirst().orElse(null);
+        assert param != null;
+        curPeriod = Integer.valueOf(param.getPeriod());
+        // Период -2 от текущего (минус два месяца, так как сжимаем только архивный и сравниваем его с доархивным)
+        try {
+            backPeriod = Integer.valueOf(Utl.addMonths(String.valueOf(curPeriod), -2));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        log.trace("Текущий период={}", curPeriod);
+        log.trace("Период -2 от текущего={}", backPeriod);
+        try {
+            comprTable(table, firstLsk, oneLsk);
+        } catch (Exception e) {
+            // Ошибка при выполнении
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
 
 
 }

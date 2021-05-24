@@ -77,14 +77,12 @@ public class ConfigAppImpl implements ConfigApp {
     private void setUp() {
         log.info("");
         log.info("-----------------------------------------------------------------");
-        log.info("Версия модуля - {}", "1.1.2");
-        log.info("Начало расчетного периода = {}", getCurDt1());
-        log.info("Конец расчетного периода = {}", getCurDt2());
-        log.info("-----------------------------------------------------------------");
-        log.info("");
+        log.info("Версия модуля - {}", "1.1.3");
 
         reloadSprPen();
         reloadParam();
+        log.info("-----------------------------------------------------------------");
+        log.info("");
 
         TimeZone.setDefault(TimeZone.getTimeZone("GMT+7"));
         // блокировщик процессов
