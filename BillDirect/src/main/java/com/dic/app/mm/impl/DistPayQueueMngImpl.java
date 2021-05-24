@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Сервис очередей распределения оплаты
@@ -38,7 +39,7 @@ public class DistPayQueueMngImpl implements DistPayQueueMng {
     private final ConfigApp config;
 
     private final List<KwtpMgRec> lstKwtpMgRec = new ArrayList<>();
-    private volatile Boolean isProcessDist = false;
+    private volatile AtomicBoolean isProcessDist = new AtomicBoolean(false);
 
     public DistPayQueueMngImpl(DistPayMng distPayMng, EntityManager em, ConfigApp config) {
         this.distPayMng = distPayMng;
@@ -59,6 +60,54 @@ public class DistPayQueueMngImpl implements DistPayQueueMng {
     }
 
 
+/* Временно оставил код, для проверки выполнения многопоточности при распределении платежей
+    @Scheduled(fixedDelay = 1000)
+    private void processQueue_TEST() {
+        // кол-во потоков
+        final int cntThreads = 10;
+        if (!isProcessDist.getAndSet(true)) {
+            // есть платежи на обработку
+            log.info("Process Queue");
+
+            // создание потоков с и спользованием пула потоков
+            ExecutorService threadPool = Executors.newFixedThreadPool(cntThreads,
+                    new CustomizableThreadFactory("DistTEST-"));
+            // защелка выполнения потоков
+            CountDownLatch latch = new CountDownLatch(cntThreads);
+
+            for (int i = 1; i <= cntThreads; i++) {
+                threadPool.submit(() ->
+                {
+                    for (int a = 1; a <= 10000000; a++) {
+                        double t1 = -1.0;
+                        double t2 = 1.0;
+                        double step = 1e-8;
+
+                        double z = 0.0;
+                        for(double t=t1; t<=t2; t += step) {
+                            double y = Math.tanh(t);
+                            z += y;
+                        }
+                        log.info("z = {}", z);
+                    }
+                    latch.countDown();
+                });
+            }
+
+            // ожидание окончания потоков
+            try {
+                latch.await();
+                threadPool.shutdown();
+            } catch (InterruptedException ex) {
+                log.error("ERROR! Ошибка в потоке распределения платежей - остановка пула потоков");
+                threadPool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+            isProcessDist.set(false);
+        }
+    }
+*/
+
     /**
      * Обработка очереди платежей многопоточно
      */
@@ -75,9 +124,7 @@ public class DistPayQueueMngImpl implements DistPayQueueMng {
         }
 
         if (lstSize > 0) {
-            synchronized (isProcessDist) {
-            if (!isProcessDist) {
-                isProcessDist = true;
+            if (!isProcessDist.getAndSet(true)) {
                 // есть платежи на обработку
                 log.info("Process Queue");
 
@@ -122,8 +169,7 @@ public class DistPayQueueMngImpl implements DistPayQueueMng {
                     threadPool.shutdownNow();
                     Thread.currentThread().interrupt();
                 }
-                isProcessDist = false;
-            }
+                isProcessDist.set(false);
             }
         }
     }

@@ -139,7 +139,7 @@ public class WebController implements CommonConstants {
             @RequestParam(value = "useQueue") int useQueue
     ) {
         log.info("GOT /distKwtpMg with: kwtpMgId={}, lsk={}, strSumma={}, " +
-                        "strPenya={}, strDebt={}, dopl={}, nink={}, nkom={}, oper={}, strDtek={}, strDtInk={}," +
+                        "strPenya={}, strDebt={}, dopl={}, nink={}, nkom={}, oper={}, strDtek={}, strDtInk={}, " +
                         "useQueue={}",
                 kwtpMgId, lsk, strSumma, strPenya, strDebt, dopl, nink, nkom, oper, strDtek, strDtInk, useQueue);
         if (useQueue == 1) {
