@@ -39,7 +39,7 @@ public class DistPayQueueMngImpl implements DistPayQueueMng {
     private final ConfigApp config;
 
     private final List<KwtpMgRec> lstKwtpMgRec = new ArrayList<>();
-    private volatile AtomicBoolean isProcessDist = new AtomicBoolean(false);
+    private final AtomicBoolean isProcessDist = new AtomicBoolean(false);
 
     public DistPayQueueMngImpl(DistPayMng distPayMng, EntityManager em, ConfigApp config) {
         this.distPayMng = distPayMng;
