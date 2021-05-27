@@ -735,7 +735,7 @@ public class RegistryMngImpl implements RegistryMng {
             Path path = Paths.get(strPath);
             try (BufferedWriter writer = Files.newBufferedWriter(path, Charset.forName("windows-1251"))) {
                 writer.write("\tЛиц.сч.;Адр.;Услуга;Показ.пред;Показ.тек.;Расход;\tЛиц.сч.;Услуга;Показ.пред;" +
-                        "Показ.тек.;Расход;\tЛиц.сч.;Услуга;Показ.пред;Показ.тек.;Расход" + "\r\n");
+                        "Показ.тек.;Расход;\tЛиц.сч.;Услуга;Показ.пред;Показ.тек.;Расход;Кол-во прож." + "\r\n");
                 List<Kart> lstKart = kartDAO.findActualByReuStatusOrderedByAddress(reu, Arrays.asList("PRV", "MUN"),
                         uk.isRSO() ? "LSK_TP_RSO" : "LSK_TP_MAIN");
                 for (Kart kart : lstKart) {
@@ -754,7 +754,7 @@ public class RegistryMngImpl implements RegistryMng {
                         }
                     }
                     writer.write("\t" + kart.getLsk() + ";" + kart.getAdr() + ";" + mapMeter.get("011") + "\t" + kart.getLsk() + ";"
-                            + mapMeter.get("015") + "\t" + kart.getLsk() + ";" + mapMeter.get("038") + "\r\n");
+                            + mapMeter.get("015") + "\t" + kart.getLsk() + ";" + mapMeter.get("038") + ";" + kart.getKpr() + "\r\n");
                 }
             }
 
