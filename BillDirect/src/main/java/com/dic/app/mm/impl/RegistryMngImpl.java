@@ -734,29 +734,30 @@ public class RegistryMngImpl implements RegistryMng {
             log.info("Начало выгрузки файла показаний по счетчикам filePath={}, по УК={}-{}", filePath, strUk, uk.getName());
             Path path = Paths.get(strPath);
             try (BufferedWriter writer = Files.newBufferedWriter(path, Charset.forName("windows-1251"))) {
-                writer.write("\tЛиц.сч.;Адр.;Услуга;Показ.пред;Показ.тек.;Расход;\tЛиц.сч.;Услуга;Показ.пред;" +
-                        "Показ.тек.;Расход;\tЛиц.сч.;Услуга;Показ.пред;Показ.тек.;Расход;Кол-во прож." + "\r\n");
+                writer.write("\tЛиц.сч.;Адр.;Услуга;Кол-во прож.;Показ.пред;Показ.тек.;Расход;\tЛиц.сч.;Услуга;Кол-во прож.;Показ.пред;" +
+                        "Показ.тек.;Расход;\tЛиц.сч.;Услуга;Кол-во прож.;Показ.пред;Показ.тек.;Расход" + "\r\n");
                 List<Kart> lstKart = kartDAO.findActualByReuStatusOrderedByAddress(reu, Arrays.asList("PRV", "MUN"),
                         uk.isRSO() ? "LSK_TP_RSO" : "LSK_TP_MAIN");
                 for (Kart kart : lstKart) {
                     cntLoaded++;
-                    mapMeter.put("011", "Нет счетчика" + ";" + ";" + ";" + ";");
-                    mapMeter.put("015", "Нет счетчика" + ";" + ";" + ";" + ";");
-                    mapMeter.put("038", "Нет счетчика" + ";" + ";" + ";" + ";");
+                    mapMeter.put("011", "Нет счетчика" + ";" + kart.getKpr() + ";" + ";" + ";" + ";");
+                    mapMeter.put("015", "Нет счетчика" + ";" + kart.getKpr() + ";" + ";" + ";" + ";");
+                    mapMeter.put("038", "Нет счетчика" + ";" + kart.getKpr() + ";" + ";" + ";" + ";");
                     for (Meter meter : kart.getKoKw().getMeterByKo()) {
                         if (meter.getIsMeterActual(dt)) {
                             mapMeter.put(meter.getUsl().getId(),
                                     meter.getUsl().getId() + " " +
-                                            meter.getUsl().getName().trim() + ";"
+                                            meter.getUsl().getName().trim() + ";" + kart.getKpr() + ";"
                                             + (meter.getN1() != null ? meter.getN1().toString() : "0")
                                             + ";" + ";" + ";"
                             );
                         }
                     }
                     writer.write("\t" + kart.getLsk() + ";" + kart.getAdr() + ";" + mapMeter.get("011") + "\t" + kart.getLsk() + ";"
-                            + mapMeter.get("015") + "\t" + kart.getLsk() + ";" + mapMeter.get("038") + ";" + kart.getKpr() + "\r\n");
+                            + mapMeter.get("015") + "\t" + kart.getLsk() + ";" + mapMeter.get("038") + "\r\n");
                 }
             }
+
 
             log.info("Окончание выгрузки файла показаний по счетчикам filePath={}, выгружено {} строк", filePath, cntLoaded);
         }

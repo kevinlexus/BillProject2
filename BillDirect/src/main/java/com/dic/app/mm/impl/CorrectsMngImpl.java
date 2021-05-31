@@ -320,6 +320,7 @@ public class CorrectsMngImpl implements CorrectsMng {
                 .withOrg(em.find(Org.class, orgId))
                 .withSumma(summa)
                 .withUser(user)
+                .withVar(0)
                 .build();
         em.persist(corrPay); // note Используй crud.save
     }
