@@ -695,8 +695,8 @@ public class RegistryMngImpl implements RegistryMng {
                             prevVal = elem;
                         } else if (Utl.in(i, 5, 10, 15)) {
                             // отправить текущие показания
-                            int ret = meterMng.sendMeterVal(writer, lsk, strUsl,
-                                    prevVal, elem, configApp.getPeriod(), configApp.getCurUser().getId(),
+                            int ret = meterMng.saveMeterValByRow(writer, lsk, strUsl,
+                                    prevVal, elem, configApp.getCurUser().getId(),
                                     doc.getId(), isSetPreviousVal);
                             if (ret == 0) {
                                 cntLoaded++;

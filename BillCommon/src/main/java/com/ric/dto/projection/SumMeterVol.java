@@ -1,4 +1,4 @@
-package com.ric.dto;
+package com.ric.dto.projection;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -28,6 +28,4 @@ public interface SumMeterVol {
     // последнее показание
     BigDecimal getN1();
 
-    // наименование услуги
-    String getServiceName();
 }

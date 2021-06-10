@@ -4,11 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.Value;
 
-import java.util.List;
+import java.util.Map;
 
 @Value
 @NoArgsConstructor(force = true)
 @AllArgsConstructor()
-public class ListMeter {
-    List<SumMeterVol> lstKoMeter;
+public class MapKoAddress {
+    Map<Long, KoAddress> mapKoAddress;
 }

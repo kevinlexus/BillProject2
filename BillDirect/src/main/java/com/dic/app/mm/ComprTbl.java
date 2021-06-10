@@ -1,9 +1,5 @@
 package com.dic.app.mm;
 
-import java.util.concurrent.Future;
-
-import com.ric.dto.Result;
-
 
 public interface ComprTbl {
 

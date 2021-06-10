@@ -1,7 +1,7 @@
 import com.dic.app.Config;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dto.MeterData;
-import com.ric.dto.SumMeterVol;
+import com.ric.dto.projection.SumMeterVol;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.model.scott.Meter;
 import com.ric.cmn.Utl;

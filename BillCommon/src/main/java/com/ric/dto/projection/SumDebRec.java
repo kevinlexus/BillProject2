@@ -1,4 +1,4 @@
-package com.ric.dto;
+package com.ric.dto.projection;
 
 /*
  * DTO для хранения записи долга
@@ -10,7 +10,7 @@ public interface SumDebRec {
 	Double getSumma();
 	// пеня
 	Double getPen();
-	// период в формате YYYYMM 
-	String getDopl(); 
-	
+	// период в формате YYYYMM
+	String getDopl();
+
 }

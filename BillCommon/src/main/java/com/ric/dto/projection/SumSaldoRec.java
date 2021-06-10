@@ -1,4 +1,4 @@
-package com.ric.dto;
+package com.ric.dto.projection;
 
 import java.math.BigDecimal;
 

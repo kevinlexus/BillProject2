@@ -2,7 +2,6 @@ package com.dic.bill.dao;
 
 import java.util.List;
 
-import com.dic.bill.dto.SumUslOrgDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import com.dic.bill.dto.SumRecMg;
 import com.dic.bill.dto.SumUslOrgRec;
 import com.dic.bill.model.scott.SaldoUsl;
-import com.ric.dto.SumSaldoRec;
+import com.ric.dto.projection.SumSaldoRec;
 
 
 public interface SaldoUslDAO extends JpaRepository<SaldoUsl, Integer> {

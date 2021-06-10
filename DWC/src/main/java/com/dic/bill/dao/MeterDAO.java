@@ -1,7 +1,8 @@
 package com.dic.bill.dao;
 
 import com.dic.bill.dto.MeterData;
-import com.ric.dto.SumMeterVol;
+import com.ric.dto.projection.SumMeterVol;
+import com.ric.dto.SumMeterVolExt;
 import com.dic.bill.model.scott.Meter;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -68,14 +69,25 @@ public interface MeterDAO extends JpaRepository<Meter, Integer> {
      */
     @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
     @Query(value = "select t.id as meterId, t.usl.id as uslId, t.dt1 as dtFrom, t.dt2 as dtTo, " +
-            "coalesce(sum(o.n1),0) as vol, coalesce(t.n1,0) as n1, t.usl.name as serviceName " +
+            "coalesce(sum(o.n1),0) as vol, coalesce(t.n1,0) as n1 " +
+            "from Meter t " +
+            "left join t.objPar o with o.lst.cd='ins_vol_sch' and o.mg = TO_CHAR(?2,'YYYYMM') "
+            + "where t.koObj.id = ?1 " +
+            "and ((?2 between t.dt1 and t.dt2 or ?3 between t.dt1 and t.dt2) or " +
+            "(t.dt1 between ?2 and ?3 or t.dt2 between ?2 and ?3)) " +
+            "group by t.id, t.usl.id, t.dt1, t.dt2, t.n1 ")
+    List<SumMeterVol> getMeterVolByKlskId(Long koObjId, Date dtFrom, Date dtTo);
+
+    @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
+    @Query(value = "select new com.ric.dto.SumMeterVolExt(t.id as meterId, t.usl.id as uslId, t.dt1 as dtFrom, t.dt2 as dtTo, " +
+            "coalesce(sum(o.n1),0) as vol, coalesce(t.n1,0) as n1, t.usl.name as serviceName) " +
             "from Meter t " +
             "left join t.objPar o with o.lst.cd='ins_vol_sch' and o.mg = TO_CHAR(?2,'YYYYMM') "
             + "where t.koObj.id = ?1 " +
             "and ((?2 between t.dt1 and t.dt2 or ?3 between t.dt1 and t.dt2) or " +
             "(t.dt1 between ?2 and ?3 or t.dt2 between ?2 and ?3)) " +
             "group by t.id, t.usl.id, t.dt1, t.dt2, t.n1, t.usl.name ")
-    List<SumMeterVol> getMeterVolByKlskId(Long koObjId, Date dtFrom, Date dtTo);
+    List<SumMeterVolExt> getMeterVolExtByKlskId(Long koObjId, Date dtFrom, Date dtTo);
 
     /**
      * Получить Timestamp показаний и GUID счетчиков, по которым они были приняты

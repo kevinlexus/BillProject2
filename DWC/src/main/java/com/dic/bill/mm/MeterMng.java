@@ -2,8 +2,8 @@ package com.dic.bill.mm;
 
 import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.MeterData;
-import com.ric.dto.ListMeter;
-import com.ric.dto.SumMeterVol;
+import com.ric.dto.MapMeter;
+import com.ric.dto.projection.SumMeterVol;
 import com.dic.bill.dto.UslMeterDateVol;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.scott.Ko;
@@ -39,10 +39,12 @@ public interface MeterMng {
 
     boolean isExistAnyMeter(List<SumMeterVol> lstMeterVol, String uslId, Date dt);
 
-    int sendMeterVal(BufferedWriter writer, String lsk, String strUsl,
-                     String prevValue, String value, String period,
-                     int userId, int docParId,
-                     boolean isSetPreviosVal) throws IOException;
+    int saveMeterValByRow(BufferedWriter writer, String lsk, String strUsl,
+                          String prevValue, String value,
+                          int userId, int docParId,
+                          boolean isSetPreviosVal) throws IOException;
 
-    ListMeter getListMeterByKlskId(Long koObjId, Date dt1, Date dt2);
+    Integer saveMeterValByKLskId(Long klskId, Double curVal);
+
+    MapMeter getMapMeterByKlskId(Long koObjId, Date dt1, Date dt2);
 }

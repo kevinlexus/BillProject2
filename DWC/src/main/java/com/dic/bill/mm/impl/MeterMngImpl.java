@@ -1,10 +1,9 @@
 package com.dic.bill.mm.impl;
 
 import com.dic.bill.dao.MeterDAO;
+import com.dic.bill.dao.UserDAO;
 import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.MeterData;
-import com.ric.dto.ListMeter;
-import com.ric.dto.SumMeterVol;
 import com.dic.bill.dto.UslMeterDateVol;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.model.exs.Eolink;
@@ -12,6 +11,11 @@ import com.dic.bill.model.scott.*;
 import com.ric.cmn.CommonErrs;
 import com.ric.cmn.MeterValConsts;
 import com.ric.cmn.Utl;
+import com.ric.dto.MapMeter;
+import com.ric.dto.MeterVal;
+import com.ric.dto.projection.SumMeterVol;
+import com.ric.dto.SumMeterVolExt;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.procedure.ProcedureOutputs;
 import org.springframework.stereotype.Service;
@@ -32,16 +36,14 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class MeterMngImpl implements MeterMng {
 
     private final MeterDAO meterDao;
+    private final UserDAO userDAO;
 
     @PersistenceContext
     private EntityManager em;
-
-    public MeterMngImpl(MeterDAO meterDao) {
-        this.meterDao = meterDao;
-    }
 
 
     /**
@@ -282,20 +284,20 @@ public class MeterMngImpl implements MeterMng {
     }
 
     /**
-     * Отправить показания по счетчику в биллинг
-     * @param writer - объект записи лога
-     * @param lsk    - лиц.счет
-     * @param strUsl - код услуги
-     * @param prevValue  - предыдущее показание
-     * @param curValue  - текущее показание
-     * @param docParId - Id записи реестра
-     * @param isSetPreviousVal - установить предыдущее показание? ВНИМАНИЕ! Текущие введёные показания будут сброшены назад
+     * Сохранить показания по счетчику в биллинг
+     *  @param writer           объект записи лога
+     * @param lsk              лиц.счет
+     * @param strUsl           код услуги
+     * @param prevValue        предыдущее показание
+     * @param curValue         текущее показание
+     * @param docParId         Id записи реестра
+     * @param isSetPreviousVal установить предыдущее показание? ВНИМАНИЕ! Текущие введёные показания будут сброшены назад
      */
     @Override
-    public int sendMeterVal(BufferedWriter writer, String lsk, String strUsl,
-                            String prevValue, String curValue, String period,
-                            int userId, int docParId,
-                            boolean isSetPreviousVal) throws IOException {
+    public int saveMeterValByRow(BufferedWriter writer, String lsk, String strUsl,
+                                 String prevValue, String curValue,
+                                 int userId, int docParId,
+                                 boolean isSetPreviousVal) throws IOException {
         if (strUsl != null && strUsl.length() >= 3 && !strUsl.equals("Нет счетчика")) {
             String codeUsl = strUsl.substring(0, 3);
             Double curVal = 0D;
@@ -307,127 +309,217 @@ public class MeterMngImpl implements MeterMng {
                 prevVal = Double.valueOf(prevValue);
             }
 
-                log.trace("Отправка по лиц={}, услуге usl={}, пред.показание ={}, показание ={}",
-                        lsk, codeUsl, prevVal, curVal);
+            log.trace("Сохранение по лиц={}, услуге usl={}, пред.показание ={}, показание ={}",
+                    lsk, codeUsl, prevVal, curVal);
 
-                StoredProcedureQuery query = em
-                        .createStoredProcedureQuery(
-                                "scott.p_meter.ins_data_meter")
-                        .registerStoredProcedureParameter(
-                                "p_lsk",
-                                String.class,
-                                ParameterMode.IN
-                        )
-                        .registerStoredProcedureParameter(
-                                "p_usl",
-                                String.class,
-                                ParameterMode.IN
-                        )
-                        .registerStoredProcedureParameter(
-                                "p_prev_val",
-                                Double.class,
-                                ParameterMode.IN
-                        )
-                        .registerStoredProcedureParameter(
-                                "p_cur_val",
-                                Double.class,
-                                ParameterMode.IN
-                        )
-                        .registerStoredProcedureParameter(
-                                "p_is_set_prev",
-                                Integer.class,
-                                ParameterMode.IN
-                        )
-                        .registerStoredProcedureParameter(
-                                "p_ts",
-                                Date.class,
-                                ParameterMode.IN
-                        )
-                        .registerStoredProcedureParameter(
-                                "p_period",
-                                String.class,
-                                ParameterMode.IN
-                        )
-                        .registerStoredProcedureParameter(
-                                "p_status",
-                                Integer.class,
-                                ParameterMode.IN
-                        )
-                        .registerStoredProcedureParameter(
-                                "p_user",
-                                Integer.class,
-                                ParameterMode.IN
-                        )
-                        .registerStoredProcedureParameter(
-                                "p_doc_par_id",
-                                Integer.class,
-                                ParameterMode.IN
-                        )
-                        .registerStoredProcedureParameter(
-                                "p_ret",
-                                Integer.class,
-                                ParameterMode.OUT
-                        )
-                        .setParameter("p_lsk", lsk)
-                        .setParameter("p_usl", codeUsl)
-                        .setParameter("p_prev_val", prevVal)
-                        .setParameter("p_cur_val", curVal)
-                        .setParameter("p_is_set_prev", isSetPreviousVal?1:0)
-                        .setParameter("p_ts", new Date())
-                        .setParameter("p_period", period)
-                        .setParameter("p_status", MeterValConsts.INSERT_FOR_LOAD_TO_GIS)
-                        .setParameter("p_doc_par_id", docParId)
-                        .setParameter("p_user", userId);
-                Integer ret;
-                try {
-                    query.execute();
+            Integer ret = saveMeterValByLsk(new MeterVal(lsk, userId, docParId, isSetPreviousVal, codeUsl, curVal, prevVal));
 
-                    ret = (Integer) query
-                            .getOutputParameterValue("p_ret");
-
-                } finally {
-                    query.unwrap(ProcedureOutputs.class).release();
-                }
-
-                log.trace("Результат исполнения scott.p_meter.ins_data_meter={}", ret);
-                String mess = " По лиц p_lsk=%s, услуге p_usl=%s, предыдущ.показ p_prev_val=%f, показание p_cur_val=%f, период p_period=%s";
-                if (ret.equals(-1)) {
-                    String str = String.format(CommonErrs.ERR_MSG_METER_VAL_OTHERS +
-                            mess, lsk, codeUsl, prevVal, curVal, period);
-                    writer.write(str + "\r\n");
-                } else if (ret.equals(1)) {
-                    // нулевые показания - не считать за ошибку
-                    //String str = String.format(CommonErrs.ERR_MSG_METER_VAL_ZERO +
-                    //        mess, lsk, codeUsl, prevVal, curVal, period);
-                    //writer.write(str + "\r\n");
-                } else if (ret.equals(3)) {
-                    // показания меньше или равны существующим - не считать за ошибку
-                    //String str = String.format(CommonErrs.ERR_MSG_METER_VAL_LESS +
-                    //        mess, lsk, codeUsl, prevVal, curVal, period);
-                    //writer.write(str + "\r\n");
-                } else if (ret.equals(4)) {
-                    String str = String.format(CommonErrs.ERR_MSG_METER_NOT_FOUND +
-                            mess, lsk, codeUsl, prevVal, curVal, period);
-                    writer.write(str + "\r\n");
-                } else if (ret.equals(5)) {
-                    String str = String.format(CommonErrs.ERR_MSG_METER_VAL_TOO_BIG +
-                            mess, lsk, codeUsl, prevVal, curVal, period);
-                    writer.write(str + "\r\n");
-                } else {
-                    String str = String.format(CommonErrs.ERR_MSG_METER_VAL_SUCCESS +
-                            mess, lsk, codeUsl, prevVal, curVal, period);
-                    log.trace(str);
-                }
-                return ret;
+            log.trace("Результат исполнения scott.p_meter.ins_data_meter={}", ret);
+            String mess = " По лиц p_lsk=%s, услуге p_usl=%s, предыдущ.показ p_prev_val=%f, показание p_cur_val=%f, период p_period=%s";
+            if (ret.equals(-1)) {
+                String str = String.format(CommonErrs.ERR_MSG_METER_VAL_OTHERS +
+                        mess, lsk, codeUsl, prevVal, curVal);
+                writer.write(str + "\r\n");
+            } else if (ret.equals(1)) {
+                // нулевые показания - не считать за ошибку
+                //String str = String.format(CommonErrs.ERR_MSG_METER_VAL_ZERO +
+                //        mess, lsk, codeUsl, prevVal, curVal, period);
+                //writer.write(str + "\r\n");
+            } else if (ret.equals(3)) {
+                // показания меньше или равны существующим - не считать за ошибку
+                //String str = String.format(CommonErrs.ERR_MSG_METER_VAL_LESS +
+                //        mess, lsk, codeUsl, prevVal, curVal, period);
+                //writer.write(str + "\r\n");
+            } else if (ret.equals(4)) {
+                String str = String.format(CommonErrs.ERR_MSG_METER_NOT_FOUND +
+                        mess, lsk, codeUsl, prevVal, curVal);
+                writer.write(str + "\r\n");
+            } else if (ret.equals(5)) {
+                String str = String.format(CommonErrs.ERR_MSG_METER_VAL_TOO_BIG +
+                        mess, lsk, codeUsl, prevVal, curVal);
+                writer.write(str + "\r\n");
+            } else {
+                String str = String.format(CommonErrs.ERR_MSG_METER_VAL_SUCCESS +
+                        mess, lsk, codeUsl, prevVal, curVal);
+                log.trace(str);
+            }
+            return ret;
 
 
         }
         return 0; // нет данных для отправки
     }
 
+    /**
+     * Сохранить показание счетчика в БД по лиц.счету
+     *
+     * @param meterVal
+     * @return 0-успешно сохранено
+     *         3-показания меньше или равны предыдущим
+     *         4-не найден активный счетчик (на конец месяца)
+     *         5-превышено значение
+     */
+    private Integer saveMeterValByLsk(MeterVal meterVal) {
+        StoredProcedureQuery query = em
+                .createStoredProcedureQuery(
+                        "scott.p_meter.ins_data_meter")
+                .registerStoredProcedureParameter(
+                        "p_lsk",
+                        String.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_usl",
+                        String.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_prev_val",
+                        Double.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_cur_val",
+                        Double.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_is_set_prev",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_ts",
+                        Date.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_status",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_user",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_doc_par_id",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_ret",
+                        Integer.class,
+                        ParameterMode.OUT
+                )
+                .setParameter("p_lsk", meterVal.getLsk())
+                .setParameter("p_usl", meterVal.getCodeUsl())
+                .setParameter("p_prev_val", meterVal.getPrevVal())
+                .setParameter("p_cur_val", meterVal.getCurVal())
+                .setParameter("p_is_set_prev", meterVal.isSetPreviousVal() ? 1 : 0)
+                .setParameter("p_ts", new Date())
+                .setParameter("p_status", MeterValConsts.INSERT_FOR_LOAD_TO_GIS)
+                .setParameter("p_doc_par_id", meterVal.getDocParId())
+                .setParameter("p_user", meterVal.getUserId());
+        Integer ret;
+        try {
+            query.execute();
+
+            ret = (Integer) query
+                    .getOutputParameterValue("p_ret");
+
+        } finally {
+            query.unwrap(ProcedureOutputs.class).release();
+        }
+        return ret;
+    }
+
+    /**
+     * Сохранить показание счетчика в БД по klskId счетчика
+     *
+     *
+     * @param klskId klskId счетчика
+     * @param curVal текущее показание
+     * @return 0-успешно сохранено
+     *         3-показания меньше или равны предыдущим
+     *         4-не найден активный счетчик (на конец месяца)
+     *         5-превышено значение
+     */
     @Override
-    public ListMeter getListMeterByKlskId(Long koObjId, Date dt1, Date dt2) {
-        return new ListMeter(meterDao.getMeterVolByKlskId(koObjId, dt1, dt2));
+    public Integer saveMeterValByKLskId(Long klskId, Double curVal) {
+        StoredProcedureQuery query = em
+                .createStoredProcedureQuery(
+                        "scott.p_meter.ins_data_meter")
+                .registerStoredProcedureParameter(
+                        "p_met_klsk",
+                        Long.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_n1",
+                        Double.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_ts",
+                        Date.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_status",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_user",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_control",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_is_set_prev",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_doc_par_id",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_ret",
+                        Integer.class,
+                        ParameterMode.OUT
+                )
+                .setParameter("p_met_klsk", klskId)
+                .setParameter("p_n1", curVal)
+                .setParameter("p_is_set_prev", 0)
+                .setParameter("p_ts", new Date())
+                .setParameter("p_status", MeterValConsts.INSERT_FOR_LOAD_TO_GIS)
+                .setParameter("p_doc_par_id", null)
+                .setParameter("p_user", userDAO.getByCd("TLG").getId());
+        Integer ret;
+        try {
+            query.execute();
+
+            ret = (Integer) query
+                    .getOutputParameterValue("p_ret");
+
+        } finally {
+            query.unwrap(ProcedureOutputs.class).release();
+        }
+        return ret;
+    }
+
+    @Override
+    public MapMeter getMapMeterByKlskId(Long koObjId, Date dt1, Date dt2) {
+        List<SumMeterVolExt> lstMeter = meterDao.getMeterVolExtByKlskId(koObjId, dt1, dt2);
+        return new MapMeter(lstMeter.stream().collect(Collectors.toMap(SumMeterVolExt::getMeterId, v -> v)));
     }
 
 }

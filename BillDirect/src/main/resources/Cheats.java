@@ -30,6 +30,7 @@ private List<MeterLogGraph> inside=new ArrayList<MeterLogGraph>(0);
 
 // получить Immutable Map
 Collections.singletonMap
+Map.of
 // Инициализировать HashSet значениями
 new TreeSet<>(Collections.singleton(t.getUsl().getNameShort()))
 

@@ -15,8 +15,8 @@ import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileDistPay;
 import com.ric.cmn.excp.ErrorWhileGen;
 import com.ric.cmn.excp.WrongParam;
-import com.ric.dto.ListKoAddress;
-import com.ric.dto.ListMeter;
+import com.ric.dto.MapKoAddress;
+import com.ric.dto.MapMeter;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.SessionFactory;
 import org.springframework.boot.SpringApplication;
@@ -710,18 +710,25 @@ public class WebController implements CommonConstants {
                 period, config.getPeriod());
     }
 
-    @RequestMapping(value = "/getListKoAddressByTelegramUserId/{userId}", method = RequestMethod.GET)
+    @RequestMapping(value = "/getMapKoAddressByTelegramUserId/{userId}", method = RequestMethod.GET)
     @ResponseBody
-    public ListKoAddress getListKoAddressByTelegramUserId(@PathVariable Long userId) {
+    public MapKoAddress getListKoAddressByTelegramUserId(@PathVariable long userId) {
         log.info("GOT /getListKoAddressByTelegramUserId with userId={}", userId);
-        return objParMng.getListKoAddressByObjPar("TelegramId", userId);
+        return objParMng.getMapKoAddressByObjPar("TelegramId", userId);
     }
 
-    @RequestMapping(value = "/getListMeterByKlskId/{klskId}", method = RequestMethod.GET)
+    @RequestMapping(value = "/getMapMeterByKlskId/{klskId}", method = RequestMethod.GET)
     @ResponseBody
-    public ListMeter getListMeterByKlskId(@PathVariable Long klskId) {
-        log.info("GOT /getListMeterByKlskId with klskId={}", klskId);
-        return meterMng.getListMeterByKlskId(klskId, config.getCurDt1(), config.getCurDt2());
+    public MapMeter getListMeterByKlskId(@PathVariable long klskId) {
+        log.info("GOT /getMapMeterByKlskId with klskId={}", klskId);
+        return meterMng.getMapMeterByKlskId(klskId, config.getCurDt1(), config.getCurDt2());
+    }
+
+    @RequestMapping(value = "/setMeterValByKlskId/{klskId}/{val}", method = RequestMethod.GET)
+    @ResponseBody
+    public Integer setListMeterValByKlskId(@PathVariable long klskId, @PathVariable String val) {
+        log.info("GOT /setMeterValByKlskId with klskId={}, val={}", klskId, val);
+        return meterMng.saveMeterValByKLskId(klskId, Double.parseDouble(val));
     }
 
 }
