@@ -772,6 +772,7 @@ public class RegistryMngImpl implements RegistryMng {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void loadApprovedKartExt(Org org) throws WrongParam {
+        log.info("Начало загрузки данных по внешним лиц.счетам организации: {}", org.getName());
         if (org.getExtLskFormatTp().equals(0)) {
             // Полыс (ЧГК)
             List<LoadKartExt> lst = loadKartExtDAO.findApprovedForLoadFormat0();
@@ -912,17 +913,27 @@ public class RegistryMngImpl implements RegistryMng {
                     }
                 }
             }
+
+            // выполнить flush, иначе хранимые процедуры ниже, не видят изменений hibernate
+            orgDAO.flush();
+
             // загрузка оплаты
+            log.info("Начало загрузки оплаты по внешним лиц счетам");
             StoredProcedureQuery qr;
             qr = em.createStoredProcedureQuery("scott.c_gen_pay.load_ext_pay");
             qr.execute();
+            log.info("Окончание загрузки оплаты по внешним лиц счетам");
+
+            log.info("Начало загрузки сальдо по внешним лиц счетам");
             // загрузка сальдо
             qr = em.createStoredProcedureQuery("scott.gen.load_ext_saldo");
             qr.execute();
+            log.info("Окончание загрузки сальдо по внешним лиц счетам");
         } else {
             throw new WrongParam("Некорректный тип формата загрузочного файла ORG.EXT_LSK_FORMAT_TP=" + org.getExtLskFormatTp() +
                     " по T_ORG.ID=" + org.getId());
         }
+        log.info("Окончание загрузки данных по внешним лиц.счетам организации: {}", org.getName());
     }
 
     // проверить наличие услуги в наборе

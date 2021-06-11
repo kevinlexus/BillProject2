@@ -629,6 +629,7 @@ public class WebController implements CommonConstants {
     @RequestMapping(value = "/loadApprovedKartExt", method = RequestMethod.GET)
     @ResponseBody
     public String loadApprovedKartExt() throws WrongParam {
+        log.info("GOT /loadApprovedKartExt");
         List<Org> lstOrg = orgDAO.findByIsExchangeExt(true);
         for (Org org : lstOrg) {
             registryMng.loadApprovedKartExt(org);
