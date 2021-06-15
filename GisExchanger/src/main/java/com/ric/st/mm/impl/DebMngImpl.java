@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import com.dic.bill.dao.ApenyaDAO;
 import com.dic.bill.dao.SaldoUslDAO;
 import com.ric.cmn.Utl;
-import com.ric.dto.SumSaldoRec;
+import com.ric.dto.projection.SumSaldoRec;
 import com.ric.dto.SumSaldoRecDTO;
 import com.ric.st.mm.DebMng;
 
