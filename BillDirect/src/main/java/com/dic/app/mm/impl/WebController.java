@@ -724,11 +724,11 @@ public class WebController implements CommonConstants {
         return meterMng.getMapMeterByKlskId(klskId, config.getCurDt1(), config.getCurDt2());
     }
 
-    @RequestMapping(value = "/setMeterValByKlskId/{klskId}/{val}", method = RequestMethod.GET)
+    @RequestMapping(value = "/setMeterValByMeterId/{meterId}/{val}", method = RequestMethod.GET)
     @ResponseBody
-    public Integer setListMeterValByKlskId(@PathVariable long klskId, @PathVariable String val) {
-        log.info("GOT /setMeterValByKlskId with klskId={}, val={}", klskId, val);
-        return meterMng.saveMeterValByKLskId(klskId, Double.parseDouble(val));
+    public Integer setListMeterValByMeterId(@PathVariable int meterId, @PathVariable String val) {
+        log.info("GOT /setMeterValByMeterId with meterId={}, val={}", meterId, val);
+        return meterMng.saveMeterValByMeterId(meterId, Double.parseDouble(val));
     }
 
 }

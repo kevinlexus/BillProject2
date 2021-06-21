@@ -1,7 +1,7 @@
 package com.dic.bill.mm.impl;
 
 import com.dic.bill.dao.MeterDAO;
-import com.dic.bill.dao.UserDAO;
+import com.dic.bill.dao.TuserDAO;
 import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.MeterData;
 import com.dic.bill.dto.UslMeterDateVol;
@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 public class MeterMngImpl implements MeterMng {
 
     private final MeterDAO meterDao;
-    private final UserDAO userDAO;
+    private final TuserDAO tuserDAO;
 
     @PersistenceContext
     private EntityManager em;
@@ -439,7 +439,7 @@ public class MeterMngImpl implements MeterMng {
      * Сохранить показание счетчика в БД по klskId счетчика
      *
      *
-     * @param klskId klskId счетчика
+     * @param meterId Id счетчика
      * @param curVal текущее показание
      * @return 0-успешно сохранено
      *         3-показания меньше или равны предыдущим
@@ -447,13 +447,14 @@ public class MeterMngImpl implements MeterMng {
      *         5-превышено значение
      */
     @Override
-    public Integer saveMeterValByKLskId(Long klskId, Double curVal) {
+    @Transactional
+    public Integer saveMeterValByMeterId(int meterId, double curVal) {
         StoredProcedureQuery query = em
                 .createStoredProcedureQuery(
                         "scott.p_meter.ins_data_meter")
                 .registerStoredProcedureParameter(
-                        "p_met_klsk",
-                        Long.class,
+                        "p_meter_id",
+                        Integer.class,
                         ParameterMode.IN
                 )
                 .registerStoredProcedureParameter(
@@ -496,13 +497,13 @@ public class MeterMngImpl implements MeterMng {
                         Integer.class,
                         ParameterMode.OUT
                 )
-                .setParameter("p_met_klsk", klskId)
+                .setParameter("p_meter_id", meterId)
                 .setParameter("p_n1", curVal)
                 .setParameter("p_is_set_prev", 0)
                 .setParameter("p_ts", new Date())
                 .setParameter("p_status", MeterValConsts.INSERT_FOR_LOAD_TO_GIS)
                 .setParameter("p_doc_par_id", null)
-                .setParameter("p_user", userDAO.getByCd("TLG").getId());
+                .setParameter("p_user", tuserDAO.findByCd("TLG").getId());
         Integer ret;
         try {
             query.execute();

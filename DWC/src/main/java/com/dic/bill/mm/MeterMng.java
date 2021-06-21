@@ -44,7 +44,7 @@ public interface MeterMng {
                           int userId, int docParId,
                           boolean isSetPreviosVal) throws IOException;
 
-    Integer saveMeterValByKLskId(Long klskId, Double curVal);
+    Integer saveMeterValByMeterId(int meterId, double curVal);
 
     MapMeter getMapMeterByKlskId(Long koObjId, Date dt1, Date dt2);
 }
