@@ -789,11 +789,7 @@ public class RegistryMngImpl implements RegistryMng {
                         // проверить соотв.лиц.счет, перенести движение
                         Optional<KartExt> kartExtOpt = kartExtDAO.findByExtLsk(loadKartExt.getExtLsk());
                         kartExtOpt.ifPresent(t -> {
-                            t.setInsal(loadKartExt.getInsal());
-                            t.setChrg(loadKartExt.getChrg());
-                            t.setPayment(loadKartExt.getPayment());
-                            t.setOutsal(loadKartExt.getSumma());
-                            t.setRSchet(loadKartExt.getRSchet());
+                            setSaldoAndAttributes(loadKartExt, t);
                             // установить статус соотв.лиц.счета
                             kartMng.setStateSch(t.getKart(), configApp.getCurDt1(), 0);
                             // проверить наличие услуги в наборах
@@ -869,6 +865,7 @@ public class RegistryMngImpl implements RegistryMng {
                         // проверить открыт ли соотв.лиц.сч.
                         kartExtOpt.ifPresent(t -> {
                             t.setV(1);
+                            setSaldoAndAttributes(loadKartExt, t);
                             // установить статус соотв.лиц.счета
                             kartMng.setStateSch(t.getKart(), configApp.getCurDt1(), 0);
                             // проверить наличие услуги в наборах
@@ -934,6 +931,14 @@ public class RegistryMngImpl implements RegistryMng {
                     " по T_ORG.ID=" + org.getId());
         }
         log.info("Окончание загрузки данных по внешним лиц.счетам организации: {}", org.getName());
+    }
+
+    private void setSaldoAndAttributes(LoadKartExt loadKartExt, KartExt t) {
+        t.setInsal(loadKartExt.getInsal());
+        t.setChrg(loadKartExt.getChrg());
+        t.setPayment(loadKartExt.getPayment());
+        t.setOutsal(loadKartExt.getSumma());
+        t.setRSchet(loadKartExt.getRSchet());
     }
 
     // проверить наличие услуги в наборе
