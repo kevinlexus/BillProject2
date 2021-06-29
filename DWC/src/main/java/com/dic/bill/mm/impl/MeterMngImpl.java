@@ -436,7 +436,7 @@ public class MeterMngImpl implements MeterMng {
     }
 
     /**
-     * Сохранить показание счетчика в БД по klskId счетчика
+     * Сохранить показание счетчика в БД по Id счетчика
      *
      *
      * @param meterId Id счетчика
