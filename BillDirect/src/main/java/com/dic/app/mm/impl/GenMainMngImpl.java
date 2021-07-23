@@ -11,8 +11,6 @@ import com.dic.bill.model.scott.SprGenItm;
 import com.dic.bill.model.scott.Stub;
 import com.ric.cmn.CommonConstants;
 import com.ric.cmn.Utl;
-import com.ric.cmn.excp.ErrorWhileChrg;
-import com.ric.cmn.excp.ErrorWhileGen;
 import com.ric.cmn.excp.WrongParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
@@ -28,7 +26,6 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.StoredProcedureQuery;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -45,27 +42,25 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
     private final ConfigApp config;
     private final SprGenItmDAO sprGenItmDao;
     private final ExecMng execMng;
+    private final MailMng mailMng;
     private final KartMng kartMng;
     private final RegistryMng registryMng;
     private final MntBase mntBase;
-    private final ApplicationContext ctx;
-    private final ThreadMng<Long> threadMng;
     private final WebController webController;
     @PersistenceContext
     private EntityManager em;
 
-    public GenMainMngImpl(ConfigApp config, SprGenItmDAO sprGenItmDao, HouseDAO houseDao,
-                          ExecMng execMng, MntBase mntBase, ApplicationContext ctx,
-                          ThreadMng<Long> threadMng, WebController webController,
-                          SprParamMng sprParamMng, KartMng kartMng, RegistryMng registryMng) {
+    public GenMainMngImpl(ConfigApp config, SprGenItmDAO sprGenItmDao,
+                          ExecMng execMng, MntBase mntBase,
+                          WebController webController,
+                          SprParamMng sprParamMng, MailMng mailMng, KartMng kartMng, RegistryMng registryMng) {
         this.config = config;
         this.sprGenItmDao = sprGenItmDao;
         this.execMng = execMng;
         this.mntBase = mntBase;
-        this.ctx = ctx;
-        this.threadMng = threadMng;
         this.webController = webController;
         this.sprParamMng = sprParamMng;
+        this.mailMng = mailMng;
         this.kartMng = kartMng;
         this.registryMng = registryMng;
     }
@@ -329,6 +324,12 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                     case "GEN_ITG":
                         break;
                     case "GEN_CHECK_BEFORE_GEN":
+                        break;
+                    case "SEND_BILLS_EMAIL":
+                        // отправка счетов по e-mail
+                        dt1 = new Date();
+                        mailMng.sendBillViaEmail();
+                        if (markExecuted(menuGenItg, itm, 0.99D, dt1)) return;
                         break;
                     default:
                         log.warn("ПРЕДУПРЕЖДЕНИЕ! Найден необработанный блок case={}!", itm.getCd());

@@ -1,6 +1,5 @@
 package com.dic.bill.mm;
 
-import com.dic.bill.model.scott.Ko;
 import com.ric.cmn.excp.WrongGetMethod;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.dto.ListKoAddress;
@@ -9,11 +8,13 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 public interface ObjParMng {
-    BigDecimal getBd(Ko ko, String cd) throws WrongParam, WrongGetMethod;
+    BigDecimal getBd(long klskId, String cd) throws WrongParam, WrongGetMethod;
 
-    String getStr(Ko ko, String cd) throws WrongParam, WrongGetMethod;
+    String getStr(long klskId, String cd) throws WrongParam, WrongGetMethod;
 
-    Date getDate(Ko ko, String cd) throws WrongParam, WrongGetMethod;
+    Boolean getBool(long klskId, String cd) throws WrongParam, WrongGetMethod;
+
+    Date getDate(long klskId, String cd) throws WrongParam, WrongGetMethod;
 
     ListKoAddress getListKoAddressByObjPar(String cd, Long userId);
 }

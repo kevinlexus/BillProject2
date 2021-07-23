@@ -906,8 +906,8 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
         } else if (tp == 2) {
             // эл.эн.
             // площадь общ.имущ., норматив, объем на площадь
-            limitODN.areaProp = Utl.nvl(objParMng.getBd(houseKo, "area_general_property"), BigDecimal.ZERO);
-            BigDecimal existLift = Utl.nvl(objParMng.getBd(houseKo, "exist_lift"), BigDecimal.ZERO);
+            limitODN.areaProp = Utl.nvl(objParMng.getBd(houseKo.getId(), "area_general_property"), BigDecimal.ZERO);
+            BigDecimal existLift = Utl.nvl(objParMng.getBd(houseKo.getId(), "exist_lift"), BigDecimal.ZERO);
 
             if (existLift.compareTo(BigDecimal.ZERO) == 0) {
                 // дом без лифта
