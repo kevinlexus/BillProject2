@@ -25,7 +25,7 @@ public class KoDAOImpl implements KoDAO {
     /**
      * Получить объект Klsk по klsk
      */
-	public Ko getByKlsk(Integer klsk) {
+	public Ko getByKlsk(long klsk) {
 		Query query =em.createQuery("select t from Ko t where t.id = :klsk");
 		query.setParameter("klsk", klsk);
 		return (Ko)query.getSingleResult();

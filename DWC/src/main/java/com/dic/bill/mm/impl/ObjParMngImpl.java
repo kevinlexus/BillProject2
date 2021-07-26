@@ -1,5 +1,7 @@
 package com.dic.bill.mm.impl;
 
+import com.dic.bill.dao.KartDAO;
+import com.dic.bill.dao.KoDAO;
 import com.dic.bill.dao.ObjParDAO;
 import com.dic.bill.dao.UlstDAO;
 import com.dic.bill.mm.KartMng;
@@ -12,26 +14,28 @@ import com.ric.cmn.excp.WrongGetMethod;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.dto.KoAddress;
 import com.ric.dto.ListKoAddress;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
+@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
 public class ObjParMngImpl implements ObjParMng {
 
     private final UlstDAO ulstDAO;
     private final ObjParDAO objParDAO;
-
     private final KartMng kartMng;
-
-    public ObjParMngImpl(UlstDAO ulstDAO, ObjParDAO objParDAO, KartMng kartMng) {
-        this.ulstDAO = ulstDAO;
-        this.objParDAO = objParDAO;
-        this.kartMng = kartMng;
-    }
+    private final KoDAO koDAO;
 
     /**
      * Получить значение параметра типа BigDecimal объекта по CD свойства
@@ -100,6 +104,30 @@ public class ObjParMngImpl implements ObjParMng {
         } else {
             return null;
         }
+    }
+
+    @Override
+    public void setBool(long klskId, String cd, boolean val) throws WrongParam, WrongGetMethod {
+        Lst lst = ulstDAO.getByCd(cd);
+        if (lst == null) {
+            throw new WrongParam("ОШИБКА! Несуществующий параметр CD=" + cd);
+        } else if (!lst.getValTp().equals("BL")) {
+            throw new WrongGetMethod("ОШИБКА! Попытка получить значение параметра " + cd + " не являющегося типом Boolean!");
+        }
+
+        ObjPar objPar = objParDAO.getByKlskCd(klskId, cd);
+        if (objPar == null) {
+            objPar = new ObjPar();
+            objPar.setStatus(0);
+            objPar.setKo(koDAO.getByKlsk(klskId));
+            objPar.setLst(lst);
+        }
+        if (val) {
+            objPar.setN1(BigDecimal.ONE);
+        } else {
+            objPar.setN1(BigDecimal.ZERO);
+        }
+        objParDAO.save(objPar);
     }
 
     /**

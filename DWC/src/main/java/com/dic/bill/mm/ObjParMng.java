@@ -14,6 +14,8 @@ public interface ObjParMng {
 
     Boolean getBool(long klskId, String cd) throws WrongParam, WrongGetMethod;
 
+    void setBool(long klskId, String cd, boolean val) throws WrongParam, WrongGetMethod;
+
     Date getDate(long klskId, String cd) throws WrongParam, WrongGetMethod;
 
     ListKoAddress getListKoAddressByObjPar(String cd, Long userId);
