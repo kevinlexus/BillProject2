@@ -1,5 +1,6 @@
 package com.dic.app.mm.impl;
 
+import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.MailMng;
 import com.dic.bill.dao.KartDAO;
 import com.dic.bill.mm.ObjParMng;
@@ -22,9 +23,12 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,81 +40,91 @@ public class MailMngImpl implements MailMng {
 
     private final KartDAO kartDao;
     private final ObjParMng objParMng;
+    private final ConfigApp configApp;
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void sendBillViaEmail() throws IOException, MessagingException {
-        //Loading an existing PDF document
-        File file = new File("D:\\TEMP\\65_check_pdfbox\\014_ОСН_2_0.pdf");
+    public void sendBillViaEmail() throws IOException, MessagingException, WrongGetMethod, WrongParam {
+        Date dt = configApp.getCurDt1();
+        LocalDate ld = LocalDate.ofInstant(dt.toInstant(), ZoneId.systemDefault());
+        String period = ld.format(DateTimeFormatter.ofPattern("MMM yyyy")
+                .withLocale(new Locale("ru", "ru_RU")));
+        String subject = "РКЦ Киселевск. Платежный документ за период " + period;
+        String msg = subject;
+
+        File file = new File("D:\\TEMP\\65_check_pdfbox\\email_014_ОСН_2_0.pdf");
+        //File file = new File("D:\\TEMP\\65_check_pdfbox\\014_ОСН_2_0.pdf");
         PDDocument document = PDDocument.load(file);
 
-        //Instantiating Splitter class
         Splitter splitter = new Splitter();
-
-        //splitting the pages of a PDF document
         List<PDDocument> Pages = splitter.split(document);
-
-        //Creating an iterator
         Iterator<PDDocument> iterator = Pages.listIterator();
-
         PDFTextStripper pdfStripper = new PDFTextStripper();
-
-        PDFMergerUtility pdfMerger = null;
+        PDFMergerUtility pdfMerger;
 
         kartDao.findAll().forEach(t -> {
             try {
                 objParMng.setBool(t.getKoKw().getId(), "bill_sended_via_email", true);
-            } catch (WrongParam wrongParam) {
+            } catch (WrongParam | WrongGetMethod wrongParam) {
                 wrongParam.printStackTrace();
-            } catch (WrongGetMethod wrongGetMethod) {
-                wrongGetMethod.printStackTrace();
             }
         });
 
         //Saving each a as an individual document
         int page = 1;
         int a = 0;
-        PDDocument pdSource = null;
-        Pattern patternEmail = Pattern.compile("(klskId=)(\\d+);(.+)");
+        PDDocument page1;
+        Pattern patternEmail = Pattern.compile("(klskId=)(\\d+);");
         while (iterator.hasNext()) {
-            PDDocument pd = iterator.next();
-            if (a == 0) {
+            page1 = iterator.next();
+            String textPd = pdfStripper.getText(page1);
+            Matcher matcherKlskId = patternEmail.matcher(textPd);
+            if (matcherKlskId.find()) {
+                long klskId = Long.parseLong(matcherKlskId.group(2));
+                String email = objParMng.getStr(klskId, "email_lk");
+                email = "factor@mail.ru"; // fixme email!
                 pdfMerger = new PDFMergerUtility();
-                pdSource = pd;
-            }
-            //System.out.println("doc=" + page++);
+                if (email != null) {
+                    // получаем 2 страницу
+                    if (iterator.hasNext()) {
+                        PDDocument page2 = iterator.next();
+                        textPd = pdfStripper.getText(page2);
+                        matcherKlskId = patternEmail.matcher(textPd);
+                        if (textPd.length() != 0) {
+                            // если это не страница следующего ПД
+                            if (!matcherKlskId.find()) {
+                                pdfMerger.appendDocument(page1, page2);
+                                pdfMerger.mergeDocuments(null);
+                                String fileName = "D:\\TEMP\\65_check_pdfbox\\PD_" + klskId + ".pdf";
+                                page1.save(fileName);
+                                try {
+                                    sendEmailMessage(fileName, subject, msg);
+                                    log.info("Успешно отправлен ПД: klskId={}, page={}, email={}",
+                                            klskId, page, email);
+                                } catch (MessagingException | IOException e) {
+                                    log.error("Ошибка отправки ПД: klskId={}, page={}, email={}",
+                                            klskId, page, email);
+                                } finally {
+                                    Files.deleteIfExists(Paths.get(fileName));
+                                }
+                            } else {
+                                log.error("Некорректная последовательность страниц в документе! page={}", page);
+                            }
+                        }
 
-            String text = pdfStripper.getText(pd);
-            Matcher matcherEmail = patternEmail.matcher(text);
-
-            try {
-                long klskId = Long.parseLong(matcherEmail.group(0));
-                String email = matcherEmail.group(1);
-                log.info("klskId={}, email={}", klskId, email);
-                if (a++ > 0) {
-                    //pdfMerger.setDestinationFileName("D:\\TEMP\\65_check_pdfbox\\check_" + page + ".pdf");
-                    pdfMerger.appendDocument(pdSource, pd);
-                    pdfMerger.mergeDocuments(null);
-                    String fileName = "D:\\TEMP\\65_check_pdfbox\\check_" + page + ".pdf";
-                    pdSource.save(fileName);
-                    pdSource.close();
-                    pd.close();
-                    //sendEmailMessage(fileName);
-                    a = 0;
-                    //break;
+                        page1.close();
+                        page2.close();
+                    }
+                } else {
+                    log.error("Не заполнен email, по klskId={}", klskId);
                 }
-            } catch (NumberFormatException | IllegalStateException e) {
-                log.error("Некорректные данные в поле klskId, email ПД, страница={}", page);
-            } catch (IOException e) {
-                log.error("Ошибка сохранения ПД");
             }
-
         }
         document.close();
 
     }
 
-    private void sendEmailMessage(String fileName) throws MessagingException, IOException {
+    private void sendEmailMessage(String fileName, String subject, String msg) throws MessagingException, IOException {
         Properties prop = new Properties();
         prop.put("mail.smtp.auth", true);
         prop.put("mail.smtp.host", "smtp.yandex.ru");
@@ -129,12 +143,10 @@ public class MailMngImpl implements MailMng {
         message.setFrom(new InternetAddress("kvitokgku@yandex.ru"));
         message.setRecipients(
                 Message.RecipientType.TO, InternetAddress.parse("factor@mail.ru"));
-        message.setSubject("Mail Subject");
-
-        String msg = "This is my first email using JavaMailer";
+        message.setSubject(subject);
 
         MimeBodyPart mimeBodyPart = new MimeBodyPart();
-        mimeBodyPart.setContent(msg, "text/html");
+        mimeBodyPart.setContent(msg, "text/html; charset=UTF-8");
 
         Multipart multipart = new MimeMultipart();
         multipart.addBodyPart(mimeBodyPart);
