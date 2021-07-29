@@ -148,7 +148,6 @@ public class ConfigAppImpl implements ConfigApp {
     }
 */
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String getPeriod() {
         return Utl.getPeriodFromDate(mapDate.get("dtFirst"));
     }

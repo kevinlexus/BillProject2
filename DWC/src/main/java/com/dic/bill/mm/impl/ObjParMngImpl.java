@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
@@ -29,13 +30,13 @@ import java.util.Map;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
 public class ObjParMngImpl implements ObjParMng {
 
     private final UlstDAO ulstDAO;
     private final ObjParDAO objParDAO;
     private final KartMng kartMng;
     private final KoDAO koDAO;
+    private final EntityManager em;
 
     /**
      * Получить значение параметра типа BigDecimal объекта по CD свойства
@@ -44,6 +45,7 @@ public class ObjParMngImpl implements ObjParMng {
      * @param cd     CD параметра
      */
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public BigDecimal getBd(long klskId, String cd) throws WrongParam, WrongGetMethod {
         Lst lst = ulstDAO.getByCd(cd);
         if (lst == null) {
@@ -67,6 +69,7 @@ public class ObjParMngImpl implements ObjParMng {
      * @param cd     CD параметра
      */
     @Override
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public String getStr(long klskId, String cd) throws WrongParam, WrongGetMethod {
         Lst lst = ulstDAO.getByCd(cd);
         if (lst == null) {
@@ -90,6 +93,7 @@ public class ObjParMngImpl implements ObjParMng {
      * @param cd     CD параметра
      */
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public Boolean getBool(long klskId, String cd) throws WrongParam, WrongGetMethod {
         Lst lst = ulstDAO.getByCd(cd);
         if (lst == null) {
@@ -107,7 +111,18 @@ public class ObjParMngImpl implements ObjParMng {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void setBool(long klskId, String cd, boolean val) throws WrongParam, WrongGetMethod {
+        setBoolValue(klskId, cd, val);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void setBoolNewTransaction(long klskId, String cd, boolean val) throws WrongParam, WrongGetMethod {
+        setBoolValue(klskId, cd, val);
+    }
+
+    private void setBoolValue(long klskId, String cd, boolean val) throws WrongParam, WrongGetMethod {
         Lst lst = ulstDAO.getByCd(cd);
         if (lst == null) {
             throw new WrongParam("ОШИБКА! Несуществующий параметр CD=" + cd);
@@ -137,6 +152,7 @@ public class ObjParMngImpl implements ObjParMng {
      * @param cd     CD параметра
      */
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public Date getDate(long klskId, String cd) throws WrongParam, WrongGetMethod {
         Lst lst = ulstDAO.getByCd(cd);
         if (lst == null) {
@@ -154,6 +170,7 @@ public class ObjParMngImpl implements ObjParMng {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public ListKoAddress getListKoAddressByObjPar(String cd, Long userId) {
         Map<Long, KoAddress> addressMap = new HashMap<>();
         final int[] ord = {1};

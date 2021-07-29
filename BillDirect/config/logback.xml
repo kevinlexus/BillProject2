@@ -46,8 +46,7 @@
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <!-- Log message format -->
         <encoder>
-            <pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %msg%n
-            </pattern>
+            <pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} [%thread] %logger{36} %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -76,6 +75,11 @@
     <logger name="org.ehcache" level="ERROR"/>
     <logger name="org.hibernate.stat" level="ERROR"/>
     <logger name="org.thymeleaf" level="ERROR"/>
+
+<!-- для отслеживания начала и окончания транзакций
+    <logger name="org.springframework.orm.jpa" level="TRACE" />
+    <logger name="org.springframework.transaction.interceptor" level="TRACE" />
+-->
 
     <!--   <logger name="org.springframework.cache" level="TRACE" />-->
 

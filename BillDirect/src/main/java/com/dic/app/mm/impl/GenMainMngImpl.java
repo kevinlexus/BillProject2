@@ -1,7 +1,6 @@
 package com.dic.app.mm.impl;
 
 import com.dic.app.mm.*;
-import com.dic.bill.dao.HouseDAO;
 import com.dic.bill.dao.SprGenItmDAO;
 import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.SprParamMng;
@@ -13,9 +12,7 @@ import com.ric.cmn.CommonConstants;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.WrongParam;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,7 +66,7 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
      * ОСНОВНОЙ поток формирования
      */
     @Override
-    @Async
+    //@Async
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void startMainThread() {
         // маркер итогового формирования
@@ -325,10 +322,16 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                         break;
                     case "GEN_CHECK_BEFORE_GEN":
                         break;
+                    case "CLEAR_MARK_SEND_BILL":
+                        // снять отметку, об отправке счетов в текущем периоде
+                        dt1 = new Date();
+                        mailMng.markBillsNotSended();
+                        if (markExecuted(menuGenItg, itm, 0.99D, dt1)) return;
+                        break;
                     case "SEND_BILLS_EMAIL":
                         // отправка счетов по e-mail
                         dt1 = new Date();
-                        mailMng.sendBillViaEmail();
+                        mailMng.sendBillsViaEmail();
                         if (markExecuted(menuGenItg, itm, 0.99D, dt1)) return;
                         break;
                     default:

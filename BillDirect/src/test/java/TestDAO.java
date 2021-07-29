@@ -1,4 +1,11 @@
+import com.dic.app.Config;
+import com.dic.bill.dao.*;
+import com.dic.bill.mm.ObjParMng;
+import com.ric.cmn.excp.WrongGetMethod;
+import com.ric.cmn.excp.WrongParam;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -7,40 +14,32 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.dic.app.Config;
-import com.dic.bill.dao.ChargeDAO;
-import com.dic.bill.dao.CorrectPayDAO;
-import com.dic.bill.dao.DebDAO;
-import com.dic.bill.dao.KwtpDayDAO;
-import com.dic.bill.dao.SaldoUslDAO;
-import com.dic.bill.dao.VchangeDetDAO;
-
-import lombok.extern.slf4j.Slf4j;
-
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes=Config.class)
+@ContextConfiguration(classes = Config.class)
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @DataJpaTest
 @Slf4j
 public class TestDAO {
 
 
-	@Autowired
-	private DebDAO debUslDao;
-	@Autowired
-	private ChargeDAO chargeDao;
-	@Autowired
-	private VchangeDetDAO vchangeDetDao;
-	@Autowired
-	private KwtpDayDAO kwtpDayDao;
-	@Autowired
-	private CorrectPayDAO correctPayDao;
-	@Autowired
-	private SaldoUslDAO saldoUslDao;
+    @Autowired
+    private DebDAO debUslDao;
+    @Autowired
+    private ChargeDAO chargeDao;
+    @Autowired
+    private VchangeDetDAO vchangeDetDao;
+    @Autowired
+    private KwtpDayDAO kwtpDayDao;
+    @Autowired
+    private CorrectPayDAO correctPayDao;
+    @Autowired
+    private SaldoUslDAO saldoUslDao;
+    @Autowired
+    private ObjParMng objParMng;
 
-	@Test
-	public void mainWork() {
-		log.info("Test Start!");
+    @Test
+    public void mainWork() {
+        log.info("Test Start!");
 /*
 		log.info("Test Debit");
 		debUslDao.getDebitByLsk("00000084", 201403).forEach(t-> {
@@ -78,22 +77,40 @@ public class TestDAO {
 					t.getUslId(), t.getOrgId(), t.getDebOut(), t.getMg(), t.getTs(), t.getTp());
 		});
 */
-		log.info("Test VchargePay");
-		saldoUslDao.getVchargePayByLsk("00000085", 201403).forEach(t-> {
-			log.info("VchargePay: mg={}, summa={}", t.getMg(), t.getSumma());
-		});
+        log.info("Test VchargePay");
+        saldoUslDao.getVchargePayByLsk("00000085", 201403).forEach(t -> {
+            log.info("VchargePay: mg={}, summa={}", t.getMg(), t.getSumma());
+        });
 
-		log.info("Test ChargeNabor");
-		saldoUslDao.getChargeNaborByLsk("00000085", 201403).forEach(t-> {
-			log.info("ChargeNabor: uslId={}, orgId={}, summa={}", t.getUslId(), t.getOrgId(), t.getSumma());
-		});
+        log.info("Test ChargeNabor");
+        saldoUslDao.getChargeNaborByLsk("00000085", 201403).forEach(t -> {
+            log.info("ChargeNabor: uslId={}, orgId={}, summa={}", t.getUslId(), t.getOrgId(), t.getSumma());
+        });
 
-		log.info("Test SaldoUsl");
-		saldoUslDao.getSaldoUslByLsk("00000085", "201403").forEach(t-> {
-			log.info("SaldoUsl: uslId={}, orgId={}, summa={}", t.getUslId(), t.getOrgId(), t.getSumma());
-		});
-		log.info("Test End!");
-	}
+        log.info("Test SaldoUsl");
+        saldoUslDao.getSaldoUslByLsk("00000085", "201403").forEach(t -> {
+            log.info("SaldoUsl: uslId={}, orgId={}, summa={}", t.getUslId(), t.getOrgId(), t.getSumma());
+        });
+        log.info("Test End!");
+    }
 
+
+    @Test
+    public void checkTransactional() throws WrongGetMethod, WrongParam {
+        log.info("check 1");
+        int klskId = 104735;
+        //Boolean isBillAlreadySended = objParMng.getBool(klskId, "bill_sended_via_email");
+        //log.info("check 2={}", isBillAlreadySended);
+
+        objParMng.setBoolNewTransaction(klskId, "bill_sended_via_email", true);
+        Boolean isBillAlreadySended = objParMng.getBool(klskId, "bill_sended_via_email");
+        log.info("check 3={}", isBillAlreadySended);
+        Assertions.assertTrue(isBillAlreadySended);
+
+        objParMng.setBoolNewTransaction(klskId, "bill_sended_via_email", false);
+        isBillAlreadySended = objParMng.getBool(klskId, "bill_sended_via_email");
+        log.info("check 4={}", isBillAlreadySended);
+        Assertions.assertFalse(isBillAlreadySended);
+    }
 
 }

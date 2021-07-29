@@ -15,7 +15,6 @@ import com.dic.bill.model.exs.Task;
 import lombok.extern.slf4j.Slf4j;
 
 
-
 /**
  * DAO сущности Task
  * @author lev

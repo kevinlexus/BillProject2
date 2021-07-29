@@ -30,7 +30,7 @@ import java.util.concurrent.Executor;
 @EnableAsync
 @EnableScheduling
 @EntityScan(basePackages = {"com.dic.bill"})
-@ImportResource("file:.\\config\\spring.xml")
+//@ImportResource("file:.\\config\\spring.xml")
 public class Config  implements ApplicationContextAware, AsyncConfigurer {
 
 	private static ApplicationContext ctx = null;

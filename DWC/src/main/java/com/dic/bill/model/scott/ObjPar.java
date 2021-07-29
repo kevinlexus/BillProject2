@@ -35,19 +35,19 @@ public class ObjPar implements java.io.Serializable {
 	private Meter meter;
 
 	// параметр BD
-	@Column(name = "N1", updatable = false, nullable = true)
+	@Column(name = "N1")
 	private BigDecimal n1;
 
 	// параметр String
-    @Column(name = "S1", updatable = false, nullable = true)
+    @Column(name = "S1")
 	private String s1;
 
 	// параметр Date
-	@Column(name = "D1", updatable = false, nullable = true)
+	@Column(name = "D1")
 	private Date d1;
 
 	// период
-	@Column(name = "mg", updatable = false, nullable = true)
+	@Column(name = "mg")
 	private String mg;
 
 	// Ko объекта
@@ -71,11 +71,11 @@ public class ObjPar implements java.io.Serializable {
 	private Doc doc;
 
 	// timestamp
-	@Column(name = "TS", updatable = false, nullable = true)
+	@Column(name = "TS")
 	private Date ts;
 
 	// Статус загрузки показания при обмене с ГИС ЖКХ (0-добавлен на загрузку в ГИС, 1-в процессе загрузки в ГИС, 2-загружен в ГИС, 3-принят из ГИС, 4-ошибка загрузки в ГИС, смотреть COMM)
-	@Column(name = "STATUS", nullable = false)
+	@Column(name = "STATUS")
 	private Integer status;
 
 	// транспортрый GUID для ГИС

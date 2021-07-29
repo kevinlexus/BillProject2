@@ -7,5 +7,7 @@ import javax.mail.MessagingException;
 import java.io.IOException;
 
 public interface MailMng {
-    void sendBillViaEmail() throws IOException, MessagingException, WrongGetMethod, WrongParam;
+    void sendBillsViaEmail() throws IOException, MessagingException, WrongGetMethod, WrongParam;
+
+    void markBillsNotSended();
 }
