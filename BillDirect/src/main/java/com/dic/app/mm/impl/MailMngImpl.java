@@ -4,6 +4,7 @@ import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.MailMng;
 import com.dic.bill.dao.ObjParDAO;
 import com.dic.bill.mm.ObjParMng;
+import com.ric.cmn.Utl;
 import com.ric.cmn.excp.WrongGetMethod;
 import com.ric.cmn.excp.WrongParam;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.multipdf.Splitter;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -42,18 +44,22 @@ public class MailMngImpl implements MailMng {
 
 
     public static final String TEMP_EXPORT_PATH = "C:\\TEMP\\export\\";
-    public static final String EMAIL_FROM = "kvitokgku@yandex.ru";
-    public static final String SMTP_USER_NAME = "kvitokgku";
-    public static final String SMTP_PASSWORD = "bnvwgrdyoxvmzcxr";
     public static final String BILL_SENDED_VIA_EMAIL = "bill_sended_via_email";
     private final ObjParMng objParMng;
     private final ObjParDAO objParDAO;
     private final ConfigApp configApp;
     private final ApplicationContext applicationContext;
 
+    @Value("${billSendEmailFrom}")
+    private String EMAIL_FROM;
+    @Value("${billSendSMTPUserName}")
+    private String SMTP_USER_NAME;
+    @Value("${billSendSMTPPass}")
+    private String SMTP_PASSWORD;
+
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void sendBillsViaEmail() throws IOException, MessagingException, WrongGetMethod, WrongParam {
+    public void sendBillsViaEmail() {
         log.info("Начало отправки ПД по email");
         Date dt = configApp.getCurDt1();
         LocalDate ld = LocalDate.ofInstant(dt.toInstant(), ZoneId.systemDefault());
@@ -100,9 +106,9 @@ public class MailMngImpl implements MailMng {
             if (matcherKlskId.find()) {
                 long klskId = Long.parseLong(matcherKlskId.group(2));
 
-                klskId = 104735; //fixme klskId
+                //klskId = 104735;
                 String email = objParMng.getStr(klskId, "email_lk");
-                email = "factor@mail.ru"; // fixme email!
+                //email = "factor@mail.ru";
                 Boolean isBillAlreadySent = objParMng.getBool(klskId, "bill_sended_via_email");
                 if (!alreadySent.contains(klskId) && (isBillAlreadySent == null || !isBillAlreadySent)) {
                     alreadySent.add(klskId);
@@ -129,6 +135,7 @@ public class MailMngImpl implements MailMng {
                                     поэтому использую Set<Long> alreadySent, для проверки уже отправленных ПД*/
                                     objParMng.setBoolNewTransaction(klskId, BILL_SENDED_VIA_EMAIL, true);
                                 } catch (MessagingException | IOException e) {
+                                    log.error(Utl.getStackTraceString(e));
                                     log.error("Ошибка отправки ПД: klskId={}, fileName={}, page={}, email={}",
                                             klskId, file.getAbsolutePath(), page, email);
                                 } finally {

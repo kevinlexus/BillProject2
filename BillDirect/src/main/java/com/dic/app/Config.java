@@ -8,10 +8,7 @@ import org.springframework.cache.concurrent.ConcurrentMapCache;
 import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.ImportResource;
+import org.springframework.context.annotation.*;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -30,6 +27,10 @@ import java.util.concurrent.Executor;
 @EnableAsync
 @EnableScheduling
 @EntityScan(basePackages = {"com.dic.bill"})
+@PropertySources({
+		@PropertySource("file:.\\config\\application.properties"),
+		@PropertySource("file:.\\config\\private.properties")
+})
 public class Config  implements ApplicationContextAware, AsyncConfigurer {
 
 	private static ApplicationContext ctx = null;
