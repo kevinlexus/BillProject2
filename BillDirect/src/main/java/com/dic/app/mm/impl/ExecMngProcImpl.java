@@ -185,6 +185,13 @@ public class ExecMngProcImpl implements ExecMngProc {
                 qr.setParameter(3, null);
                 qr.executeUpdate();
                 break;
+            case 39:
+                // установить статус итогового формирования
+                qr = em.createStoredProcedureQuery("scott.init.set_state");
+                qr.registerStoredProcedureParameter(1, Long.class, ParameterMode.IN);
+                qr.setParameter(1, id);
+                qr.executeUpdate();
+                break;
             case 100:
                 // распределить ОДН во вводах, где нет ОДПУ
                 qr = em.createStoredProcedureQuery("scott.p_vvod.gen_dist_wo_vvod_usl");

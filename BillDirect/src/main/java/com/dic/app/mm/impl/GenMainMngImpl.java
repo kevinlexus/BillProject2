@@ -339,8 +339,9 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                         //return;
                 }
             }
-            // выполнено всё
+            // выполнено итоговое
             if (menuGenItg.getSel()) {
+                execMng.execProc(39, 1L, null);
                 execMng.setMenuElemState(menuGenItg, "Выполнено успешно!");
                 execMng.setMenuElemPercent(menuGenItg, 1D);
             }
