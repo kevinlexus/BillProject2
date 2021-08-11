@@ -64,7 +64,7 @@ public class TestFileLoadingWithDelimiters {
         // загрузить файл во временную таблицу LOAD_KART_EXT
         Org org = orgDAO.getByReu("001");
         //registryMng.loadFileKartExt(org, "d:\\temp\\#1\\Кап\\0206DBSS001012021.txt");
-        registryMng.loadFileKartExt(org, "d:\\temp\\#1\\Кап\\0204DBSS001012021.txt");
+        registryMng.loadFileKartExt(12, "d:\\temp\\#1\\Кап\\0204DBSS001012021.txt");
     }
 
     @Test
@@ -72,7 +72,7 @@ public class TestFileLoadingWithDelimiters {
     public void approveLoadKartExt() throws WrongParam {
         Org org = orgDAO.getByReu("001");
         // загрузить успешно обработанные лиц.счета в таблицу внешних лиц.счетов
-        registryMng.loadApprovedKartExt(org);
+        registryMng.loadApprovedKartExt(12);
     }
     /**
      * Выгрузить файл платежей по внешними лиц.счетами

@@ -93,7 +93,7 @@ public class Org implements java.io.Serializable {
 	@Column(name = "IS_EXCHANGE_EXT", updatable = false)
 	private Boolean isExchangeExt;
 
-	// при загрузке реестра внешних лиц счетов, создавать ли лиц.счета в Kart (Например Кис - Кап.ремонт)
+	// при загрузке реестра внешних лиц счетов, создавать ли лиц.счета в Kart (Например Кис - ФКР)
 	@Type(type= "org.hibernate.type.NumericBooleanType")
 	@Column(name = "IS_CREATE_EXT_LSK_IN_KART", updatable = false)
 	private Boolean isCreateExtLskInKart;

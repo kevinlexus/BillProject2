@@ -496,19 +496,15 @@ public class WebController implements CommonConstants {
      *
      * @param fileName - имя файла
      */
-    @RequestMapping(value = "/loadFileKartExt/{fileName}", method = RequestMethod.GET)
+    @RequestMapping(value = "/loadFileKartExt/{fileName}/{orgId}", method = RequestMethod.GET)
     @ResponseBody
-    public String loadFileKartExt(@PathVariable String fileName) {
-        log.info("GOT /loadFileKartExt/ with {}", fileName);
+    public String loadFileKartExt(@PathVariable String fileName, @PathVariable Integer orgId) {
+        log.info("GOT /loadFileKartExt/{}/{}", fileName, orgId);
         if (config.getLock().setLockProc(1, "loadFileKartExt")) {
-            int cntLoaded = 0;
+            int cntLoaded;
             try {
-                List<Org> lstOrg = orgDAO.findByIsExchangeExt(true);
-                for (Org org : lstOrg) {
-                    cntLoaded = registryMng.loadFileKartExt(org,
-                            "c:\\temp\\" + fileName);
-                    break;// note делается пока по 1 орг
-                }
+                cntLoaded = registryMng.loadFileKartExt(orgId,
+                        "c:\\temp\\" + fileName);
             } catch (Exception e) {
                 config.getLock().unlockProc(1, "loadFileKartExt");
                 log.error(Utl.getStackTraceString(e));
@@ -530,7 +526,7 @@ public class WebController implements CommonConstants {
     @ResponseBody
     public String unloadPaymentFileKartExt(@PathVariable String ordNum,
                                            @PathVariable String strDt1, @PathVariable String strDt2) {
-        log.info("GOT /unloadPaymentFileKartExt/ with {}", ordNum);
+        log.info("GOT /unloadPaymentFileKartExt/{}/{}/{}", ordNum, strDt1, strDt2);
         String fileName = "";
         if (config.getLock().setLockProc(1, "unloadPaymentFileKartExt")) {
             Date genDt1;
@@ -626,15 +622,11 @@ public class WebController implements CommonConstants {
         }
     }
 
-    @RequestMapping(value = "/loadApprovedKartExt", method = RequestMethod.GET)
+    @RequestMapping(value = "/loadApprovedKartExt/{orgId}", method = RequestMethod.GET)
     @ResponseBody
-    public String loadApprovedKartExt() throws WrongParam {
-        log.info("GOT /loadApprovedKartExt");
-        List<Org> lstOrg = orgDAO.findByIsExchangeExt(true);
-        for (Org org : lstOrg) {
-            registryMng.loadApprovedKartExt(org);
-            break;// note делается пока по 1 орг
-        }
+    public String loadApprovedKartExt(@PathVariable Integer orgId) throws WrongParam {
+        log.info("GOT /loadApprovedKartExt/{}", orgId);
+        registryMng.loadApprovedKartExt(orgId);
 
         return "OK";
     }

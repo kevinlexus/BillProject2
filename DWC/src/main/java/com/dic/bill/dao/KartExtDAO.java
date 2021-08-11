@@ -21,21 +21,21 @@ import java.util.Optional;
 public interface KartExtDAO extends JpaRepository<KartExt, Integer> {
 
     @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
-    Optional<KartExt> findByExtLsk(String extLsk);
+    Optional<KartExt> findByExtLskAndUkId(String extLsk, Integer orgId);
 
     /**
-     * Получить загруженные внешние лиц.счета
+     * Получить загруженные внешние лиц.счета по организации
      */
-    @Query(value = "select t.extLsk as extLsk, t.v as v, k.psch as psch from KartExt t join t.kart k")
-    List<LoadedKartExt> getLoadedKartExt();
+    @Query(value = "select t.extLsk as extLsk, t.v as v, k.psch as psch from KartExt t join t.kart k where t.uk.id=:orgId")
+    List<LoadedKartExt> getLoadedKartExtByUkId(Integer orgId);
 
     /**
-     * Получить внешние лиц.счета по дому и квартире
+     * Получить внешние лиц.счета по дому, квартире, и организации
      */
     @Query(value = "select t from KartExt t " +
-            " where exists (select k from Kart k where k.house.id=:houseId and k.num=:kw " +
+            " where t.uk.id=:orgId and exists (select k from Kart k where k.house.id=:houseId and k.num=:kw " +
             "and k.psch not in (8,9) " +
             "and (t.koKw.id=k.koKw.id or t.koPremise.id=k.koPremise.id or t.kart.id=k.id)) and t.v=1")
-    List<KartExt> getKartExtByHouseIdAndKw(@Param("houseId") Integer houseId, @Param("kw") String kw);
+    List<KartExt> getKartExtByHouseIdAndKw(@Param("orgId") Integer orgId, @Param("houseId") Integer houseId, @Param("kw") String kw);
 
 }

@@ -11,12 +11,12 @@ import java.util.Date;
 public interface RegistryMng {
 
     void genDebitForSberbank();
-    int loadFileKartExt(Org org, String fileName) throws FileNotFoundException, WrongParam, ErrorWhileLoad;
+    int loadFileKartExt(Integer orgId, String fileName) throws FileNotFoundException, WrongParam, ErrorWhileLoad;
 
     int unloadPaymentFileKartExt(String filePath, String codeUk, Date genDt1, Date genDt2) throws IOException;
 
     int loadFileMeterVal(String fileName, String codePage, boolean isSetPreviosVal) throws FileNotFoundException;
     int unloadFileMeterVal(String fileName, String codePage, String strUk) throws IOException;
 
-    void loadApprovedKartExt(Org org) throws WrongParam;
+    void loadApprovedKartExt(Integer orgId) throws WrongParam;
 }

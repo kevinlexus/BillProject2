@@ -320,14 +320,14 @@ public class RegistryMngImpl implements RegistryMng {
     /**
      * Загрузить файл внешних лиц счетов во временную таблицу
      *
-     * @param org      - реестр от организации
+     * @param orgId      - реестр от организации
      * @param fileName - путь и имя файла
      * @return - кол-во успешно обработанных записей
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int loadFileKartExt(Org org, String fileName) throws FileNotFoundException, WrongParam, ErrorWhileLoad {
-        log.info("Начало загрузки файла внешних лиц.счетов fileName={} v 1.4", fileName);
+    public int loadFileKartExt(Integer orgId, String fileName) throws FileNotFoundException, WrongParam, ErrorWhileLoad {
+        log.info("Начало загрузки файла внешних лиц.счетов fileName={} v 1.5", fileName);
         String cityName;
         switch (orgDAO.getByOrgTp("Город").getCd()) {
             case "г.Полысаево":
@@ -342,15 +342,18 @@ public class RegistryMngImpl implements RegistryMng {
             default:
                 throw new WrongParam("Необрабатываемый город в T_ORG");
         }
+        Org org = em.find(Org.class, orgId);
+        if (org == null) {
+            throw new WrongParam("Не найдена организация по orgId=" + orgId);
+        }
         String reu = org.getReu();
         String lskTp = org.isRSO() ? "LSK_TP_RSO" : "LSK_TP_MAIN";
         Usl usl = org.getUslForCreateExtLskKart();
-        Boolean isCreateExtLskInKart = org.getIsCreateExtLskInKart();
-        if (isCreateExtLskInKart && usl == null) {
-            throw new WrongParam("Не заполнена услуга в T_ORG.USL_FOR_CREATE_EXT_LSK по T_ORG.ID=" + org.getId());
+        if (usl == null) {
+            throw new WrongParam("Не заполнена услуга в T_ORG.USL_FOR_CREATE_EXT_LSK по T_ORG.ID=" + orgId);
         }
 
-        Map<String, LoadedKartExt> mapLoadedKart = kartExtDAO.getLoadedKartExt()
+        Map<String, LoadedKartExt> mapLoadedKart = kartExtDAO.getLoadedKartExtByUkId(orgId)
                 .stream().collect(Collectors.toMap(LoadedKartExt::getExtLsk, t -> t));
 
         try (Scanner scanner = new Scanner(new File(fileName), "windows-1251")) {
@@ -379,12 +382,12 @@ public class RegistryMngImpl implements RegistryMng {
                     cntLoaded = parseLineFormat1(mapLoadedKart, cityName, setExt, mapHouse, cntLoaded, s, kartExtInfo);
                 } else {
                     throw new WrongParam("Некорректный тип формата загрузочного файла ORG.EXT_LSK_FORMAT_TP=" + org.getExtLskFormatTp() +
-                            " по T_ORG.ID=" + org.getId());
+                            " по T_ORG.ID=" + orgId);
                 }
             }
             if (org.getExtLskFormatTp().equals(1)) {
                 // Кис (ФКП)
-                markAsClosed(mapLoadedKart);
+                markAsClosed(mapLoadedKart, orgId);
             }
 
             log.info("Окончание загрузки файла внешних лиц.счетов fileName={}, загружено {} строк", fileName, cntLoaded);
@@ -397,9 +400,9 @@ public class RegistryMngImpl implements RegistryMng {
      *
      * @param mapLoadedKart отстуствующие вн.лиц.счета
      */
-    private void markAsClosed(Map<String, LoadedKartExt> mapLoadedKart) {
+    private void markAsClosed(Map<String, LoadedKartExt> mapLoadedKart, Integer orgId) {
         mapLoadedKart.forEach((k, v) -> {
-            Optional<KartExt> kartExt = kartExtDAO.findByExtLsk(k);
+            Optional<KartExt> kartExt = kartExtDAO.findByExtLskAndUkId(k, orgId);
             kartExt.ifPresent(t -> {
                 if (t.getDtCrt().getTime() < configApp.getCurDt1().getTime()) {
                     LoadKartExt loadKartExt =
@@ -767,11 +770,15 @@ public class RegistryMngImpl implements RegistryMng {
     /**
      * Загрузить успешно обработанные лиц.счета в таблицу внешних лиц.счетов
      *
-     * @param org реестр от организации
+     * @param orgId реестр от организации
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void loadApprovedKartExt(Org org) throws WrongParam {
+    public void loadApprovedKartExt(Integer orgId) throws WrongParam {
+        Org org = em.find(Org.class, orgId);
+        if (org == null) {
+            throw new WrongParam("Не найдена организация по orgId=" + orgId);
+        }
         log.info("Начало загрузки данных по внешним лиц.счетам организации: {}", org.getName());
         if (org.getExtLskFormatTp().equals(0)) {
             // Полыс (ЧГК)
@@ -787,7 +794,7 @@ public class RegistryMngImpl implements RegistryMng {
                 switch (loadKartExt.getStatus()) {
                     case EXT_LSK_EXIST: {
                         // проверить соотв.лиц.счет, перенести движение
-                        Optional<KartExt> kartExtOpt = kartExtDAO.findByExtLsk(loadKartExt.getExtLsk());
+                        Optional<KartExt> kartExtOpt = kartExtDAO.findByExtLskAndUkId(loadKartExt.getExtLsk(), orgId);
                         kartExtOpt.ifPresent(t -> {
                             setSaldoAndAttributes(loadKartExt, t);
                             // установить статус соотв.лиц.счета
@@ -861,7 +868,7 @@ public class RegistryMngImpl implements RegistryMng {
                     case EXT_LSK_EXIST_BUT_CLOSED:
                     case EXT_LSK_EXIST_BUT_KART_CLOSED: {
                         // открыть внешний лиц.счет
-                        Optional<KartExt> kartExtOpt = kartExtDAO.findByExtLsk(loadKartExt.getExtLsk());
+                        Optional<KartExt> kartExtOpt = kartExtDAO.findByExtLskAndUkId(loadKartExt.getExtLsk(), orgId);
                         // проверить открыт ли соотв.лиц.сч.
                         kartExtOpt.ifPresent(t -> {
                             t.setV(1);
@@ -895,7 +902,7 @@ public class RegistryMngImpl implements RegistryMng {
                         break;
                     }
                     case EXT_NOT_IN_REGISTRY: {
-                        Optional<KartExt> kartExtOpt = kartExtDAO.findByExtLsk(loadKartExt.getExtLsk());
+                        Optional<KartExt> kartExtOpt = kartExtDAO.findByExtLskAndUkId(loadKartExt.getExtLsk(), orgId);
                         kartExtOpt.ifPresent(t -> {
                             t.setV(0);
                             // установить статус соотв.лиц.счета
@@ -1022,7 +1029,7 @@ public class RegistryMngImpl implements RegistryMng {
                     comm = "Частный дом?";
                 }
 
-                Optional<KartExt> kartExt = kartExtDAO.findByExtLsk(kartExtInfo.extLsk);
+                Optional<KartExt> kartExt = kartExtDAO.findByExtLskAndUkId(kartExtInfo.extLsk, kartExtInfo.org.getId());
                 if (kartExt.isPresent()) {
                     comm = "Внешний лиц.счет уже создан";
                     status = 1;
@@ -1060,7 +1067,8 @@ public class RegistryMngImpl implements RegistryMng {
                     }
 
                     // проверка на существование внешнего лиц.счета по данному адресу
-                    List<KartExt> lstKartExt = kartExtDAO.getKartExtByHouseIdAndKw(kartExtInfo.house.getId(), strKw);
+                    List<KartExt> lstKartExt = kartExtDAO.getKartExtByHouseIdAndKw(kartExtInfo.org.getId(),
+                            kartExtInfo.house.getId(), strKw);
                     if (lstKartExt.size() > 0) {
                         comm = "Внешний лиц.счет по данному адресу уже существует (" +
                                 lstKartExt.get(0).getExtLsk() + "), возможно его необходимо закрыть?";
@@ -1101,7 +1109,7 @@ public class RegistryMngImpl implements RegistryMng {
      * @param kartExtInfo   информация для создания вн.лиц.счета
      * @param setExt        уже обработанные вн.лиц.счета
      */
-    private void createLoadKartExt1(Map<String, LoadedKartExt> mapLoadedKart, KartExtInfo kartExtInfo, Set<String> setExt) throws ErrorWhileLoad {
+    private void createLoadKartExt1(Map<String, LoadedKartExt> mapLoadedKart, KartExtInfo kartExtInfo, Set<String> setExt) {
         String comm = "";
         int status = EXT_LSK_NOT_USE;
 

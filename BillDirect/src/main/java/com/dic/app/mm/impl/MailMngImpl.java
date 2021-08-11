@@ -63,10 +63,14 @@ public class MailMngImpl implements MailMng {
         log.info("Начало отправки ПД по email");
         Date dt = configApp.getCurDt1();
         LocalDate ld = LocalDate.ofInstant(dt.toInstant(), ZoneId.systemDefault());
+        //LocalDate ld = LocalDate.of(2021,7,30);
+
         String periodFormatted = ld.format(DateTimeFormatter.ofPattern("MMM yyyy")
                 .withLocale(new Locale("ru", "ru_RU")));
         String subject = "РКЦ Киселевск. Платежный документ за период " + periodFormatted;
-        String pathname = TEMP_EXPORT_PATH + configApp.getPeriod();
+        String periodForExport = ld.format(DateTimeFormatter.ofPattern("yyyyMM"));
+        log.info("Путь для поиска ПД:{}", periodForExport);
+        String pathname = TEMP_EXPORT_PATH + periodForExport;
         File[] files = new File(pathname).listFiles();
         Set<Long> alreadySent = new HashSet<>();
         if (files != null) {
@@ -110,9 +114,10 @@ public class MailMngImpl implements MailMng {
                 String email = objParMng.getStr(klskId, "email_lk");
                 //email = "factor@mail.ru";
                 Boolean isBillAlreadySent = objParMng.getBool(klskId, "bill_sended_via_email");
-                if (!alreadySent.contains(klskId) && (isBillAlreadySent == null || !isBillAlreadySent)) {
+
+                if (email!=null && !alreadySent.contains(klskId) && (isBillAlreadySent == null || !isBillAlreadySent)) {
+                    log.info("Найден klskId={} для отправки ПД, по email={}", klskId, email);
                     alreadySent.add(klskId);
-                    if (email != null) {
                         // получаем 2 страницу
                         if (iterator.hasNext()) {
                             PDDocument page2 = iterator.next();
@@ -149,9 +154,6 @@ public class MailMngImpl implements MailMng {
                             page1.close();
                             page2.close();
                         }
-                    } else {
-                        log.error("Не заполнен email, по klskId={}", klskId);
-                    }
                 }
             }
             page1.close();
