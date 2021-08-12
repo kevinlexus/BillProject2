@@ -376,10 +376,10 @@ public class RegistryMngImpl implements RegistryMng {
                 // перебрать элементы строки
                 if (org.getExtLskFormatTp().equals(0)) {
                     // Полыс (ЧГК)
-                    cntLoaded = parseLineFormat0(cityName, setExt, mapHouse, cntLoaded, s, kartExtInfo);
+                    cntLoaded += parseLineFormat0(cityName, setExt, mapHouse, s, kartExtInfo);
                 } else if (org.getExtLskFormatTp().equals(1)) {
                     // Кис (ФКП)
-                    cntLoaded = parseLineFormat1(mapLoadedKart, cityName, setExt, mapHouse, cntLoaded, s, kartExtInfo);
+                    cntLoaded += parseLineFormat1(mapLoadedKart, cityName, setExt, mapHouse, s, kartExtInfo);
                 } else {
                     throw new WrongParam("Некорректный тип формата загрузочного файла ORG.EXT_LSK_FORMAT_TP=" + org.getExtLskFormatTp() +
                             " по T_ORG.ID=" + orgId);
@@ -423,25 +423,18 @@ public class RegistryMngImpl implements RegistryMng {
      * @param cityName    наименование города
      * @param setExt      уже обработанные внешние лиц.сч.
      * @param mapHouse    GUID-ы домов (ФИАСы)
-     * @param cntLoaded   загружено записей
      * @param s           обрабатываемая строка
      * @param kartExtInfo результат
      */
     private int parseLineFormat0(String cityName, Set<String> setExt, Map<String, House> mapHouse,
-                                 int cntLoaded, String s, KartExtInfo kartExtInfo) {
+                                 String s, KartExtInfo kartExtInfo) {
         int i = 0;
-        int j = 0;
         boolean foundCity = false;
         Scanner sc = new Scanner(s);
         sc.useDelimiter(";");
 
         while (sc.hasNext()) {
             i++;
-            j++;
-            if (j > 100) {
-                j = 1;
-                log.info("Обработано {} записей", i);
-            }
             String elem = sc.next();
             // log.info("elem={}", elem);
 
@@ -494,11 +487,20 @@ public class RegistryMngImpl implements RegistryMng {
             }
 
         }
-        if (foundCity) {
-            cntLoaded++;
-            createLoadKartExt0(kartExtInfo, setExt);
+        if (i==0) {
+            log.error("В строке не обнаружено ни одного элемента: {}", s);
+            return 0;
+        } else {
+            if (foundCity) {
+                log.trace("Внешний лиц.счет = {} отправлен на загрузку", kartExtInfo.extLsk);
+                createLoadKartExt0(kartExtInfo, setExt);
+                return 1;
+            } else {
+                log.error("Строка не была загружена: {}", s);
+                return 0;
+            }
         }
-        return cntLoaded;
+
     }
 
     /**
@@ -508,25 +510,18 @@ public class RegistryMngImpl implements RegistryMng {
      * @param cityName      наименование города
      * @param setExt        уже обработанные внешние лиц.сч.
      * @param mapHouse      GUID-ы домов (ФИАСы)
-     * @param cntLoaded     загружено записей
      * @param s             обрабатываемая строка
      * @param kartExtInfo   результат
      */
     private int parseLineFormat1(Map<String, LoadedKartExt> mapLoadedKart, String cityName, Set<String> setExt, Map<String, House> mapHouse,
-                                 int cntLoaded, String s, KartExtInfo kartExtInfo) throws ErrorWhileLoad {
+                                 String s, KartExtInfo kartExtInfo) {
         int i = 0;
-        int j = 0;
         boolean foundCity = false;
         Scanner sc = new Scanner(s);
         sc.useDelimiter("\\|");
 
         while (sc.hasNext()) {
             i++;
-            j++;
-            if (j > 100) {
-                j = 1;
-                log.info("Обработано {} записей", i);
-            }
             String elem = sc.next();
             //log.info("elem={}", elem);
 
@@ -602,11 +597,19 @@ public class RegistryMngImpl implements RegistryMng {
             }
 
         }
-        if (foundCity) {
-            cntLoaded++;
-            createLoadKartExt1(mapLoadedKart, kartExtInfo, setExt);
+        if (i==0) {
+            log.error("В строке не обнаружено ни одного элемента: {}", s);
+            return 0;
+        } else {
+            if (foundCity) {
+                log.trace("Внешний лиц.счет = {} отправлен на загрузку", kartExtInfo.extLsk);
+                createLoadKartExt1(mapLoadedKart, kartExtInfo, setExt);
+                return 1;
+            } else {
+                log.error("Строка не была загружена: {}", s);
+                return 0;
+            }
         }
-        return cntLoaded;
     }
 
 
