@@ -107,6 +107,15 @@ public class Org implements java.io.Serializable {
 	@Column(name = "EXT_LSK_FORMAT_TP")
 	private Integer extLskFormatTp;
 
+	// загружать сальдо вн.лиц.счетов, (0-как на начало месяца (ФКР Кис), 1-как за прошлый период (ФКР Полыс.))
+	@Column(name = "EXT_LSK_LOAD_SALDO_TP")
+	private Integer extLskLoadSaldoTp;
+
+	// загружать оплату по вн.лиц.счетам?
+	@Type(type= "org.hibernate.type.NumericBooleanType")
+	@Column(name = "EXT_LSK_LOAD_PAY", updatable = false)
+	private Boolean isExtLskLoadPay;
+
 	@Transient
 	public boolean isUO() {
 		if (orgTpGis == null) {

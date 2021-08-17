@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
+import javax.persistence.ParameterMode;
 import javax.persistence.PersistenceContext;
 import javax.persistence.StoredProcedureQuery;
 import java.io.BufferedWriter;
@@ -376,10 +377,10 @@ public class RegistryMngImpl implements RegistryMng {
                 kartExtInfo.lskTp = lskTp;
                 // перебрать элементы строки
                 if (org.getExtLskFormatTp().equals(0)) {
-                    // Полыс (ЧГК)
+                    // ЧГК
                     cntLoaded += parseLineFormat0(cityName, setExt, mapHouse, s, kartExtInfo);
                 } else if (org.getExtLskFormatTp().equals(1)) {
-                    // Кис (ФКП)
+                    // ФКП
                     cntLoaded += parseLineFormat1(mapLoadedKart, cityName, setExt, mapHouse, s, kartExtInfo);
                 } else {
                     throw new WrongParam("Некорректный тип формата загрузочного файла ORG.EXT_LSK_FORMAT_TP=" + org.getExtLskFormatTp() +
@@ -916,21 +917,26 @@ public class RegistryMngImpl implements RegistryMng {
                                 "LOAD_KART_EXT.STATUS=" + loadKartExt.getStatus());
                     }
                 }
+                log.info("Обработан вн.лиц.счет:{}", loadKartExt.getExtLsk());
             }
 
             // выполнить flush, иначе хранимые процедуры ниже, не видят изменений hibernate
             orgDAO.flush();
 
             // загрузка оплаты
-            log.info("Начало загрузки оплаты по внешним лиц счетам");
             StoredProcedureQuery qr;
-            qr = em.createStoredProcedureQuery("scott.c_gen_pay.load_ext_pay");
-            qr.execute();
-            log.info("Окончание загрузки оплаты по внешним лиц счетам");
+            if (org.getIsExtLskLoadPay()) {
+                log.info("Начало загрузки оплаты по внешним лиц счетам");
+                qr = em.createStoredProcedureQuery("scott.c_gen_pay.load_ext_pay");
+                qr.execute();
+                log.info("Окончание загрузки оплаты по внешним лиц счетам");
+            }
 
             log.info("Начало загрузки сальдо по внешним лиц счетам");
             // загрузка сальдо
             qr = em.createStoredProcedureQuery("scott.gen.load_ext_saldo");
+            qr.registerStoredProcedureParameter(1, Integer.class, ParameterMode.IN);
+            qr.setParameter(1, org.getExtLskLoadSaldoTp());
             qr.execute();
             log.info("Окончание загрузки сальдо по внешним лиц счетам");
         } else {

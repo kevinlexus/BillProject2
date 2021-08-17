@@ -77,7 +77,7 @@ public class ConfigAppImpl implements ConfigApp {
     private void setUp() {
         log.info("");
         log.info("-----------------------------------------------------------------");
-        log.info("Версия модуля - {}", "1.1.3");
+        log.info("Версия модуля - {}", "1.1.4");
 
         reloadSprPen();
         reloadParam();
