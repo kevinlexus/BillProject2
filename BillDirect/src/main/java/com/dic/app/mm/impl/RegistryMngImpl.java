@@ -4,9 +4,7 @@ import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.RegistryMng;
 import com.dic.bill.UlistDAO;
 import com.dic.bill.dao.*;
-import com.dic.bill.dto.KartExtPaymentRec;
-import com.dic.bill.dto.KartLsk;
-import com.dic.bill.dto.LoadedKartExt;
+import com.dic.bill.dto.*;
 import com.dic.bill.mm.EolinkMng;
 import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.MeterMng;
@@ -613,37 +611,68 @@ public class RegistryMngImpl implements RegistryMng {
 
     /**
      * Выгрузить файл платежей по внешними лиц.счетами
-     *
-     * @param filePath - имя файла, включая путь
-     * @param reu      - код УК
-     * @param genDt1   - начало периода
-     * @param genDt2   - окончание периода
+     * @param unloadPaymentParameter параметры выгрузки
      */
     @Override
     @Transactional
-    public int unloadPaymentFileKartExt(String filePath, String reu, Date genDt1, Date genDt2) throws IOException {
-        Org uk = orgDAO.getByReu(reu);
-        log.info("Начало выгрузки файла платежей по внешним лиц.счетам filePath={}, " +
-                "по УК={}-{}, genDt1={} genDt2={}", filePath, reu, uk.getName(), genDt1, genDt2);
-        Path path = Paths.get(filePath);
-        // внешние лиц.счета привязаны через LSK
-        String period = Utl.getPeriodFromDate(genDt1);
-        List<KartExtPaymentRec> payment = akwtpDAO.getPaymentByPeriod(period, uk.getId());
-        int cntLoaded = 0;
-        BigDecimal amount = BigDecimal.ZERO;
-        if (payment.size() > 0) {
-            try (BufferedWriter writer = Files.newBufferedWriter(path, Charset.forName("windows-1251"))) {
-                for (KartExtPaymentRec rec : payment) {
-                    writer.write(Utl.getStrFromDate(rec.getDt(), "ddMMyyyy") + ";" +
-                            rec.getExtLsk() + ";1;" + rec.getSumma().toString() + ";" +
-                            rec.getId() + "\r\n");
-                    amount = amount.add(rec.getSumma());
-                    cntLoaded++;
-                }
-                writer.write("=;" + cntLoaded + ";" + amount.toString());
-            }
+    public int unloadPaymentFileKartExt(UnloadPaymentParameter unloadPaymentParameter) throws IOException, WrongParam {
+        Org org = em.find(Org.class, unloadPaymentParameter.getOrgId());
+        if (org == null) {
+            throw new WrongParam("Не найдена организация по orgId=" + unloadPaymentParameter.getOrgId());
         }
-        log.info("Окончание выгрузки файла платежей по внешним лиц.счетам filePath={}, выгружено {} строк", filePath, cntLoaded);
+        String period = Utl.getPeriodFromDate(unloadPaymentParameter.getGenDt1());
+        int cntLoaded = 0;
+        String filePath;
+        if (org.getExtLskFormatTp().equals(0)) {
+            Org rkc = orgDAO.getByOrgTp("РКЦ");
+            unloadPaymentParameter.setFileName("c:\\temp\\"+rkc.getInn() + "_" + Utl.getStrFromDate(new Date(), "yyyyMMdd")
+                    + "_" + unloadPaymentParameter.getOrdNum() + ".txt");
+            Path path = Paths.get(unloadPaymentParameter.getFileName());
+            log.info("Начало выгрузки файла платежей по внешним лиц.счетам fileName={}, " +
+                    "по orgId={}, genDt1={} genDt2={}", unloadPaymentParameter.getFileName(),
+                    unloadPaymentParameter.getOrgId(), unloadPaymentParameter.getGenDt1(), unloadPaymentParameter.getGenDt2());
+
+            // ЧГК
+            List<KartExtPaymentRec> payment = akwtpDAO.getPaymentByPeriodUsingKlskId(period, unloadPaymentParameter.getOrgId());
+            BigDecimal amount = BigDecimal.ZERO;
+            if (payment.size() > 0) {
+                try (BufferedWriter writer = Files.newBufferedWriter(path, Charset.forName("windows-1251"))) {
+                    for (KartExtPaymentRec rec : payment) {
+                        writer.write(Utl.getStrFromDate(rec.getDt(), "ddMMyyyy") + ";" +
+                                rec.getExtLsk() + ";1;" + rec.getSumma().toString() + ";" +
+                                rec.getId() + "\r\n");
+                        amount = amount.add(rec.getSumma());
+                        cntLoaded++;
+                    }
+                    writer.write("=;" + cntLoaded + ";" + amount);
+                }
+            }
+        } else if (org.getExtLskFormatTp().equals(1)) {
+            // ФКР (только Полыс.)
+            List<KartExtPaymentRec2> payment = akwtpDAO.getPaymentByPeriodUsingLsk(period, unloadPaymentParameter.getOrgId());
+            BigDecimal amount = BigDecimal.ZERO;
+            if (payment.size() > 0) {
+                unloadPaymentParameter.setFileName("c:\\temp\\"+ Utl.getStrFromDate(new Date(), "ddMMyy")
+                        + "_0264_" + "212030000028.txt");
+                Path path = Paths.get(unloadPaymentParameter.getFileName());
+                try (BufferedWriter writer = Files.newBufferedWriter(path, Charset.forName("windows-1251"))) {
+                    for (KartExtPaymentRec2 rec : payment) {
+                        writer.write(Utl.getStrFromDate(rec.getDt(), "dd-MM-yyyy") + "|" +
+                                rec.getExtLsk() + "|" + rec.getFiasKw() + "|" + "|" + rec.getSumma().toString()
+                                + Utl.getStrFromDate(rec.getDt(), "MMyyyy") + "|" + "|" + rec.getAdr() + "|||"
+                                + rec.getRsch() + "\r\n");
+                        amount = amount.add(rec.getSumma());
+                        cntLoaded++;
+                    }
+                    writer.write("=" + cntLoaded + "|" + amount+"|"+"1|"+Utl.getStrFromDate(new Date(), "ddMMyyyy"));
+                }
+            }
+        } else {
+            throw new WrongParam("Некорректный формат, указанный для поставщика услуги T_ORG.ext_lsk_pay_format_tp=" + org.getExtLskPayFormatTp());
+        }
+
+        log.info("Окончание выгрузки файла платежей по внешним лиц.счетам fileName={}, выгружено {} строк",
+                unloadPaymentParameter.getFileName(), cntLoaded);
         return cntLoaded;
     }
 
@@ -1260,7 +1289,12 @@ public class RegistryMngImpl implements RegistryMng {
                 return Optional.of(adr);
             }
         }
+
+        int b = 1;
+
         return Optional.empty();
+
+
     }
 
 }

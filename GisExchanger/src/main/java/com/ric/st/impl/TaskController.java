@@ -197,12 +197,6 @@ public class TaskController implements TaskControllers {
                                 }
 
                                 break;
-                            case "GIS_EXP_CONTR":
-                                // Экспорт из ГИС ЖКХ договора управления по указанному в EOLINK дому
-                                hb.setUp(task);
-                                hb.exportContract(task);
-
-                                break;
                             case "GIS_EXP_CACH_DATA":
                                 // Экспорт из ГИС ЖКХ уставов УК
                                 hb.setUp(task);

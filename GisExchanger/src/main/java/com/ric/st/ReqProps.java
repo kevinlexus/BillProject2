@@ -19,13 +19,9 @@ public interface ReqProps {
 
     String getHouseGuid();
 
-    String getReu();
-
     String getKul();
 
     String getNd();
-
-    Eolink getEolinkUk();
 
     Org getUk();
 

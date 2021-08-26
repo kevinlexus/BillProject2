@@ -1,6 +1,7 @@
 import com.dic.app.Config;
 import com.dic.app.mm.RegistryMng;
 import com.dic.bill.dao.OrgDAO;
+import com.dic.bill.dto.UnloadPaymentParameter;
 import com.dic.bill.model.scott.Org;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileLoad;
@@ -79,9 +80,9 @@ public class TestFileLoadingWithDelimiters {
      */
     @Test
     @Rollback(false)
-    public void fileUnloadPaymentKartExt() throws IOException {
-        registryMng.unloadPaymentFileKartExt("c:\\temp\\3216613_20200403_.txt", "001",
-                Utl.getFirstDt(), Utl.getLastDt());
+    public void fileUnloadPaymentKartExt() throws IOException, WrongParam {
+        registryMng.unloadPaymentFileKartExt(
+                new UnloadPaymentParameter(90, Utl.getFirstDt(), Utl.getLastDt(), null, "123"));
     }
 
     /**

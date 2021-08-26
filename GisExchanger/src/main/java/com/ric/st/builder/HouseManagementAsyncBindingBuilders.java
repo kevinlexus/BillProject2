@@ -16,9 +16,6 @@ public interface HouseManagementAsyncBindingBuilders {
 	void exportDeviceData(Task task) throws CantPrepSoap, WrongGetMethod, DatatypeConfigurationException;
 	void exportDeviceDataAsk(Task task) throws CantPrepSoap, ErrorProcessAnswer, WrongGetMethod, UnusableCode;
 
-	void exportContract(Task task) throws CantPrepSoap, WrongGetMethod;
-	void exportContractAsk(Task task) throws WrongGetMethod, CantPrepSoap, WrongParam, UnusableCode;
-
 	void exportHouseData(Task task) throws CantPrepSoap, WrongGetMethod;
 	void exportHouseDataAsk(Task task) throws CantPrepSoap, WrongGetMethod, WrongParam, UnusableCode;
 	void exportAccountData(Task task) throws CantPrepSoap, WrongGetMethod, CantSendSoap, WrongParam;

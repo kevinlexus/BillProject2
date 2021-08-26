@@ -72,9 +72,15 @@ public class ReqProp implements ReqProps {
         } else {
             eolinkUk = task.getProcUk();
         }
+
         ppGuid = eolinkUk.getGuid();
         if (ppGuid == null) {
-            throw new CantPrepSoap("Не заполнен GUID организации EOLINK.ID=" + eolinkUk.getId());
+            if (eolinkUk.getParent().getGuid() == null) {
+                throw new CantPrepSoap("Не заполнен GUID организации EOLINK.ID=" + eolinkUk.getId());
+            } else {
+                // получить PPGUID у родительской организации (например 112 УК получает у 063 в Кис.) // ред.24.08.21
+                ppGuid = eolinkUk.getParent().getGuid();
+            }
         }
         // IP адрес сервиса STUNNEL, получить или из application.properties - hostIp (Кис, Полыс)
         // или из параметра по УК (ТСЖ Содружество, Свободы)
@@ -222,11 +228,6 @@ public class ReqProp implements ReqProps {
     }
 
     @Override
-    public String getReu() {
-        return reu;
-    }
-
-    @Override
     public String getKul() {
         return kul;
     }
@@ -234,11 +235,6 @@ public class ReqProp implements ReqProps {
     @Override
     public String getNd() {
         return nd;
-    }
-
-    @Override
-    public Eolink getEolinkUk() {
-        return eolinkUk;
     }
 
     @Override

@@ -103,9 +103,13 @@ public class Org implements java.io.Serializable {
 	@JoinColumn(name="USL_FOR_CREATE_EXT_LSK", referencedColumnName="USL", updatable = false) // note убрать после merge с доработаким по пене - updatable = false - чтобы не было Update Foreign key
 	private Usl uslForCreateExtLskKart;
 
-	// формат загрузочного файла внешних лиц.счетов (обычно: 0-Полыс(ЧГК), 1-Кис(ФКП))
+	// формат загрузочного файла внешних лиц.счетов (обычно: 0-ЧГК, 1-ФКП)
 	@Column(name = "EXT_LSK_FORMAT_TP")
 	private Integer extLskFormatTp;
+
+	// Формат файла платежей, для выгрузки (обычно: 0-ЧГК,1-ФКП)
+	@Column(name = "EXT_LSK_PAY_FORMAT_TP")
+	private Integer extLskPayFormatTp;
 
 	// загружать сальдо вн.лиц.счетов, (0-как на начало месяца (ФКР Кис), 1-как за прошлый период (ФКР Полыс.))
 	@Column(name = "EXT_LSK_LOAD_SALDO_TP")

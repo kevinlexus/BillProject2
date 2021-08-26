@@ -5,6 +5,7 @@ import com.dic.bill.dao.OrgDAO;
 import com.dic.bill.dao.PrepErrDAO;
 import com.dic.bill.dao.SprGenItmDAO;
 import com.dic.bill.dto.KwtpMgRec;
+import com.dic.bill.dto.UnloadPaymentParameter;
 import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.NaborMng;
@@ -518,16 +519,16 @@ public class WebController implements CommonConstants {
     }
 
     /**
-     * Выгрузить файл платежей по внешнним лиц.сч.
+     * Выгрузить файл платежей по внешним лиц.сч.
      *
      * @param ordNum - порядковый номер файла за день
      */
-    @RequestMapping(value = "/unloadPaymentFileKartExt/{ordNum}/{strDt1}/{strDt2}", method = RequestMethod.GET)
+    @RequestMapping(value = "/unloadPaymentFileKartExt/{ordNum}/{strDt1}/{strDt2}/{orgId}", method = RequestMethod.GET)
     @ResponseBody
     public String unloadPaymentFileKartExt(@PathVariable String ordNum,
-                                           @PathVariable String strDt1, @PathVariable String strDt2) {
-        log.info("GOT /unloadPaymentFileKartExt/{}/{}/{}", ordNum, strDt1, strDt2);
-        String fileName = "";
+                                           @PathVariable String strDt1, @PathVariable String strDt2,
+                                           @PathVariable Integer orgId) {
+        log.info("GOT /unloadPaymentFileKartExt/{}/{}/{}/{}", ordNum, strDt1, strDt2, orgId);
         if (config.getLock().setLockProc(1, "unloadPaymentFileKartExt")) {
             Date genDt1;
             Date genDt2;
@@ -538,16 +539,11 @@ public class WebController implements CommonConstants {
                 log.error(Utl.getStackTraceString(e));
                 return "ERROR";
             }
-            int cntLoaded = 0;
+            int cntLoaded;
+            UnloadPaymentParameter unloadPaymentParameter;
             try {
-                Org rkc = orgDAO.getByOrgTp("РКЦ");
-                List<Org> lstOrg = orgDAO.findByIsExchangeExt(true);
-                for (Org org : lstOrg) {
-                    fileName = "c:\\temp\\" + rkc.getInn() + "_" + Utl.getStrFromDate(new Date(), "yyyyMMdd")
-                            + "_" + ordNum + ".txt";
-                    cntLoaded = registryMng.unloadPaymentFileKartExt(fileName, org.getReu(), genDt1, genDt2);
-                    break;
-                }
+                unloadPaymentParameter = new UnloadPaymentParameter(orgId, genDt1, genDt2, null, ordNum);
+                cntLoaded = registryMng.unloadPaymentFileKartExt(unloadPaymentParameter);
             } catch (Exception e) {
                 config.getLock().unlockProc(1, "unloadPaymentFileKartExt");
                 log.error(Utl.getStackTraceString(e));
@@ -555,7 +551,7 @@ public class WebController implements CommonConstants {
             }
             config.getLock().unlockProc(1, "unloadPaymentFileKartExt");
             // вернуть кол-во выгружено, путь и имя файла
-            return cntLoaded + "_" + fileName;
+            return cntLoaded + "_" + unloadPaymentParameter.getFileName();
         } else {
             return "PROCESS";
         }
@@ -715,6 +711,14 @@ public class WebController implements CommonConstants {
     public ListMeter getListMeterByKlskId(@PathVariable Long klskId) {
         log.info("GOT /getListMeterByKlskId with klskId={}", klskId);
         return meterMng.getListMeterByKlskId(klskId, config.getCurDt1(), config.getCurDt2());
+    }
+
+    @RequestMapping(value = "/getStatus", method = RequestMethod.GET)
+    @ResponseBody
+    public String getStatus() {
+        // проверка запущен ли java сервер? Выполняется из p_java.gen, oracle
+        log.info("GOT /getStatus");
+        return "READY";
     }
 
 }
