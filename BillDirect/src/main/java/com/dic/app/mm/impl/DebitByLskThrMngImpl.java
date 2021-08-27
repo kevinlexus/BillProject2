@@ -294,6 +294,10 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
             }
         });
 
+        Map<Integer, BigDecimal> mapRoundCurPenya = new HashMap<>();
+        lstPenCurRec.forEach(t->mapRoundCurPenya.merge(t.getMg(), t.getPen(), BigDecimal::add));
+
+
         // формировать C_PENYA:
         Map<Integer, BigDecimal> mapForCpenya = new HashMap<>();
         // вх.сальдо по пене - APENYA
@@ -310,7 +314,9 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         // добавить текущий период, для отображения свернутой переплаты, если имеется
         mapForCpenya.merge(calcStore.getPeriod(), BigDecimal.ZERO, BigDecimal::add);
         // прибавить текущее начисление пени
-        lstPenCurRec.forEach(t -> mapForCpenya.merge(t.getMg(), t.getPen(), BigDecimal::add));
+        //lstPenCurRec.forEach(t -> mapForCpenya.merge(t.getMg(), t.getPen(), BigDecimal::add));
+        mapRoundCurPenya.forEach((k, v) -> mapForCpenya.merge(k, v.setScale(2, RoundingMode.HALF_UP), BigDecimal::add)); // ред.27.08.21 добавил округление, почему то не было...
+        //kart.getPenCur().forEach(t -> mapForCpenya.merge(Integer.parseInt(t.getMg1()), t.getPenya(), BigDecimal::add));
         // добавить недостающие периоды из долгов на последний день (периоды, а не суммы, чтобы потом сохранились в C_PENYA)
         mapDebLastDay.forEach((k, v) -> mapForCpenya.merge(k, BigDecimal.ZERO, BigDecimal::add));
 
