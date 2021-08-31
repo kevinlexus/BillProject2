@@ -298,7 +298,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         lstPenCurRec.forEach(t->mapRoundCurPenya.merge(t.getMg(), t.getPen(), BigDecimal::add));
 
 
-        // формировать C_PENYA:
+        // формировать c_penya:
         Map<Integer, BigDecimal> mapForCpenya = new HashMap<>();
         // вх.сальдо по пене - APENYA
         apenyaDAO.getByLsk(kart.getLsk(), String.valueOf(calcStore.getPeriodBack()))

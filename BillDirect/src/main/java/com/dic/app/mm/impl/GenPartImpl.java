@@ -268,7 +268,11 @@ public class GenPartImpl implements GenPart {
 
                         dayVol = tempVol;
                     }
-                } else if (Utl.in(fkCalcTp, 53)) {
+                } else if (Utl.in(fkCalcTp, 53) &&
+                        (!Utl.nvl(kartMain.getIsKran1(), false) ||
+                                isMeterExist || Utl.between(curDt, sprParamMng.getD1("MONTH_HEAT1"),// кран из системы отопления (не счетчик) -
+                                sprParamMng.getD1("MONTH_HEAT2")) // начислять только в отопительный период
+                        )) {
                     // Компонент на тепл энерг. для Г.В.
                     // получить объем по нормативу в доле на 1 день
                     // получить соцнорму
