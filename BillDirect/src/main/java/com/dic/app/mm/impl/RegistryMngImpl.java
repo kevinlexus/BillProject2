@@ -658,7 +658,7 @@ public class RegistryMngImpl implements RegistryMng {
                 try (BufferedWriter writer = Files.newBufferedWriter(path, Charset.forName("windows-1251"))) {
                     for (KartExtPaymentRec2 rec : payment) {
                         writer.write(Utl.getStrFromDate(rec.getDt(), "dd-MM-yyyy") + "|" +
-                                rec.getExtLsk() + "|" + rec.getFiasKw() + "|" + "|" + rec.getSumma().toString()
+                                rec.getExtLsk() + "|" + rec.getFiasKw() + "|" + "|" + rec.getSumma().toString()+ "|"
                                 + Utl.getStrFromDate(rec.getDt(), "MMyyyy") + "|" + "|" + rec.getAdr() + "|||"
                                 + rec.getRsch() + "\r\n");
                         amount = amount.add(rec.getSumma());
