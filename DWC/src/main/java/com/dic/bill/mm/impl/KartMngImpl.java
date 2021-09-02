@@ -177,7 +177,7 @@ public class KartMngImpl implements KartMng {
         List<Nabors> lst;
         if (period.equals(curPeriod)) {
             lst = kart.getNabor().stream().map(t -> (Nabors) t)
-                    .filter(t -> t.isValid(false) && t.getUsl().isMain() &&
+                    .filter(t -> t.isActive(false) && t.getUsl().isMain() &&
                             (var == 0 && t.getUsl().getNameShort() != null ||
                                     var == 1 && t.getUsl().getNm2() != null ||
                                     var == 2 && t.getUsl().getId() != null)
@@ -188,7 +188,7 @@ public class KartMngImpl implements KartMng {
                     .filter(t -> Utl.between(Integer.parseInt(period),
                             t.getMgFrom(), t.getMgTo()))
                     .map(t -> (Nabors) t)
-                    .filter(t -> t.isValid(false) && t.getUsl().isMain() &&
+                    .filter(t -> t.isActive(false) && t.getUsl().isMain() &&
                             (var == 0 && t.getUsl().getNameShort() != null ||
                                     var == 1 && t.getUsl().getNm2() != null ||
                                     var == 2 && t.getUsl().getId() != null)
@@ -313,7 +313,7 @@ public class KartMngImpl implements KartMng {
     @Override
     public boolean getIsRenter(Kart kart) {
         return kart.getNabor().stream()
-                .anyMatch(t -> t.isValid(true) && t.getUsl().isMain()
+                .anyMatch(t -> t.isActive(true) && t.getUsl().isMain()
                         && t.getUsl().getCd().equals("найм"));
     }
 

@@ -34,7 +34,7 @@ public class BaseNabor implements Nabors {
      *
      * @param isForVol true - для расчета объемов, false - для записи в c_charge начисления
      */
-    public boolean isValid(boolean isForVol) {
+    public boolean isActive(boolean isForVol) {
         BigDecimal bdKoeff = Utl.nvl(this.getKoeff(), BigDecimal.ZERO);
         BigDecimal bdNorm = Utl.nvl(this.getNorm(), BigDecimal.ZERO);
         if (this.getUsl().getFkCalcTp() != null && this.getUsl().getFkCalcTp().equals(14)) {

@@ -203,7 +203,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                 .filter(c -> c.getTp().equals(4) && lstSelUsl.size() == 0)
                 .filter(c -> c.getKart().getNabor().stream()
                         .anyMatch(n -> n.getUsl().equals(c.getUsl().getUslChild())
-                                && n.isValid(true))) // только по действительным услугам ОДН
+                                && n.isActive(true))) // только по действительным услугам ОДН
                 .collect(Collectors.toList());
 
         // распределить экономию

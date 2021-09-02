@@ -35,7 +35,7 @@ public class NaborMngImpl implements NaborMng {
         // перебрать все действующие лиц счета по фин.лиц.счету, получить все наборы услуг, отсортировать по порядку расчета начисления
         return ko.getKart().stream().filter(Kart::isActual) // только действующие
                 .flatMap(k -> k.getNabor().stream())
-                .filter(t -> t.isValid(true) && t.getUsl().isMain())
+                .filter(t -> t.isActive(true) && t.getUsl().isMain())
                 .sorted((Comparator.comparing(o -> o.getUsl().getUslOrder())))
                 .collect(Collectors.toList());
     }

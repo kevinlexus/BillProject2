@@ -76,25 +76,13 @@ public class GenPartImpl implements GenPart {
             throws ErrorWhileChrg, WrongParam {
 
         CalcStore calcStore = reqConf.getCalcStore();
-        //boolean isExistsMeterColdWater = false;
-        //boolean isExistsMeterHotWater = false;
-        //BigDecimal volColdWater = BigDecimal.ZERO;
-        //BigDecimal volHotWater = BigDecimal.ZERO;
-
         // объем по услуге, за рассчитанный день
-
         Map<String, UslPriceVolKart> mapUslPriceVol = new HashMap<>(30);
 
         for (Nabor nabor : lstNabor) {
             // получить основной лиц счет по связи klsk помещения
             Kart kartMainByKlsk = em.getReference(Kart.class, kartMng.getKartMainLsk(nabor.getKart()));
 
-/*
-            if (reqConf.getTp()==0 && nabor.getKart().getLsk().equals("15042021")) {
-                log.error("CHECKERR!");
-                throw new RuntimeException("CHECKERR!");
-            } ss
-*/
             //log.trace("Основной лиц.счет lsk={}", kartMainByKlsk.getLsk());
             if (nabor.getUsl().isMain() && (lstSelUsl.size() == 0 || lstSelUsl.contains(nabor.getUsl()))
                     && (part == 1 && !Utl.in(nabor.getUsl().getFkCalcTp(), 47, 19) ||
@@ -117,7 +105,7 @@ public class GenPartImpl implements GenPart {
                         nabor.getUsl().getMeterUslVol() : nabor.getUsl();
                 // ввод
                 final Vvod vvod = nabor.getVvod();
-                final boolean isForChrg = nabor.isValid(false);
+                final boolean isForChrg = nabor.isActive(false);
                 // признаки 0 зарег. и наличия счетчика от связанной услуги
                 Boolean isLinkedEmpty = null;
                 Boolean isLinkedExistMeter = null;
@@ -137,17 +125,6 @@ public class GenPartImpl implements GenPart {
                     // дополнит.счета Капрем., РСО
                     // получить родительский лиц.счет, если указан явно
                     kartMain = kartMainByKlsk;
-                    // ред. 18.04.19 по просьбе КИС: Алена. Вылезло еще кое что. Посмотрите? 82005413 по услуге 015
-                    // стоят кубы по привязки с л.сч.86019516 16,85(на 5 человек), а должны считаться
-                    // как на 1 собств. в этой карточке 3,37.
-/*
-                    if (nabor.getKart().getParentKart() != null) {
-                        kartMain = nabor.getKart().getParentKart();
-                        //kartMain = kartMainByKlsk;
-                    } else {
-                        kartMain = kartMainByKlsk;
-                    }
-*/
                 } else {
                     // основные лиц.счета - взять текущий лиц.счет
                     kartMain = nabor.getKart();
@@ -155,16 +132,6 @@ public class GenPartImpl implements GenPart {
                 // получить цены по услуге по лицевому счету из набора услуг!
                 final DetailUslPrice detailUslPrice = naborMng.getDetailUslPrice(kartMain, nabor);
 
-/*
-                for (Kart kart : ko.getKart()) {
-                    for (KartPr kartPr : kart.getKartPr()) {
-                        kartPr.getStatePr().size();
-                        for (StatePr statePr : kartPr.getStatePr()) {
-                            log.info(statePr.getStatusPr().getTp().getCd());
-                        }
-                    }
-                }
-*/
                 // наличие счетчика
                 boolean isMeterExist = false;
                 if (nabor.getUsl().isCounterCalc()) {
