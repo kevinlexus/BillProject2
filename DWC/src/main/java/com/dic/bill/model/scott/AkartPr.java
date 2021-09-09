@@ -227,6 +227,14 @@ public class AkartPr implements java.io.Serializable, Compress {
     @Column(name = "dok_snils")
     private String dokSnils;
 
+    // документ о смерти: Серия'
+    @Column(name = "dok_death_c")
+    private String dokDeathC;
+
+    // документ о смерти: Номер
+    @Column(name = "dok_death_n")
+    private String dokDeathN;
+
     // использовать информацию для привязки к разделенному лиц.счету (1-да, 0-нет)
     @Column(name = "use_gis_divide_els")
     private Integer useGisDivideEls;
@@ -288,6 +296,8 @@ public class AkartPr implements java.io.Serializable, Compress {
         if (fkDebOrg != null ? !fkDebOrg.equals(akartPr.fkDebOrg) : akartPr.fkDebOrg != null) return false;
         if (privProc != null ? !privProc.equals(akartPr.privProc) : akartPr.privProc != null) return false;
         if (dokSnils != null ? !dokSnils.equals(akartPr.dokSnils) : akartPr.dokSnils != null) return false;
+        if (dokDeathC != null ? !dokDeathC.equals(akartPr.dokDeathC) : akartPr.dokDeathC != null) return false;
+        if (dokDeathN != null ? !dokDeathN.equals(akartPr.dokDeathN) : akartPr.dokDeathN != null) return false;
         return useGisDivideEls != null ? useGisDivideEls.equals(akartPr.useGisDivideEls) : akartPr.useGisDivideEls == null;
 
     }
