@@ -622,7 +622,6 @@ public class RegistryMngImpl implements RegistryMng {
         }
         String period = Utl.getPeriodFromDate(unloadPaymentParameter.getGenDt1());
         int cntLoaded = 0;
-        String filePath;
         if (org.getExtLskFormatTp().equals(0)) {
             Org rkc = orgDAO.getByOrgTp("РКЦ");
             unloadPaymentParameter.setFileName("c:\\temp\\"+rkc.getInn() + "_" + Utl.getStrFromDate(new Date(), "yyyyMMdd")
@@ -633,7 +632,9 @@ public class RegistryMngImpl implements RegistryMng {
                     unloadPaymentParameter.getOrgId(), unloadPaymentParameter.getGenDt1(), unloadPaymentParameter.getGenDt2());
 
             // ЧГК
-            List<KartExtPaymentRec> payment = akwtpDAO.getPaymentByPeriodUsingKlskId(period, unloadPaymentParameter.getOrgId());
+            List<KartExtPaymentRec> payment = akwtpDAO.getPaymentByPeriodUsingKlskId(
+                    unloadPaymentParameter.getGenDt1(), unloadPaymentParameter.getGenDt2(),
+                    unloadPaymentParameter.getOrgId());
             BigDecimal amount = BigDecimal.ZERO;
             if (payment.size() > 0) {
                 try (BufferedWriter writer = Files.newBufferedWriter(path, Charset.forName("windows-1251"))) {
@@ -649,7 +650,9 @@ public class RegistryMngImpl implements RegistryMng {
             }
         } else if (org.getExtLskFormatTp().equals(1)) {
             // ФКР (только Полыс.)
-            List<KartExtPaymentRec2> payment = akwtpDAO.getPaymentByPeriodUsingLsk(period, unloadPaymentParameter.getOrgId());
+            List<KartExtPaymentRec2> payment = akwtpDAO.getPaymentByPeriodUsingLsk(
+                    unloadPaymentParameter.getGenDt1(), unloadPaymentParameter.getGenDt2(),
+                    unloadPaymentParameter.getOrgId());
             BigDecimal amount = BigDecimal.ZERO;
             if (payment.size() > 0) {
                 unloadPaymentParameter.setFileName("c:\\temp\\"+ Utl.getStrFromDate(new Date(), "ddMMyy")

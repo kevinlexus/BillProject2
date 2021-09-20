@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Date;
 import java.util.List;
 
 
@@ -31,13 +32,13 @@ public interface AkwtpDAO extends JpaRepository<Akwtp, Integer> {
             "left join scott.kart_ext e on e.fk_klsk_premise=k.fk_klsk_premise\n" +
             "left join scott.kart_ext e2 on e2.fk_klsk_id=k.k_lsk_id\n" +
             "and exists (select * from scott.kart_ext e where e.fk_klsk_premise=k.fk_klsk_premise or e.fk_klsk_id=k.k_lsk_id)\n" +
-            "where t.mg=:period\n" +
+            "where t.dtek between :dt1 and :dt2 and t.mg = to_char(:dt1, 'YYYYMM')\n" +
             "and t.org=:orgId\n" +
             "and t.summa is not null\n" +
             "and t.priznak = 1\n" +
             "and coalesce(e.ext_lsk, e2.ext_lsk) is not null\n" +
             "order by coalesce(e.ext_lsk, e2.ext_lsk) ", nativeQuery = true)
-    List<KartExtPaymentRec> getPaymentByPeriodUsingKlskId(@Param("period") String period, @Param("orgId") Integer orgId);
+    List<KartExtPaymentRec> getPaymentByPeriodUsingKlskId(@Param("dt1") Date dt1, @Param("dt2") Date dt2, @Param("orgId") Integer orgId);
 
     /**
      * Получить платежи по внешним лиц.счетам, используя lsk (для ФКР)
@@ -52,10 +53,11 @@ public interface AkwtpDAO extends JpaRepository<Akwtp, Integer> {
             "                        join scott.t_org_tp tp2 on tp2.cd='Город'\n" +
             "                        join scott.t_org o2 on o2.fk_orgtp=tp2.id\n" +
             "                        where exists (select * from scott.kart_ext e where e.lsk=k.lsk)\n" +
-            "                        and t.mg=:period\n" +
+            "                        and t.dtek between :dt1 and :dt2\n" +
+            "                        and t.mg = to_char(:dt1, 'YYYYMM')\n" +
             "                        and e.fk_uk=:orgId\n" +
             "                        order by e.ext_lsk", nativeQuery = true)
-    List<KartExtPaymentRec2> getPaymentByPeriodUsingLsk(@Param("period") String period, @Param("orgId") Integer orgId);
+    List<KartExtPaymentRec2> getPaymentByPeriodUsingLsk(@Param("dt1") Date dt1, @Param("dt2") Date dt2, @Param("orgId") Integer orgId);
 
     /**
      * Получить платежи по внешним лиц.счетам, используя LSK и наборы услуг
