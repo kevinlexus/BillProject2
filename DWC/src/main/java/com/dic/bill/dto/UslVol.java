@@ -1,5 +1,6 @@
 package com.dic.bill.dto;
 
+import com.dic.bill.model.scott.Org;
 import com.dic.bill.model.scott.Usl;
 import com.ric.cmn.DistributableBigDecimal;
 import lombok.Getter;
@@ -15,6 +16,9 @@ public class UslVol implements DistributableBigDecimal {
 
     // услуга основная (например х.в.)
     Usl usl;
+
+    // организация
+    Org org;
 
     // объем, округленный до 5 знаков
     BigDecimal vol = BigDecimal.ZERO;

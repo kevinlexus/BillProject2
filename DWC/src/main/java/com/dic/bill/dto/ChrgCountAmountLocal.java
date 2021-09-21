@@ -435,24 +435,27 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
     public void groupUslVolChrg() {
         for (UslPriceVolKartDt u : getLstUslPriceVolKartDt()) {
             Usl uslFact;
+            Org orgFact;
             BigDecimal priceFact;
             //if (u.vol.compareTo(BigDecimal.ZERO) != 0) { //note  ред. 05.04.19 закомментировал - Кис. попросили делать пустую строку, даже если нет объема, для статы
             // прочие услуги
             if (!u.isEmpty) {
                 // есть проживающие
                 uslFact = u.usl;
+                orgFact = u.org;
                 priceFact = u.price;
             } else {
                 // нет проживающих
                 uslFact = u.uslEmpt;
+                orgFact = u.org;
                 priceFact = u.priceEmpty;
             }
-            addUslVolChrg(u, uslFact, u.vol, u.area, priceFact, false);
+            addUslVolChrg(u, uslFact, orgFact, u.vol, u.area, priceFact, false);
             //}
 
             // свыше соц.нормы
             if (u.volOverSoc.compareTo(BigDecimal.ZERO) != 0) {
-                addUslVolChrg(u, u.uslOverSoc,
+                addUslVolChrg(u, u.uslOverSoc, u.org,
                         u.volOverSoc, u.areaOverSoc, u.priceOverSoc, true);
             }
         }
@@ -467,10 +470,10 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
      * @param area      - площадь
      * @param isOverSoc
      */
-    private void addUslVolChrg(UslPriceVolKartDt u, Usl uslFact,
-                               BigDecimal vol, BigDecimal area, BigDecimal price, boolean isOverSoc) {
+    private void addUslVolChrg(UslPriceVolKartDt u, Usl uslFact, Org orgFact,
+            BigDecimal vol, BigDecimal area, BigDecimal price, boolean isOverSoc) {
         UslVolCharge prev = getLstUslVolCharge().stream()
-                .filter(t -> t.kart.equals(u.kart) && t.usl.equals(uslFact)
+                .filter(t -> t.kart.equals(u.kart) && t.usl.equals(uslFact) && t.org.equals(orgFact)
                         && t.isMeter == u.isMeter) // price пока не контролирую, в этой версии должна быть постоянна на протяжении месяца
                 .findFirst().orElse(null);
         if (prev != null) {
@@ -488,6 +491,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
             UslVolCharge uslVolCharge = new UslVolCharge();
             uslVolCharge.kart = u.kart;
             uslVolCharge.usl = uslFact;
+            uslVolCharge.org = orgFact;
             uslVolCharge.isMeter = u.isMeter;
             uslVolCharge.vol = vol;
             uslVolCharge.price = price;

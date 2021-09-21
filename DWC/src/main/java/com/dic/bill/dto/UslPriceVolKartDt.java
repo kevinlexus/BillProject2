@@ -3,9 +3,7 @@ package com.dic.bill.dto;
 import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.Org;
 import com.dic.bill.model.scott.Usl;
-import com.ric.cmn.Utl;
 
-import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -24,5 +22,8 @@ public class UslPriceVolKartDt extends UslPriceVolKartBase {
     }
     public Usl getUsl() {
         return this.usl;
+    }
+    public Org getOrg() {
+        return this.org;
     }
 }

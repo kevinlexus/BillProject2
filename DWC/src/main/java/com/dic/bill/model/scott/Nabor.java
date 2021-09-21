@@ -6,6 +6,7 @@ import org.hibernate.annotations.DynamicUpdate;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * Наборов услуг по организациям в лицевом счете
@@ -51,6 +52,14 @@ public class Nabor extends BaseNabor implements java.io.Serializable {
     // лимит объема по услуге (Используется при начислении по ОДН)
     @Column(name = "LIMIT")
     private BigDecimal limit;
+
+    // дата начала работы
+    @Column(name = "DT1", updatable = false)
+    private Date dt1;
+
+    // дата окончания работы
+    @Column(name = "DT2", updatable = false)
+    private Date dt2;
 
     @Override
     public boolean equals(Object o) {

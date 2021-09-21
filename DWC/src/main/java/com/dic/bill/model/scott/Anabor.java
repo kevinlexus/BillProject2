@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.Date;
 
 /**
  * Архив наборов услуг по периодам
@@ -78,6 +79,14 @@ public class Anabor extends BaseNabor implements Compress {
 
 	@Column(name = "nrm_kpr2", updatable = false, nullable = false)
 	private Double nrmKpr2;
+
+	// дата начала работы
+	@Column(name = "DT1", updatable = false)
+	private Date dt1;
+
+	// дата окончания работы
+	@Column(name = "DT2", updatable = false)
+	private Date dt2;
 
 	@Override
 	public boolean equals(Object o) {

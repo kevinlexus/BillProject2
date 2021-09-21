@@ -6,6 +6,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
+import java.util.Date;
 
 @MappedSuperclass
 @Getter @Setter
@@ -27,6 +28,13 @@ public class BaseNabor implements Nabors {
     @JoinColumn(name = "ORG", referencedColumnName = "ID", updatable = false, nullable = false)
     private Org org;
 
+    // дата начала работы
+    @Column(name = "DT1", updatable = false)
+    private Date dt1;
+
+    // дата окончания работы
+    @Column(name = "DT2", updatable = false)
+    private Date dt2;
 
 
     /**

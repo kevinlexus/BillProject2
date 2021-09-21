@@ -36,6 +36,11 @@ public class Charge implements java.io.Serializable  {
 	@JoinColumn(name="USL", referencedColumnName="USl", nullable = false)
 	private Usl usl;
 
+	// организация - поставщик услуги
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "ORG", referencedColumnName = "ID", nullable = false)
+	private Org org;
+
 	// № п.п.
 	@Column(name = "NPP")
 	private Integer npp;

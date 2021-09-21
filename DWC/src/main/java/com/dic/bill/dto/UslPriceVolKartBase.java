@@ -19,7 +19,6 @@ abstract class UslPriceVolKartBase extends UslVolKart {
 
     // организация
     Org org;
-
     // услуга свыше соц.нормы
     Usl uslOverSoc;
     // услуга по 0 зарег.

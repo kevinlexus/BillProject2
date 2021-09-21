@@ -32,9 +32,15 @@ public class Acharge implements java.io.Serializable, Compress {
 	@JoinColumn(name="LSK", referencedColumnName="LSK")
 	private Kart kart;
 
-	// код.услуги
-	@Column(name = "usl", updatable = false, nullable = false)
-	private String usl;
+	// услуга
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "USL", referencedColumnName = "USl", updatable = false, nullable = false)
+	private Usl usl;
+
+	// организация - поставщик услуги
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "ORG", referencedColumnName = "ID", nullable = false)
+	private Org org;
 
 	// сумма начисления
 	@Column(name = "summa", updatable = false, nullable = true)
