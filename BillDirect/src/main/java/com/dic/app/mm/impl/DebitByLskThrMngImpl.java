@@ -24,6 +24,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -126,10 +128,11 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         Map<Integer, BigDecimal> mapDebLastDay = new LinkedHashMap<>();
 
         // перебрать все дни с начала месяца по дату расчета, включительно
-        Calendar c = Calendar.getInstance();
-        for (c.setTime(dt1); !c.getTime().after(dt2); c.add(Calendar.DATE, 1)) {
-            Date dt = c.getTime();
-
+        for (LocalDate date = LocalDate.ofInstant(dt1.toInstant(), ZoneId.systemDefault());
+             date.isBefore(LocalDate.ofInstant(dt2.toInstant(), ZoneId.systemDefault()).plusDays(1));
+             date = date.plusDays(1))
+        {
+            Date dt = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
             // восстановить неизменную часть
             mapDebCurrentDay =
                     mapDebPart1.entrySet().stream().collect(toMap(

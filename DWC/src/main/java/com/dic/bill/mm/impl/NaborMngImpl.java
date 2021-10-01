@@ -25,17 +25,18 @@ public class NaborMngImpl implements NaborMng {
     PriceMng priceMng;
 
     /**
-     * Получить действующий набор услуг по данной дате, по фин.лиц.счету
+     * Перебрать все действующие лиц счета по фин.лиц.счету, получить все наборы услуг, отсортировать по порядку расчета начисления
      *
      * @param ko    - фин.лиц.счет
-     * @param curDt - текущая дата (на будущее, для вкл./выкл. услуги в течении месяца)
+     * @param curDt - текущая дата
      */
     @Override
     public List<Nabor> getActualNabor(Ko ko, Date curDt) {
-        // перебрать все действующие лиц счета по фин.лиц.счету, получить все наборы услуг, отсортировать по порядку расчета начисления
         return ko.getKart().stream().filter(Kart::isActual) // только действующие
                 .flatMap(k -> k.getNabor().stream())
-                .filter(t -> t.isActive(true) && t.getUsl().isMain())
+                .filter(t -> t.isActive(true) && t.getUsl().isMain()
+                        && (curDt==null || Utl.between(curDt, t.getDt1(), t.getDt2()))
+                )
                 .sorted((Comparator.comparing(o -> o.getUsl().getUslOrder())))
                 .collect(Collectors.toList());
     }

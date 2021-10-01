@@ -474,7 +474,8 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
             BigDecimal vol, BigDecimal area, BigDecimal price, boolean isOverSoc) {
         UslVolCharge prev = getLstUslVolCharge().stream()
                 .filter(t -> t.kart.equals(u.kart) && t.usl.equals(uslFact) && t.org.equals(orgFact)
-                        && t.isMeter == u.isMeter) // price пока не контролирую, в этой версии должна быть постоянна на протяжении месяца
+                        && t.price.equals(price)
+                        && t.isMeter == u.isMeter)
                 .findFirst().orElse(null);
         if (prev != null) {
             // найдена запись с данным ключом
@@ -523,40 +524,42 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
         }
         log.trace("Сохранено в C_CHARGE:");
         int i = 0; // № п.п.
-        for (UslVolCharge u : getLstUslVolCharge()) {
-            if (u.kart.getKartExt() != null && u.kart.getKartExt().size() > 0) {
+        for (UslVolCharge uslVolCharge : getLstUslVolCharge()) {
+            if (uslVolCharge.kart.getKartExt() != null && uslVolCharge.kart.getKartExt().size() > 0) {
                 // внешние лиц.счета, получить сумму начисления из внешнего источника
-                for (KartExt kartExt : u.kart.getKartExt()) {
+                for (KartExt kartExt : uslVolCharge.kart.getKartExt()) {
                     if (kartExt.isActual()) {
-                        BigDecimal area = u.area.setScale(2, BigDecimal.ROUND_HALF_UP);
+                        BigDecimal area = uslVolCharge.area.setScale(2, BigDecimal.ROUND_HALF_UP);
                         BigDecimal summa = kartExt.getChrg();
 
                         // тип 1
-                        addCharge(i, u, area, summa);
+                        addCharge(i, uslVolCharge, area, summa);
                         // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
                         //addCharge(i, 0, u, area, summa);
 
                         i++;
-                        log.trace("lsk={}, usl={}, testOpl={}, opl={}, testCena={}, isSch={}, summa={}",
-                                u.kart.getLsk(), u.usl.getId(), u.vol, area, u.price, u.isMeter, summa);
+                        log.trace("lsk={}, usl={}, org={}, testOpl={}, opl={}, testCena={}, isSch={}, summa={}",
+                                uslVolCharge.kart.getLsk(), uslVolCharge.usl.getId(), uslVolCharge.org.getId(),
+                                uslVolCharge.vol, area, uslVolCharge.price, uslVolCharge.isMeter, summa);
                         break;
                     }
                 }
-            } else if (u.getUsl().getFkCalcTp() == null || u.getUsl().getFkCalcTp() != null
-                    && !u.getUsl().getFkCalcTp().equals(34)) {
-                BigDecimal area = u.area.setScale(2, BigDecimal.ROUND_HALF_UP);
+            } else if (uslVolCharge.getUsl().getFkCalcTp() == null || uslVolCharge.getUsl().getFkCalcTp() != null
+                    && !uslVolCharge.getUsl().getFkCalcTp().equals(34)) {
+                BigDecimal area = uslVolCharge.area.setScale(2, BigDecimal.ROUND_HALF_UP);
                 BigDecimal summa = BigDecimal.ZERO;
-                if (!u.getUsl().getIsHideChrg()) {
-                    summa = u.vol.multiply(u.price).setScale(2, BigDecimal.ROUND_HALF_UP);
+                if (!uslVolCharge.getUsl().getIsHideChrg()) {
+                    summa = uslVolCharge.vol.multiply(uslVolCharge.price).setScale(2, BigDecimal.ROUND_HALF_UP);
                 }
                 // тип 1
-                addCharge(i, u, area, summa);
+                addCharge(i, uslVolCharge, area, summa);
                 // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
                 //addCharge(i, 0, u, area, summa);
 
                 i++;
-                log.trace("lsk={}, usl={}, testOpl={}, opl={}, testCena={}, isSch={}, summa={}",
-                        u.kart.getLsk(), u.usl.getId(), u.vol, area, u.price, u.isMeter, summa);
+                log.trace("lsk={}, usl={}, org={}, testOpl={}, opl={}, testCena={}, isSch={}, summa={}",
+                        uslVolCharge.kart.getLsk(), uslVolCharge.usl.getId(), uslVolCharge.org.getId(),
+                        uslVolCharge.vol, area, uslVolCharge.price, uslVolCharge.isMeter, summa);
             }
         }
 
@@ -712,6 +715,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
         charge.setNpp(npp);
         charge.setType(1);
         charge.setUsl(u.usl);
+        charge.setOrg(u.org);
         charge.setKart(u.kart);
         charge.setTestOpl(u.vol);
         charge.setOpl(area);

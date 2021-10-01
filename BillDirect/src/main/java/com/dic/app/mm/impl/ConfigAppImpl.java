@@ -77,14 +77,15 @@ public class ConfigAppImpl implements ConfigApp {
     private void setUp() {
         log.info("");
         log.info("-----------------------------------------------------------------");
-        log.info("Версия модуля - {}", "1.1.4");
+        log.info("Версия модуля - {}", "1.2.0");
 
         reloadSprPen();
         reloadParam();
         log.info("-----------------------------------------------------------------");
         log.info("");
 
-        TimeZone.setDefault(TimeZone.getTimeZone("GMT+7"));
+        //TimeZone.setDefault(TimeZone.getTimeZone("GMT+7"));
+        //log.info("************** Установлена TIMEZONE");
         // блокировщик процессов
         setLock(new Lock());
     }
@@ -103,50 +104,7 @@ public class ConfigAppImpl implements ConfigApp {
      * }
      * }
      */
-    // Получить Calendar текущего периода
-/*
-    private List<Calendar> getCalendarCurrentPeriod() {
-        List<Calendar> calendarLst = new ArrayList<>();
 
-        Param param = em.find(Param.class, 1);
-        if (param == null) {
-            log.error("ВНИМАНИЕ! Установить SCOTT.PARAMS.ID=1");
-        }
-
-        Calendar calFirstDt, calLastDt, calMiddleDt;
-        calFirstDt = new GregorianCalendar();
-        calFirstDt.clear(Calendar.ZONE_OFFSET);
-
-        calLastDt = new GregorianCalendar();
-        calLastDt.clear(Calendar.ZONE_OFFSET);
-
-        calMiddleDt = new GregorianCalendar();
-        calMiddleDt.clear(Calendar.ZONE_OFFSET);
-
-        // получить даты начала и окончания периода
-        assert param != null;
-        Date dt;
-        try {
-            dt = Utl.getDateFromPeriod(param.getPeriod().concat("01"));
-        } catch (ParseException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Ошибка преобразования даты");
-        }
-        Date dt1 = Utl.getFirstDate(dt);
-        Date dt2 = Utl.getLastDate(dt1);
-
-        calFirstDt.setTime(dt1);
-        calendarLst.add(calFirstDt);
-
-        calLastDt.setTime(dt2);
-        calendarLst.add(calLastDt);
-
-        calMiddleDt.set(calFirstDt.get(Calendar.YEAR), calFirstDt.get(Calendar.MONTH), 15);
-        calendarLst.add(calMiddleDt);
-
-        return calendarLst;
-    }
-*/
     @Override
     public String getPeriod() {
         return Utl.getPeriodFromDate(mapDate.get("dtFirst"));

@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -109,14 +111,8 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             List<UslMeterDateVol> lstDayMeterVol = meterMng.getPartDayMeterVol(lstMeterVol,
                     calcStore);
 
-            Calendar c = Calendar.getInstance();
-
-            // получить действующие, отсортированные услуги по помещению (по всем счетам)
-            // перенести данный метод внутрь genVolPart, после того как будет реализованна архитектурная возможность
-            // отключать услугу в течении месяца
-            List<Nabor> lstNabor = naborMng.getActualNabor(ko, null);
-
             // очистить информационные строки по льготам
+            List<Nabor> lstNabor = naborMng.getActualNabor(ko, null);
             lstNabor.stream().map(Nabor::getKart).distinct().forEach(t ->
                     t.getChargePrep().removeIf(chargePrep -> chargePrep.getTp().equals(9)));
 
@@ -126,10 +122,13 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             // цикл по дням месяца
             int part = 1;
             log.trace("Расчет объемов услуг, до учёта экономии ОДН");
-            for (c.setTime(calcStore.getCurDt1()); !c.getTime()
-                    .after(calcStore.getCurDt2()); c.add(Calendar.DATE, 1)) {
+            for (LocalDate date = LocalDate.ofInstant(calcStore.getCurDt1().toInstant(), ZoneId.systemDefault());
+                 date.isBefore(LocalDate.ofInstant(calcStore.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
+                 date = date.plusDays(1))
+            {
                 genPart.genVolPart(chrgCountAmountLocal, reqConf, parVarCntKpr,
-                        parCapCalcKprTp, ko, lstMeterVol, lstSelUsl, lstDayMeterVol, c.getTime(), part, lstNabor);
+                        parCapCalcKprTp, ko, lstMeterVol, lstSelUsl, lstDayMeterVol,
+                        Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant()), part);
             }
 
             // кроме распределения объемов (там нечего еще считать, нет экономии ОДН
@@ -142,11 +141,16 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                 // цикл по дням месяца (например calcTp=47 - Тепл.энергия для нагрева ХВС или calcTp=19 - Водоотведение)
                 part = 2;
                 log.trace("Расчет объемов услуг, после учёта экономии ОДН");
-                for (c.setTime(calcStore.getCurDt1()); !c.getTime()
-                        .after(calcStore.getCurDt2()); c.add(Calendar.DATE, 1)) {
+
+                for (LocalDate date = LocalDate.ofInstant(calcStore.getCurDt1().toInstant(), ZoneId.systemDefault());
+                     date.isBefore(LocalDate.ofInstant(calcStore.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
+                     date = date.plusDays(1))
+                {
                     genPart.genVolPart(chrgCountAmountLocal, reqConf, parVarCntKpr,
-                            parCapCalcKprTp, ko, lstMeterVol, lstSelUsl, lstDayMeterVol, c.getTime(), part, lstNabor);
+                            parCapCalcKprTp, ko, lstMeterVol, lstSelUsl, lstDayMeterVol,
+                            Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant()), part);
                 }
+
             }
 
             // 4. Округлить объемы

@@ -294,9 +294,6 @@ public class RequestConfigDirect implements Cloneable {
      */
     private CalcStore buildCalcStore(Date genDt, int tp, CalcScope calcScope) {
         ConfigApp config = SpringContext.getBean(ConfigApp.class);
-        SprPenDAO sprPenDAO = SpringContext.getBean(SprPenDAO.class);
-        StavrDAO stavrDAO = SpringContext.getBean(StavrDAO.class);
-        ChargePayDAO chargePayDAO = SpringContext.getBean(ChargePayDAO.class);
         CalcStore calcStore = new CalcStore();
         // дата начала периода
         calcStore.setCurDt1(config.getCurDt1());

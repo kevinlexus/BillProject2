@@ -64,7 +64,6 @@ public class GenPartImpl implements GenPart {
      * @param lstDayMeterVol       - хранилище объемов по счетчикам
      * @param curDt                - дата расчета
      * @param part                 - группа расчета (услуги рассчитываемые до(1) /после(2) рассчета ОДН
-     * @param lstNabor             - список действующих услуг
      * @throws ErrorWhileChrg - ошибка во время расчета
      */
     @Override
@@ -72,9 +71,10 @@ public class GenPartImpl implements GenPart {
     public void genVolPart(ChrgCountAmountLocal chrgCountAmountLocal,
                            RequestConfigDirect reqConf, int parVarCntKpr,
                            int parCapCalcKprTp, Ko ko, List<SumMeterVol> lstMeterVol, List<Usl> lstSelUsl,
-                           List<UslMeterDateVol> lstDayMeterVol, Date curDt, int part, List<Nabor> lstNabor)
+                           List<UslMeterDateVol> lstDayMeterVol, Date curDt, int part)
             throws ErrorWhileChrg, WrongParam {
 
+        List<Nabor> lstNabor = naborMng.getActualNabor(ko, curDt);
         CalcStore calcStore = reqConf.getCalcStore();
         // объем по услуге, за рассчитанный день
         Map<String, UslPriceVolKart> mapUslPriceVol = new HashMap<>(30);
@@ -386,7 +386,7 @@ public class GenPartImpl implements GenPart {
                         if (isMeterExist) {
                             // получить объем по счетчику в пропорции на 1 день его работы
                             UslMeterDateVol partVolMeter = lstDayMeterVol.stream()
-                                    .filter(t -> t.usl.equals(nabor.getUsl().getMeterUslVol()) && t.dt.equals(curDt))
+                                    .filter(t -> t.usl.equals(nabor.getUsl().getMeterUslVol()) && t.dt.compareTo(curDt)==0)
                                     .findFirst().orElse(null);
                             if (partVolMeter != null) {
                                 tempVol = partVolMeter.vol;
@@ -552,50 +552,28 @@ public class GenPartImpl implements GenPart {
                     chrgCountAmountLocal.groupUslVol(uslPriceVolKart);
                 }
 
-
-                //                        log.info("******* RESID={}", uslPriceVolKart.isResidental);
-
-                    /*
-                    if (Utl.in(uslPriceVolKart.usl.getId(),"003")) {
-                        log.info("РАСЧЕТ ДНЯ:");
-                        log.info("dt:{}-{} usl={} org={} cnt={} " +
+/*
+                    if (Utl.in(uslPriceVolKart.getUsl().getId(),"045")) {
+                        log.trace("РАСЧЕТ ДНЯ:");
+                        log.trace("dt:{} usl={} org={} " +
                                         "empt={} stdt={} " +
                                         "prc={} prcOv={} prcEm={} " +
-                                        "vol={} volOv={} volEm={} ar={} arOv={} " +
-                                        "arEm={} Kpr={} Ot={} Wrz={}",
-                                Utl.getStrFromDate(uslPriceVolKart.dtFrom, "dd"), Utl.getStrFromDate(uslPriceVolKart.dtTo, "dd"),
-                                uslPriceVolKart.usl.getId(), uslPriceVolKart.org.getId(), uslPriceVolKart.isMeter, uslPriceVolKart.isEmpty,
-                                uslPriceVolKart.socStdt, uslPriceVolKart.price, uslPriceVolKart.priceOverSoc, uslPriceVolKart.priceEmpty,
-                                uslPriceVolKart.vol.setScale(4, BigDecimal.ROUND_HALF_UP),
-                                uslPriceVolKart.volOverSoc.setScale(4, BigDecimal.ROUND_HALF_UP),
-                                uslPriceVolKart.volEmpty.setScale(4, BigDecimal.ROUND_HALF_UP),
-                                uslPriceVolKart.area.setScale(4, BigDecimal.ROUND_HALF_UP),
-                                uslPriceVolKart.areaOverSoc.setScale(4, BigDecimal.ROUND_HALF_UP),
-                                uslPriceVolKart.areaEmpty.setScale(4, BigDecimal.ROUND_HALF_UP),
-                                uslPriceVolKart.kpr.setScale(4, BigDecimal.ROUND_HALF_UP),
-                                uslPriceVolKart.kprOt.setScale(4, BigDecimal.ROUND_HALF_UP),
-                                uslPriceVolKart.kprWr.setScale(4, BigDecimal.ROUND_HALF_UP));
+                                        "vol={} volOv={} ar={} arOv={} " +
+                                        "Kpr={} Ot={} Wrz={}",
+                                Utl.getStrFromDate(uslPriceVolKart.getDt(), "dd"),
+                                uslPriceVolKart.getUsl().getId(), uslPriceVolKart.getOrg().getId(), uslPriceVolKart.isEmpty(),
+                                uslPriceVolKart.getSocStdt(), uslPriceVolKart.getPrice(), uslPriceVolKart.getPriceOverSoc(), uslPriceVolKart.getPriceEmpty(),
+                                uslPriceVolKart.getVol().setScale(8, BigDecimal.ROUND_HALF_UP),
+                                uslPriceVolKart.getVolOverSoc().setScale(8, BigDecimal.ROUND_HALF_UP),
+                                uslPriceVolKart.getArea().setScale(8, BigDecimal.ROUND_HALF_UP),
+                                uslPriceVolKart.getAreaOverSoc().setScale(8, BigDecimal.ROUND_HALF_UP),
+                                uslPriceVolKart.getKpr().setScale(4, BigDecimal.ROUND_HALF_UP),
+                                uslPriceVolKart.getKprOt().setScale(4, BigDecimal.ROUND_HALF_UP),
+                                uslPriceVolKart.getKprWr().setScale(4, BigDecimal.ROUND_HALF_UP));
                     }
 */
 
-/*
-                if (lstSelUsl.size() == 0 && nabor.getUsl().getId().equals("015") || nabor.getUsl().getId().equals("099")) {
-                    log.info("************!!!!!!!! usl={}, vol={}, dt={}", nabor.getUsl().getId(), dayVol, Utl.getStrFromDate(curDt));
-                }
-                if (lstSelUsl.size() == 0 && nabor.getUsl().getId().equals("015") || nabor.getUsl().getId().equals("099")) {
-                    for (UslVolKartGrp t : calcStore.getChrgCountAmount().getLstUslVolKartGrp()) {
-                        if (t.usl.getId().equals("015") || t.usl.getId().equals("099")) {
-                            log.info("***********!!!!!! dt={}, lsk={}, usl={} vol={} ar={} Kpr={}",
-                                    Utl.getStrFromDate(curDt), t.kart.getLsk(), t.usl.getId(),
-                                    t.vol.setScale(4, BigDecimal.ROUND_HALF_UP),
-                                    t.area.setScale(4, BigDecimal.ROUND_HALF_UP),
-                                    t.kpr.setScale(4, BigDecimal.ROUND_HALF_UP));
-                        }
-                    }
-                }
-*/
-
-            }
+          }
         }
 
     }

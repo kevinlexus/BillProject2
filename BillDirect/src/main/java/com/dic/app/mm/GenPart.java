@@ -17,6 +17,6 @@ public interface GenPart {
     void genVolPart(ChrgCountAmountLocal chrgCountAmountLocal,
                     RequestConfigDirect reqConf, int parVarCntKpr,
                     int parCapCalcKprTp, Ko ko, List<SumMeterVol> lstMeterVol, List<Usl> lstSelUsl,
-                    List<UslMeterDateVol> lstDayMeterVol, Date curDt, int part, List<Nabor> lstNabor)
+                    List<UslMeterDateVol> lstDayMeterVol, Date curDt, int part)
             throws ErrorWhileChrg, WrongParam;
 }

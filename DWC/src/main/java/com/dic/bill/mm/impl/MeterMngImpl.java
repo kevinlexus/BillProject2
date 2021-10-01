@@ -27,6 +27,8 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -89,7 +91,6 @@ public class MeterMngImpl implements MeterMng {
      * @return - объем в доле 1 дня к периоду наличия рабочего счетчика
      */
     public List<UslMeterDateVol> getPartDayMeterVol(List<SumMeterVol> lstMeterVol, CalcStore calcStore) {
-        Calendar c = Calendar.getInstance();
         // distinct список кодов услуг найденных счетчиков
         List<Usl> lstMeterUsl = lstMeterVol.stream()
                 .map(t -> em.find(Usl.class, t.getUslId())).distinct().collect(Collectors.toList());
@@ -105,10 +106,11 @@ public class MeterMngImpl implements MeterMng {
             // перебрать дни текущего месяца
             BigDecimal diff = vol;
             UslMeterDateVol lastUslMeterDateVol = null;
-            // подсчитать кол-во дней работы счетчика
-            for (c.setTime(calcStore.getCurDt1()); !c.getTime().after(calcStore.getCurDt2());
-                 c.add(Calendar.DATE, 1)) {
-                Date curDt = c.getTime();
+            for (LocalDate date = LocalDate.ofInstant(calcStore.getCurDt1().toInstant(), ZoneId.systemDefault());
+                 date.isBefore(LocalDate.ofInstant(calcStore.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
+                 date = date.plusDays(1))
+            {
+                Date curDt = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
                 // найти любой действующий счетчик, прибавить день
                 SumMeterVol meterVol = lstMeterVol.stream().filter(t -> t.getUslId().equals(usl.getId()) &&
                         Utl.between(curDt, t.getDtFrom(), t.getDtTo())).findFirst().orElse(null);
@@ -118,9 +120,11 @@ public class MeterMngImpl implements MeterMng {
                 }
             }
 
-            for (c.setTime(calcStore.getCurDt1()); !c.getTime().after(calcStore.getCurDt2());
-                 c.add(Calendar.DATE, 1)) {
-                Date curDt = c.getTime();
+            for (LocalDate date = LocalDate.ofInstant(calcStore.getCurDt1().toInstant(), ZoneId.systemDefault());
+                 date.isBefore(LocalDate.ofInstant(calcStore.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
+                 date = date.plusDays(1))
+            {
+                Date curDt = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
                 // найти любой действующий счетчик, прибавить день
                 SumMeterVol meterVol = lstMeterVol.stream().filter(t -> t.getUslId().equals(usl.getId()) &&
                         Utl.between(curDt, t.getDtFrom(), t.getDtTo())).findFirst().orElse(null);

@@ -53,14 +53,6 @@ public class Nabor extends BaseNabor implements java.io.Serializable {
     @Column(name = "LIMIT")
     private BigDecimal limit;
 
-    // дата начала работы
-    @Column(name = "DT1", updatable = false)
-    private Date dt1;
-
-    // дата окончания работы
-    @Column(name = "DT2", updatable = false)
-    private Date dt2;
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

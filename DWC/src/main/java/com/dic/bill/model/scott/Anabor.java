@@ -80,14 +80,6 @@ public class Anabor extends BaseNabor implements Compress {
 	@Column(name = "nrm_kpr2", updatable = false, nullable = false)
 	private Double nrmKpr2;
 
-	// дата начала работы
-	@Column(name = "DT1", updatable = false)
-	private Date dt1;
-
-	// дата окончания работы
-	@Column(name = "DT2", updatable = false)
-	private Date dt2;
-
 	@Override
 	public boolean equals(Object o) {
 	    if (this == o) return true;
@@ -139,6 +131,8 @@ public class Anabor extends BaseNabor implements Compress {
 		result = prime * result + ((this.getUsl() == null) ? 0 : this.getUsl().hashCode());
 		result = prime * result + ((vol == null) ? 0 : vol.hashCode());
 		result = prime * result + ((volAdd == null) ? 0 : volAdd.hashCode());
+		result = prime * result + ((this.getDt1() == null) ? 0 : this.getDt1().hashCode());
+		result = prime * result + ((this.getDt2() == null) ? 0 : this.getDt2().hashCode());
 		return result;
 	}
 
@@ -246,6 +240,19 @@ public class Anabor extends BaseNabor implements Compress {
 				return false;
 		} else if (!volAdd.equals(other.volAdd))
 			return false;
+
+		if (getDt1() == null) {
+			if (other.getDt1() != null)
+				return false;
+		} else if (!getDt1().equals(other.getDt1()))
+			return false;
+
+		if (getDt2() == null) {
+			if (other.getDt2() != null)
+				return false;
+		} else if (!getDt2().equals(other.getDt2()))
+			return false;
+
 		return true;
 	}
 

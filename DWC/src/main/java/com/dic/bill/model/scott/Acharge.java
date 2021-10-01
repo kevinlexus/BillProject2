@@ -155,6 +155,7 @@ public class Acharge implements java.io.Serializable, Compress {
 		result = prime * result + ((testTarkoef == null) ? 0 : testTarkoef.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		result = prime * result + ((usl == null) ? 0 : usl.hashCode());
+		result = prime * result + ((org == null) ? 0 : org.hashCode());
 		return result;
 	}
 
@@ -254,6 +255,11 @@ public class Acharge implements java.io.Serializable, Compress {
 			if (other.usl != null)
 				return false;
 		} else if (!usl.equals(other.usl))
+			return false;
+		if (org == null) {
+			if (other.org != null)
+				return false;
+		} else if (!org.equals(other.org))
 			return false;
 		return true;
 	}

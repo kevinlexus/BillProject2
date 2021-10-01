@@ -17,6 +17,7 @@ import java.net.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -140,24 +141,18 @@ public class Utl {
 
     // вернуть самую первую дату в биллинге
     public static Date getFirstDt() {
-        Calendar calendar;
-        calendar = new GregorianCalendar(1940, Calendar.JANUARY, 1);
-        calendar.clear(Calendar.ZONE_OFFSET);
-        return calendar.getTime();
+        return Date.from(LocalDate.of(1900, 1, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
     // вернуть самую последнюю дату в биллинге
     public static Date getLastDt() {
-        Calendar calendar;
-        calendar = new GregorianCalendar(2940, Calendar.JANUARY, 1);
-        calendar.clear(Calendar.ZONE_OFFSET);
-        return calendar.getTime();
+        return Date.from(LocalDate.of(2500, 1, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
     // вернуть XMLGregorianCalendar
     public static XMLGregorianCalendar getXMLGregorianCalendarFromDate(Date dt) throws DatatypeConfigurationException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+        sdf.setTimeZone(TimeZone.getDefault());
         String date = sdf.format(dt);
         return DatatypeFactory.newInstance().newXMLGregorianCalendar(date);
     }
@@ -229,18 +224,6 @@ public class Utl {
         return (val.compareTo(rangeBegin) >= 0 && val.compareTo(rangeEnd) <= 0);
     }
 
-    // вернуть кол-во лет между датами
-    public static int getDiffYears(Date first, Date last) {
-        Calendar a = getCalendar(first);
-        Calendar b = getCalendar(last);
-        int diff = b.get(Calendar.YEAR) - a.get(Calendar.YEAR);
-        if (a.get(Calendar.MONTH) > b.get(Calendar.MONTH) ||
-                (a.get(Calendar.MONTH) == b.get(Calendar.MONTH) && a.get(Calendar.DATE) > b.get(Calendar.DATE))) {
-            diff--;
-        }
-        return diff;
-    }
-
     // вернуть кол-во месяцев между датами
     public static long getDiffMonths(Date first, Date last) {
         LocalDateTime dt1 = Instant.ofEpochMilli(first.getTime())
@@ -251,18 +234,6 @@ public class Utl {
                 .toLocalDateTime();
 
         return ChronoUnit.MONTHS.between(dt1, dt2);
-    }
-
-    /**
-     * Вернуть объект Calendar по заданной дате
-     *
-     * @param date
-     * @return
-     */
-    public static Calendar getCalendar(Date date) {
-        Calendar cal = Calendar.getInstance(Locale.US);
-        cal.setTime(date);
-        return cal;
     }
 
     //вернуть случайный UUID
@@ -319,10 +290,8 @@ public class Utl {
      * @return
      */
     public static Date getLastDate(Date dt) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(dt);
-        calendar.set(Calendar.DATE, calendar.getActualMaximum(Calendar.DATE));
-        return calendar.getTime();
+        LocalDate dt1 = LocalDate.ofInstant(dt.toInstant(), ZoneId.systemDefault());
+        return Date.from(dt1.withDayOfMonth(dt1.lengthOfMonth()).atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
     /**
@@ -332,10 +301,8 @@ public class Utl {
      * @return
      */
     public static Date getFirstDate(Date dt) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(dt);
-        calendar.set(Calendar.DATE, calendar.getActualMinimum(Calendar.DATE));
-        return calendar.getTime();
+        LocalDate dt1 = LocalDate.ofInstant(dt.toInstant(), ZoneId.systemDefault());
+        return Date.from(dt1.withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
     /**
@@ -413,19 +380,6 @@ public class Utl {
         } else {
             return null;
         }
-    }
-
-    /**
-     * Получить % одного дня для заданного периода
-     *
-     * @return - % дня
-     */
-    public static double getPartDays(Date dt1, Date dt2) {
-        Calendar cal1 = new GregorianCalendar();
-        Calendar cal2 = new GregorianCalendar();
-        cal1.setTime(dt1);
-        cal2.setTime(dt2);
-        return 1 / (double) daysBetween(cal1.getTime(), cal2.getTime());
     }
 
     /**
@@ -608,19 +562,6 @@ public class Utl {
     }
 
     /**
-     * Получить кол-во дней в месяце по дате
-     *
-     * @param dt - дата вх.
-     * @return
-     */
-    public static int getCntDaysByDate(Date dt) {
-        Calendar calendar = new GregorianCalendar();
-        calendar.clear(Calendar.ZONE_OFFSET);
-        calendar.setTime(dt);
-        return calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
-    }
-
-    /**
      * Получить в виде ГГГГММ месяц + - N мес.
      *
      * @param period
@@ -635,65 +576,6 @@ public class Utl {
     }
 
     /**
-     * Добавить или отнять N месяцев к дате
-     *
-     * @param dt      - базовая дата
-     * @param nMonths - кол-во месяцев + -
-     * @return
-     */
-    public static Date addMonths(Date dt, int nMonths) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(dt);
-        calendar.add(Calendar.MONTH, nMonths);
-        return calendar.getTime();
-    }
-
-    /**
-     * Добавить или отнять N дней к дате
-     *
-     * @param dt    - базовая дата
-     * @param nDays - кол-во дней + -
-     * @return
-     */
-    public static Date addDays(Date dt, int nDays) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(dt);
-        calendar.add(Calendar.DAY_OF_YEAR, nDays);
-        return calendar.getTime();
-    }
-
-    /**
-     * Добавить или отнять N секунд к дате-времени
-     *
-     * @param dt   - базовая дата-время
-     * @param nSec - кол-во секунд + -
-     * @return
-     */
-    public static Date addSec(Date dt, int nSec) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(dt);
-        calendar.add(Calendar.SECOND, nSec);
-        return calendar.getTime();
-    }
-
-
-    /**
-     * Выполнить усечение даты+время до даты
-     *
-     * @param date
-     * @return
-     */
-    public static Date truncDate(Date date) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        calendar.set(Calendar.HOUR_OF_DAY, 0);
-        calendar.set(Calendar.MINUTE, 0);
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-        return calendar.getTime();
-    }
-
-    /**
      * Выполнить усечение до секунд (отбросить миллисекунды)
      *
      * @param date
@@ -704,22 +586,6 @@ public class Utl {
         calendar.setTime(date);
         calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTime();
-    }
-
-    /**
-     * Добавить путь в classpath
-     *
-     * @param s
-     * @throws Exception
-     */
-    public static void addPath(String s) throws Exception {
-        File f = new File(s);
-        URI u = f.toURI();
-        URLClassLoader urlClassLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
-        Class<URLClassLoader> urlClass = URLClassLoader.class;
-        Method method = urlClass.getDeclaredMethod("addURL", new Class[]{URL.class});
-        method.setAccessible(true);
-        method.invoke(urlClassLoader, new Object[]{u.toURL()});
     }
 
     public static String getStackTraceString(Throwable ex) {
