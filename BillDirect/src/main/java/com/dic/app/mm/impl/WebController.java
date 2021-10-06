@@ -165,14 +165,14 @@ public class WebController implements CommonConstants {
     /**
      * Расчет
      *
-     * @param tp       - тип выполнения 0-начисление, 1-задолженность и пеня, 2 - распределение объемов по вводу,
-     *                 4 - начисление по одной услуге, для автоначисления
-     * @param houseId  - houseId объекта (дом)
-     * @param vvodId   - vvodId объекта (ввод)
-     * @param klskId   - klskId объекта (помещение)
-     * @param debugLvl - уровень отладки 0, null - не записивать в лог отладочную информацию, 1 - записывать
-     * @param genDtStr - дата на которую сформировать
-     * @param stop     - 1 - остановить выполнение текущей операции с типом tp
+     * @param tp       тип выполнения 0-начисление, 1-задолженность и пеня, 2 - распределение объемов по вводу,
+     *                 4 - начисление по одной услуге, для автоначисления, 5 - перерасчет
+     * @param houseId  houseId объекта (дом)
+     * @param vvodId   vvodId объекта (ввод)
+     * @param klskId   klskId объекта (помещение)
+     * @param debugLvl уровень отладки 0, null - не записивать в лог отладочную информацию, 1 - записывать
+     * @param genDtStr дата на которую сформировать
+     * @param stop     1 - остановить выполнение текущей операции с типом tp
      */
     @CacheEvict(value = {"KartMng.getKartMainLsk", // чистить кэш каждый раз, перед выполнением
             "PriceMng.multiplyPrice",
@@ -198,7 +198,7 @@ public class WebController implements CommonConstants {
             retStatus = "OK";
         } else {
             // проверка типа формирования
-            if (!Utl.in(tp, 0, 1, 2, 4)) {
+            if (!Utl.in(tp, 0, 1, 2, 4, 5)) {
                 return "ERROR! Некорректный тип расчета: tp=" + tp;
             }
 
