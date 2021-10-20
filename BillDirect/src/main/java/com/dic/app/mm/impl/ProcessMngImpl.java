@@ -223,7 +223,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
             case 0:
             case 1:
             case 2:
-            //case 3:
+            case 3: // начисление для распределения по вводу
             case 4: {
                 // перебрать все объекты для расчета
                 Long id = null;
