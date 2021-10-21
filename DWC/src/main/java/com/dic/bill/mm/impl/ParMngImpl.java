@@ -74,10 +74,6 @@ public class ParMngImpl implements ParMng {
                 Utl.getStrFromDate(dtFirst, "dd.MM.yyyy"),
                 Utl.getStrFromDate(dtLast, "dd.MM.yyyy"),
                 Utl.getStrFromDate(dtMiddle, "dd.MM.yyyy"));
-        log.info("******* 2 Загружены даты текущего периода начало={}, окончание={}, середина={}",
-                mapDate.get("dtFirst"),
-                mapDate.get("dtLast"),
-                mapDate.get("dtMiddle"));
         mapParams.put("isDetChrg", param.getIsDetChrg());
     }
 }

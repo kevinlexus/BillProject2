@@ -2,6 +2,7 @@ package com.dic.bill.dao;
 
 import java.util.List;
 
+import com.dic.bill.dto.LskCharge;
 import com.dic.bill.dto.SumUslOrgRec;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,32 +21,12 @@ import com.dic.bill.dto.SumChrgRec;
 @Repository
 public interface AchargeDAO extends JpaRepository<Acharge, Integer> {
 
-/*  Было до13.07.2018, убрал ненужную вложенность!
-	@Query(value = "select t2.id as \"ulistId\", sum(t2.summa) as \"summa\", sum(t2.vol) as \"vol\", sum(price) as \"price\" from ( "
-			+ "select u.id, s.grp, sum(t.summa) as summa, sum(t.test_opl) as vol, min(t.test_cena) as price "
-		+ "from scott.a_charge2 t "
-		+ "join exs.servgis s on t.usl=s.fk_usl and s.fk_eolink=?3 "
-		+ "join exs.u_list u on s.fk_list=u.id "
-		+ "join exs.u_listtp tp on u.fk_listtp=tp.id "
-		+ "where t.lsk = ?1 and ?2 between t.mgFrom and t.mgTo "
-		+ "and NVL(tp.fk_eolink, ?3) = ?3 "
-		+ "and t.type = 1 "
-		+ "group by u.id, s.grp) t2 "
-		+ "group by t2.id", nativeQuery = true)
-*/
-
-/*
-	@Query(value = "select 1 as \"ulistId\", 2 as \"chng\", 3 as \"chrg\", " +
-			"4 as \"vol\", 5 as \"price\", 6 as \"sqr\", 7 as \"norm\" " +
-			"from dual", nativeQuery = true)
-*/
-
 	/**
 	 * Получить сгруппированные записи начислений (полного начисления, без учета льгот),
 	 * связанных с услугой из ГИС ЖКХ по лиц.счету и периоду
-	 * @param lsk - лицевой счет
-	 * @param period - период
-	 * @param eolOrgId - Id организации, по которой выбирается справочник услуг ГИС (для обработки справочника №1 (доп.услуг) или №51 (коммун.услуг))
+	 * @param lsk лицевой счет
+	 * @param period период
+	 * @param eolOrgId Id организации, по которой выбирается справочник услуг ГИС (для обработки справочника №1 (доп.услуг) или №51 (коммун.услуг))
 	 */
 	@Query(value = "select e.id as \"ulistId\", nvl(b.summa,0) as \"chng\", nvl(a.summa,0) as \"chrg\",  " +
             "nvl(a.vol,0) as \"vol\", nvl(a.price,0) as \"price\", nvl(a.sqr,0) as \"sqr\", nvl(a.norm,0) as \"norm\"," +
@@ -120,5 +101,12 @@ public interface AchargeDAO extends JpaRepository<Acharge, Integer> {
 			"and :period between n.mgFrom and n.mgTo and nvl(a.summa,0)<>0" +
 			"group by a.usl, n.org", nativeQuery = true)
 	List<SumUslOrgRec> getAchargeByLskPeriodGrouped(@Param("lsk") String lsk, @Param("period") Integer period);
+
+/*
+	@Query("select k.lsk as lsk, t.id as id, t.usl.id as uslId, t.mgFrom as mgFrom, t.mgTo as mgTo, t.summa as summa " +
+			"from Kart k join k.acharges t")
+	List<LskCharge> getArchChargesByKulNd();
+*/
+
 
 }

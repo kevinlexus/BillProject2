@@ -228,7 +228,7 @@ public class MntBaseImpl implements MntBase {
             comprTable(table, firstLsk, oneLsk);
         } catch (Exception e) {
             // Ошибка при выполнении
-            e.printStackTrace();
+            log.error("Ошибка при сжатии таблицы: "+table, e);
             return false;
         }
         return true;

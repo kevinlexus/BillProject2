@@ -7,14 +7,12 @@ import org.hibernate.annotations.Formula;
 
 import javax.persistence.*;
 
-;
 
 /**
  * Архивное начисление
  * @author lev
  *
  */
-@SuppressWarnings("serial")
 @Entity
 @Table(name = "A_CHARGE2", schema="SCOTT")
 @Getter @Setter
@@ -39,59 +37,59 @@ public class Acharge implements java.io.Serializable, Compress {
 
 	// организация - поставщик услуги
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "ORG", referencedColumnName = "ID", nullable = false)
+	@JoinColumn(name = "ORG", referencedColumnName = "ID")
 	private Org org;
 
 	// сумма начисления
-	@Column(name = "summa", updatable = false, nullable = true)
+	@Column(name = "summa", updatable = false)
 	private Double summa;
 
-	@Column(name = "kart_pr_id", updatable = false, nullable = true)
+	@Column(name = "kart_pr_id", updatable = false)
 	private Integer kartPrId;
 
-	@Column(name = "spk_id", updatable = false, nullable = true)
+	@Column(name = "spk_id", updatable = false)
 	private Integer spkId;
 
-	@Column(name = "type", updatable = false, nullable = true)
+	@Column(name = "type", updatable = false)
 	private Integer type;
 
-	@Column(name = "test_opl", updatable = false, nullable = true)
+	@Column(name = "test_opl", updatable = false)
 	private Double testOpl;
 
-	@Column(name = "test_cena", updatable = false, nullable = true)
+	@Column(name = "test_cena", updatable = false)
 	private Double testCena;
 
-	@Column(name = "test_tarkoef", updatable = false, nullable = true)
+	@Column(name = "test_tarkoef", updatable = false)
 	private Double testTarkoef;
 
-	@Column(name = "test_spk_koef", updatable = false, nullable = true)
+	@Column(name = "test_spk_koef", updatable = false)
 	private Double testSpkkoef;
 
-	@Column(name = "main", updatable = false, nullable = true)
+	@Column(name = "main", updatable = false)
 	private Integer main;
 
-	@Column(name = "lg_doc_id", updatable = false, nullable = true)
+	@Column(name = "lg_doc_id", updatable = false)
 	private Integer lgDocId;
 
-	@Column(name = "npp", updatable = false, nullable = true)
+	@Column(name = "npp", updatable = false)
 	private Integer npp;
 
-	@Column(name = "sch", updatable = false, nullable = true)
+	@Column(name = "sch", updatable = false)
 	private Integer sch;
 
-	@Column(name = "kpr", updatable = false, nullable = true)
+	@Column(name = "kpr", updatable = false)
 	private Double kpr;
 
-	@Column(name = "kprz", updatable = false, nullable = true)
+	@Column(name = "kprz", updatable = false)
 	private Double kprz;
 
-	@Column(name = "kpro", updatable = false, nullable = true)
+	@Column(name = "kpro", updatable = false)
 	private Double kpro;
 
-	@Column(name = "kpr2", updatable = false, nullable = true)
+	@Column(name = "kpr2", updatable = false)
 	private Double kpr2;
 
-	@Column(name = "opl", updatable = false, nullable = true)
+	@Column(name = "opl", updatable = false)
 	private Double opl;
 
 	// начало действия записи

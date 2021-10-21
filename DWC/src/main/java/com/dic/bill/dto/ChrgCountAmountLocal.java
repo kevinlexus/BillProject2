@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -643,16 +644,16 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                 }
 
                 // сумма
-                log.trace("lsk={}, summa={}, priceAmnt={}, kart.getOpl()={}", kart.getLsk(), charge.getSumma(), priceAmnt, kart.getOpl());
+                log.trace("lsk={}, summa={}, priceAmnt={}", kart.getLsk(), charge.getSumma(), priceAmnt);
                 summAmnt = summAmnt.add(charge.getSumma());
                 if (firstCharge == null)
                     firstCharge = charge;
             }
             // округлить на первую услугу по порядку кода USL
             if (firstCharge != null) {
-                BigDecimal summCheck = Utl.nvl(kart.getOpl(), BigDecimal.ZERO).multiply(priceAmnt).setScale(2, BigDecimal.ROUND_HALF_UP);
+                BigDecimal summCheck = Utl.nvl(firstCharge.getOpl(), BigDecimal.ZERO).multiply(priceAmnt).setScale(2, RoundingMode.HALF_UP);
                 BigDecimal diff = summCheck.subtract(summAmnt);
-                log.trace("Итого сумма ={} рассчит={}", summAmnt, summCheck);
+                log.trace("Итого сумма ={}, рассчит={}, общ.площадь:{}", summAmnt, summCheck, firstCharge.getOpl());
                 if (diff.abs().compareTo(new BigDecimal("0.05")) < 0) {
                     log.trace("Применено округление для ГИС ЖКХ, по lsk={}, usl={}, diff={}",
                             kart.getLsk(), firstCharge.getUsl().getId(), diff);

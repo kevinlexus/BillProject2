@@ -4,6 +4,7 @@ import com.dic.app.mm.*;
 import com.dic.bill.dao.OrgDAO;
 import com.dic.bill.dao.PrepErrDAO;
 import com.dic.bill.dao.SprGenItmDAO;
+import com.dic.bill.dto.ChangesParam;
 import com.dic.bill.dto.KwtpMgRec;
 import com.dic.bill.dto.UnloadPaymentParameter;
 import com.dic.bill.mm.KartMng;
@@ -18,6 +19,7 @@ import com.ric.cmn.excp.ErrorWhileGen;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.dto.ListKoAddress;
 import com.ric.dto.ListMeter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.SessionFactory;
 import org.springframework.boot.SpringApplication;
@@ -38,6 +40,7 @@ import java.util.List;
  */
 @RestController
 @Slf4j
+@RequiredArgsConstructor
 public class WebController implements CommonConstants {
 
     @PersistenceContext
@@ -55,37 +58,12 @@ public class WebController implements CommonConstants {
     private final DistPayMng distPayMng;
     private final DistPayQueueMng distPayQueueMng;
     private final CorrectsMng correctsMng;
+    private final ChangeMng changeMng;
     private final RegistryMng registryMng;
     private final ObjParMng objParMng;
     private final KartMng kartMng;
     private final MeterMng meterMng;
     private final MntBase mntBase;
-
-    public WebController(NaborMng naborMng, MigrateMng migrateMng, ExecMng execMng,
-                         SprGenItmDAO sprGenItmDao, PrepErrDAO prepErrDao,
-                         OrgDAO orgDAO, ConfigApp config, ApplicationContext ctx,
-                         DistPayMng distPayMng,
-                         DistPayQueueMng distPayQueueMng,
-                         ProcessMng processMng,
-                         CorrectsMng correctsMng, RegistryMng registryMng, ObjParMng objParMng, KartMng kartMng, MeterMng meterMng, MntBase mntBase) {
-        this.naborMng = naborMng;
-        this.migrateMng = migrateMng;
-        this.execMng = execMng;
-        this.sprGenItmDao = sprGenItmDao;
-        this.prepErrDao = prepErrDao;
-        this.orgDAO = orgDAO;
-        this.distPayMng = distPayMng;
-        this.distPayQueueMng = distPayQueueMng;
-        this.config = config;
-        this.ctx = ctx;
-        this.processMng = processMng;
-        this.correctsMng = correctsMng;
-        this.registryMng = registryMng;
-        this.objParMng = objParMng;
-        this.kartMng = kartMng;
-        this.meterMng = meterMng;
-        this.mntBase = mntBase;
-    }
 
     /**
      * Корректировочная проводка по сальдо
@@ -719,6 +697,15 @@ public class WebController implements CommonConstants {
         // проверка запущен ли java сервер? Выполняется из p_java.gen, oracle
         log.info("GOT /getStatus");
         return "READY";
+    }
+
+    @RequestMapping(value = "/genChanges", method = RequestMethod.POST)
+    @ResponseBody
+    public String genChanges(@RequestBody ChangesParam changesParam) {
+        log.info("GOT /genChanges");
+        System.out.println(changesParam);
+        changeMng.genChanges(changesParam);
+        return "OK";
     }
 
 }

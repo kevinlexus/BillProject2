@@ -16,7 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Лицевой счет (он же - помещение)
+ * Лицевой счет
  *
  */
 @SuppressWarnings("serial")

@@ -6,8 +6,10 @@ import com.dic.bill.dto.ChangesParam;
 public class ChangeMngImpl implements ChangeMng {
 
 
-    public int makeChanges(ChangesParam changesParam) {
-
+    @Override
+    public int genChanges(ChangesParam changesParam) {
+        // todo сделать многопоточку по объектам
+        changesParam.getSelObjList(); //todo
 
         return 0;
     }
