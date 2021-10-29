@@ -5,11 +5,13 @@ import com.dic.bill.dto.SprPenKey;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
 import com.dic.bill.model.scott.Tuser;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface ConfigApp {
 
@@ -47,5 +49,13 @@ public interface ConfigApp {
 
     void reloadParam() throws ParseException;
 
+    Set<String> getWaterUslCodes();
 
+    Set<String> getWasteUslCodes();
+
+    Set<String> getWaterOdnUslCodes();
+
+    Set<String> getWasteOdnUslCodes();
+
+    void checkTerminate();
 }

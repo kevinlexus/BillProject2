@@ -3,6 +3,7 @@ package com.dic.app.mm.impl;
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.Lock;
 import com.dic.bill.dao.TuserDAO;
+import com.dic.bill.dao.UslDAO;
 import com.dic.bill.dto.SprPenKey;
 import com.dic.bill.mm.ParMng;
 import com.dic.bill.mm.SprParamMng;
@@ -10,23 +11,26 @@ import com.dic.bill.mm.impl.SprParamMngImpl;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
 import com.dic.bill.model.scott.Tuser;
+import com.dic.bill.model.scott.Usl;
 import com.ric.cmn.Utl;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
+import java.io.File;
 import java.text.ParseException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Конфигуратор приложения
@@ -38,12 +42,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Getter
 @Setter
+@RequiredArgsConstructor
 public class ConfigAppImpl implements ConfigApp {
 
     private final ApplicationContext ctx;
     private final EntityManager em;
     private final SprParamMng sprParamMng;
     private final ParMng parMng;
+    private final UslDAO uslDAO;
     private final TuserDAO tuserDAO;
 
     // номер текущего запроса
@@ -64,14 +70,11 @@ public class ConfigAppImpl implements ConfigApp {
     private Map<String, Date> mapDate = new ConcurrentHashMap<>();
     // справочник булевых параметров
     private Map<String, Boolean> mapParams = new ConcurrentHashMap<>();
-
-    public ConfigAppImpl(ApplicationContext ctx, EntityManager em, SprParamMng sprParamMng, ParMng parMng, TuserDAO tuserDAO) {
-        this.ctx = ctx;
-        this.em = em;
-        this.sprParamMng = sprParamMng;
-        this.parMng = parMng;
-        this.tuserDAO = tuserDAO;
-    }
+    // справочники кодов услуг для перерасчетов
+    private Set<String> waterUslCodes;
+    private Set<String> wasteUslCodes;
+    private Set<String> waterOdnUslCodes;
+    private Set<String> wasteOdnUslCodes;
 
     @PostConstruct
     private void setUp() {
@@ -81,6 +84,8 @@ public class ConfigAppImpl implements ConfigApp {
 
         reloadSprPen();
         reloadParam();
+        loadUslCodes();
+
         log.info("-----------------------------------------------------------------");
         log.info("");
 
@@ -89,21 +94,6 @@ public class ConfigAppImpl implements ConfigApp {
         // блокировщик процессов
         setLock(new Lock());
     }
-
-    /**
-     * Проверка необходимости выйти из приложения
-     *
-     * @Scheduled(fixedDelay = 2000)
-     * public void checkTerminate() {
-     * // проверка файла "stop" на завершение приложения (для обновления)
-     * File tempFile = new File("stop");
-     * boolean exists = tempFile.exists();
-     * if (exists) {
-     * log.info("ВНИМАНИЕ! ЗАПРОШЕНА ОСТАНОВКА ПРИЛОЖЕНИЯ! - БЫЛ СОЗДАН ФАЙЛ c:\\Progs\\GisExchanger\\stop");
-     * SpringApplication.exit(ctx, () -> 0);
-     * }
-     * }
-     */
 
     @Override
     public String getPeriod() {
@@ -199,6 +189,37 @@ public class ConfigAppImpl implements ConfigApp {
     @Override
     public void reloadParam() {
         parMng.reloadParam(mapDate, mapParams);
+    }
+
+    /**
+     * Загрузка кодов услуг для перерасчетов
+     */
+    private void loadUslCodes() {
+        waterUslCodes = uslDAO.findByCdIn(Arrays.asList("х.вода", "х.вода/св.нор", "г.вода", "г.вода/св.нор", "г.вода, 0 рег.", "COMPHW", "COMPHW2"))
+                .stream().map(Usl::getId).collect(Collectors.toUnmodifiableSet());
+        wasteUslCodes = uslDAO.findByCdIn(Arrays.asList("канализ", "канализ/св.нор", "канализ 0 рег."))
+                .stream().map(Usl::getId).collect(Collectors.toUnmodifiableSet());
+
+        waterOdnUslCodes = uslDAO.findByCdIn(Arrays.asList("х.вода.ОДН", "г.вода.ОДН"))
+                .stream().map(Usl::getId).collect(Collectors.toUnmodifiableSet());
+        wasteOdnUslCodes = uslDAO.findByCdIn(List.of("канализ.ОДН"))
+                .stream().map(Usl::getId).collect(Collectors.toUnmodifiableSet());
+    }
+
+
+    /**
+     * Проверка необходимости выйти из приложения
+     */
+    @Scheduled(fixedDelay = 5000)
+    @Override
+    public void checkTerminate() {
+        // проверка файла "stop" на завершение приложения (для обновления)
+        File tempFile = new File("stop");
+        boolean exists = tempFile.exists();
+        if (exists) {
+            log.info("ВНИМАНИЕ! ЗАПРОШЕНА ОСТАНОВКА ПРИЛОЖЕНИЯ! - БЫЛ СОЗДАН ФАЙЛ c:\\Progs\\BillDirect\\stop");
+            SpringApplication.exit(ctx, () -> 0);
+        }
     }
 
 }

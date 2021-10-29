@@ -1,10 +1,15 @@
 package com.dic.bill.dto;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.Value;
 
 import java.math.BigDecimal;
 
-@Value
+@NoArgsConstructor
+@Getter
+@Setter
 public class ChangeUsl {
     String uslId;
     Integer org1Id;

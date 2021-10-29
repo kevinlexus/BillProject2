@@ -11,6 +11,7 @@ import com.dic.bill.model.scott.Stub;
 import com.ric.cmn.CommonConstants;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.WrongParam;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @Scope("prototype")
+@RequiredArgsConstructor
 public class GenMainMngImpl implements GenMainMng, CommonConstants {
 
     private final SprParamMng sprParamMng;
@@ -46,21 +48,6 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
     private final WebController webController;
     @PersistenceContext
     private EntityManager em;
-
-    public GenMainMngImpl(ConfigApp config, SprGenItmDAO sprGenItmDao,
-                          ExecMng execMng, MntBase mntBase,
-                          WebController webController,
-                          SprParamMng sprParamMng, MailMng mailMng, KartMng kartMng, RegistryMng registryMng) {
-        this.config = config;
-        this.sprGenItmDao = sprGenItmDao;
-        this.execMng = execMng;
-        this.mntBase = mntBase;
-        this.webController = webController;
-        this.sprParamMng = sprParamMng;
-        this.mailMng = mailMng;
-        this.kartMng = kartMng;
-        this.registryMng = registryMng;
-    }
 
     /**
      * ОСНОВНОЙ поток формирования
@@ -498,6 +485,8 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
             return true;
         if (checkErrVar(menuCheckBG, Stub.class, 114, "ВНИМАНИЕ!  Не идет пеня в T_CHPENYA_FOR_SALDO и C_PENYA " +
                 "по следующим лиц.:"))
+            return true;
+        if (checkErrVar(menuCheckBG, Stub.class, 115, "ВНИМАНИЕ!  Обнаружены лиц.счета с некорректными периодами по наборам услуг:"))
             return true;
 
         return false;

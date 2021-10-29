@@ -999,7 +999,7 @@ public class RegistryMngImpl implements RegistryMng {
         } else {
             // создать услугу в наборе
             naborMng.createNabor(kart, org.getUslForCreateExtLskKart(), org, BigDecimal.valueOf(1),
-                    null, null, null, null);
+                    null, null, null, null, Utl.getFirstDt(), Utl.getLastDt());
         }
     }
 

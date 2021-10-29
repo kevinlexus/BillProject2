@@ -22,5 +22,6 @@ public interface NaborMng {
 
     Nabor createNabor(Kart kart, Usl usl, Org org,
                       BigDecimal koeff, BigDecimal norm,
-                      BigDecimal vol, BigDecimal volAdd, Vvod vvod);
+                      BigDecimal vol, BigDecimal volAdd, Vvod vvod,
+                      Date dt1, Date dt2);
 }

@@ -6,6 +6,7 @@ import com.dic.bill.mm.PriceMng;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileChrg;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -19,16 +20,16 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class NaborMngImpl implements NaborMng {
 
-    @Autowired
-    PriceMng priceMng;
+    private final PriceMng priceMng;
 
     /**
      * Перебрать все действующие лиц счета по фин.лиц.счету, получить все наборы услуг, отсортировать по порядку расчета начисления
      *
-     * @param ko    - фин.лиц.счет
-     * @param curDt - текущая дата
+     * @param ko    фин.лиц.счет
+     * @param curDt текущая дата
      */
     @Override
     public List<Nabor> getActualNabor(Ko ko, Date curDt) {
@@ -272,11 +273,14 @@ public class NaborMngImpl implements NaborMng {
      * @param vol    объем
      * @param volAdd доп.объем
      * @param vvod   ввод
+     * @param dt1   дата начала действия
+     * @param dt2   дата окончания действия
      */
     @Override
     public Nabor createNabor(Kart kart, Usl usl, Org org,
                              BigDecimal koeff, BigDecimal norm,
-                             BigDecimal vol, BigDecimal volAdd, Vvod vvod) {
+                             BigDecimal vol, BigDecimal volAdd, Vvod vvod,
+                             Date dt1, Date dt2) {
         Nabor nabor = new Nabor();
         nabor.setKart(kart);
         nabor.setOrg(org);
@@ -286,6 +290,8 @@ public class NaborMngImpl implements NaborMng {
         nabor.setVol(vol);
         nabor.setVolAdd(volAdd);
         nabor.setVvod(vvod);
+        nabor.setDt1(dt1);
+        nabor.setDt2(dt2);
         kart.getNabor().add(nabor);
         if (vvod != null) {
             vvod.getNabor().add(nabor);

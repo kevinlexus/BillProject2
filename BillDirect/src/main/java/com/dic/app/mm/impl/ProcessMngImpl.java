@@ -2,12 +2,16 @@ package com.dic.app.mm.impl;
 
 import com.dic.app.RequestConfigDirect;
 import com.dic.app.mm.*;
+import com.dic.bill.dao.KartDAO;
+import com.dic.bill.dto.*;
+import com.dic.bill.enums.SelObjTypes;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.CommonConstants;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileGen;
 import com.ric.dto.CommonResult;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationContext;
@@ -21,8 +25,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.groupingBy;
 
 /**
  * Сервис выполнения процессов формирования
@@ -40,7 +51,9 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
     private final GenChrgProcessMng genChrgProcessMng;
     private final GenPenProcessMng genPenProcessMng;
     private final MigrateMng migrateMng;
+    private final ChangeMng changeMng;
     private final DistVolMng distVolMng;
+    private final KartDAO kartDAO;
     private final ApplicationContext ctx;
 
     @PersistenceContext
@@ -49,13 +62,15 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
     @Autowired
     public ProcessMngImpl(@Lazy DistVolMng distVolMng, ConfigApp config, ThreadMng<Long> threadMng,
                           GenChrgProcessMng genChrgProcessMng, GenPenProcessMng genPenProcessMng,
-                          MigrateMng migrateMng, ApplicationContext ctx) {
+                          MigrateMng migrateMng, ChangeMng changeMng, KartDAO kartDAO, ApplicationContext ctx) {
         this.distVolMng = distVolMng;
         this.config = config;
         this.threadMng = threadMng;
         this.genChrgProcessMng = genChrgProcessMng;
         this.genPenProcessMng = genPenProcessMng;
         this.migrateMng = migrateMng;
+        this.changeMng = changeMng;
+        this.kartDAO = kartDAO;
         this.ctx = ctx;
     }
 
@@ -108,7 +123,8 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                     // расчет начисления, распределение объемов, расчет пени
                     reqConf.prepareChrgCountAmount();
 
-                    if (reqConf.getLstItems().size() > 1) log.info("Будет обработано {} объектов", reqConf.getLstItems().size());
+                    if (reqConf.getLstItems().size() > 1)
+                        log.info("Будет обработано {} объектов", reqConf.getLstItems().size());
                     ProcessMng processMng = ctx.getBean(ProcessMng.class);
                     processMng.processAll(reqConf);
                 }
@@ -133,6 +149,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
     /**
      * Выполнение процесса формирования начисления, задолженности, по помещению, по дому, по вводу - выполняется
      * например, из потоков распределения воды
+     *
      * @param reqConf - конфиг запроса
      * @throws ErrorWhileGen - ошибка обработки
      */
@@ -309,8 +326,8 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                     }
                 } catch (Exception e) {
                     log.error(Utl.getStackTraceString(e));
-                        throw new ErrorWhileGen("ОШИБКА! Произошла ошибка в потоке " + reqConf.getTpName()
-                                + ", объект lsk=" + id);
+                    throw new ErrorWhileGen("ОШИБКА! Произошла ошибка в потоке " + reqConf.getTpName()
+                            + ", объект lsk=" + id);
                 }
                 break;
             }
@@ -319,5 +336,78 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
         }
     }
 
+    @Override
+    public int processChanges(ChangesParam changesParam) throws ExecutionException, InterruptedException {
+        // Map устроен: klskId, (mg, (uslId, List<LskCharges>))
+        Map<Long, Map<String, Map<String, List<LskCharge>>>> chargesByKlskId;
+        if (!CollectionUtils.isEmpty(changesParam.getSelObjList())) {
+            List<String> kulNdList = changesParam.getSelObjList().stream()
+                    .filter(t -> t.getTp().equals(SelObjTypes.HOUSE))
+                    .map(t -> t.getKul() + t.getNd()).collect(Collectors.toList());
+            List<Long> klskIdList = changesParam.getSelObjList().stream()
+                    .filter(t -> t.getTp().equals(SelObjTypes.FIN_ACCOUNT))
+                    .map(Selobj::getKlskId).collect(Collectors.toList());
+            List<String> lskList = changesParam.getSelObjList().stream()
+                    .filter(t -> t.getTp().equals(SelObjTypes.LSK))
+                    .map(Selobj::getLsk).collect(Collectors.toList());
+            List<String> uslListForQuery = changesParam.getChangeUslList().stream().map(ChangeUsl::getUslId).collect(Collectors.toList());
+            if (changesParam.getIsAddUslWaste()) {
+                // добавить в начисление услуги по водоотведению
+                if (uslListForQuery.stream().anyMatch(t -> config.getWaterUslCodes().contains(t))) {
+                    uslListForQuery.addAll(config.getWasteUslCodes());
+                } else if (uslListForQuery.stream().anyMatch(t -> config.getWaterOdnUslCodes().contains(t))) {
+                    uslListForQuery.addAll(config.getWasteOdnUslCodes());
+                }
+            }
+
+            List<LskCharge> charges = new ArrayList<>();
+            if (kulNdList.size() > 0) {
+                log.info("Перерасчет по домам:");
+                charges = kartDAO.getArchChargesByKulNd(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
+                        changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
+                        changesParam.getProcessKran(), changesParam.getProcessLskTp(),
+                        changesParam.getPeriodFrom(), changesParam.getPeriodTo(),
+                        kulNdList, uslListForQuery
+                );
+            }
+            if (klskIdList.size() > 0) {
+                log.info("Перерасчет по фин.лиц.сч:");
+                charges = kartDAO.getArchChargesByKlskIds(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
+                        changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
+                        changesParam.getProcessKran(), changesParam.getProcessLskTp(),
+                        changesParam.getPeriodFrom(), changesParam.getPeriodTo(),
+                        klskIdList, uslListForQuery
+                );
+            }
+            if (lskList.size() > 0) {
+                log.info("Перерасчет по лиц.сч:");
+                // todo
+
+            }
+
+            if (changesParam.getSelObjList().get(0).getTp().equals(SelObjTypes.ALL)) {
+                log.info("Перерасчет по всему фонду:");
+                // todo
+
+            }
+            charges.forEach(t-> log.info("Начисление по lsk={}, mg={}, usl={}, chrg.org={}, nabor.org={}, составило summa={}",
+                    t.getLsk(), t.getMg(), t.getUslId(), t.getChrgOrgId(), t.getNaborOrgId(), t.getSumma()));
+            chargesByKlskId = charges.stream().collect(groupingBy(LskCharge::getKlskId, groupingBy(LskCharge::getMg, groupingBy(LskCharge::getUslId))));
+            List<ResultChange> resultChanges = chargesByKlskId.entrySet().parallelStream()
+                    .flatMap(t -> changeMng.genChanges(changesParam, t.getKey(), t.getValue()).stream())
+                    .collect(Collectors.toList());
+            log.info("resultChanges size={}", resultChanges.size());
+
+            for (ResultChange resultChange : resultChanges) {
+                log.info("Перерасчет по lsk={}, period={}, usl={}, org={}, proc={}, составил summa={}",
+                        resultChange.getLsk(), resultChange.getMg(), resultChange.getUslId(),
+                        resultChange.getOrg1Id(), resultChange.getProc1(), resultChange.getSumma());
+            }
+        } else {
+            log.warn("Не найдены объекты, для перерасчета!");
+        }
+
+        return 0;
+    }
 
 }

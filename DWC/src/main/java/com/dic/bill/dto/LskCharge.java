@@ -12,7 +12,11 @@ public interface LskCharge {
 
     String getUslId();
 
-    Integer getOrgId();
+    // если присутствует (not null) использовать его, вместо naborOrgId, так как формируется начислением с разбиением nabor по dt1, dt2
+    Integer getChrgOrgId();
+
+    // использовать, если сhrgOrgId == null (для старых записей архива)
+    Integer getNaborOrgId();
 
     BigDecimal getSumma();
 

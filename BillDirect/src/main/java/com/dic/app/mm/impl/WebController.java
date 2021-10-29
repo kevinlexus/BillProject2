@@ -702,9 +702,13 @@ public class WebController implements CommonConstants {
     @RequestMapping(value = "/genChanges", method = RequestMethod.POST)
     @ResponseBody
     public String genChanges(@RequestBody ChangesParam changesParam) {
-        log.info("GOT /genChanges");
-        System.out.println(changesParam);
-        changeMng.genChanges(changesParam);
+        log.info("GOT /processChanges");
+        try {
+            processMng.processChanges(changesParam);
+        } catch (Exception e) {
+            log.error("Ошибка выполнения метода /genChanges", e);
+            return "ERROR";
+        }
         return "OK";
     }
 

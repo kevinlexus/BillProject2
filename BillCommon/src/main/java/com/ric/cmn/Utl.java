@@ -428,6 +428,20 @@ public class Utl {
     }
 
     /**
+     * Конвертировать дату в YYYYMM
+     *
+     * @param dt - дата вх.
+     * @return
+     */
+    public static String getPeriodFromDate(LocalDate dt) {
+        String yy = String.valueOf(dt.getYear());
+        String mm = String.valueOf(dt.getMonth().getValue());
+        mm = "0" + mm;
+        mm = mm.substring(mm.length() - 2, mm.length());
+        return yy + mm;
+    }
+
+    /**
      * Получить составляющую MM из строки период YYYYMM
      *
      * @param period - период в формате YYYYMM
@@ -562,17 +576,65 @@ public class Utl {
     }
 
     /**
+     * Получить кол-во дней в месяце по дате
+     *
+     * @param dt текущая дата
+     */
+    public static int getCntDaysByDate(Date dt) {
+        return LocalDate.ofInstant(dt.toInstant(),ZoneId.systemDefault()).lengthOfMonth();
+    }
+
+
+    /**
      * Получить в виде ГГГГММ месяц + - N мес.
      *
      * @param period
      */
     public static String addMonths(String period, int n) throws ParseException {
         Date dt = getDateFromPeriod(period);
-        Calendar calendar = new GregorianCalendar();
+        Calendar calendar = new GregorianCalendar(); //fixme переделать на LocalDate!!!
         calendar.clear(Calendar.ZONE_OFFSET);
         calendar.setTime(dt);
         calendar.add(Calendar.MONTH, n);
         return getPeriodFromDate(calendar.getTime());
+    }
+
+    /**
+     * Добавить или отнять N месяцев к дате
+     *
+     * @param dt      - базовая дата
+     * @param nMonths - кол-во месяцев + -
+     * @return
+     */
+    public static Date addMonths(Date dt, int nMonths) {
+        Calendar calendar = Calendar.getInstance(); //fixme переделать на LocalDate!!!
+        calendar.setTime(dt);
+        calendar.add(Calendar.MONTH, nMonths);
+        return calendar.getTime();
+    }
+
+    // вернуть кол-во лет между датами
+    public static int getDiffYears(Date first, Date last) {
+        Calendar a = getCalendar(first);
+        Calendar b = getCalendar(last);
+        int diff = b.get(Calendar.YEAR) - a.get(Calendar.YEAR); //fixme переделать на LocalDate!!!
+        if (a.get(Calendar.MONTH) > b.get(Calendar.MONTH) ||
+                (a.get(Calendar.MONTH) == b.get(Calendar.MONTH) && a.get(Calendar.DATE) > b.get(Calendar.DATE))) {
+            diff--;
+        }
+        return diff;
+    }
+
+    /**
+     * Вернуть объект Calendar по заданной дате
+     *
+     * @param date
+     * @return
+     */
+    public static Calendar getCalendar(Date date) {
+        Calendar cal = Calendar.getInstance(Locale.US); //fixme переделать на LocalDate!!!
+        cal.setTime(date);
+        return cal;
     }
 
     /**
@@ -869,6 +931,21 @@ public class Utl {
             str = str.replaceFirst("\\{}", objStr);
         }
         return str;
+    }
+
+
+    /**
+     * Добавить или отнять N дней к дате todo переделать на LocalDate!!!
+     *
+     * @param dt    - базовая дата
+     * @param nDays - кол-во дней + -
+     * @return
+     */
+    public static Date addDays(Date dt, int nDays) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(dt);
+        calendar.add(Calendar.DAY_OF_YEAR, nDays);
+        return calendar.getTime();
     }
 
 }
