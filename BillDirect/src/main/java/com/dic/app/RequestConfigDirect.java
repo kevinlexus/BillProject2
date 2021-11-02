@@ -2,10 +2,10 @@ package com.dic.app;
 
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.SpringContext;
-import com.dic.bill.dao.*;
-import com.dic.bill.dto.CalcStore;
+import com.dic.bill.dao.KartDAO;
+import com.dic.bill.dao.SaldoUslDAO;
+import com.dic.bill.dao.VvodDAO;
 import com.dic.bill.dto.ChrgCountAmount;
-import com.dic.bill.dto.SumDebPenLskRec;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
 import lombok.Getter;
@@ -13,13 +13,13 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-//import com.dic.bill.model.scott.SessionDirect;
 
 /**
  * Конфигуратор запроса
@@ -32,7 +32,9 @@ import java.util.stream.Collectors;
 public class RequestConfigDirect implements Cloneable {
 
 
-    // диапазон расчета
+    private CalcScope calcScope;
+
+    // тип объектов
     enum CalcScope {
         PREMISE,
         UK,
@@ -97,9 +99,6 @@ public class RequestConfigDirect implements Cloneable {
     // список String объектов формирования
     List<String> lstStrItems;
 
-    // хранилище справочников
-    CalcStore calcStore;
-
     // хранилище объемов по вводу (дому) (для ОДН и прочих нужд)
     private ChrgCountAmount chrgCountAmount;
 
@@ -163,7 +162,7 @@ public class RequestConfigDirect implements Cloneable {
      * Подготовка списка Id (помещений, вводов)
      */
     public void prepareId() {
-        CalcScope calcScope = CalcScope.NOT_SPECIFIED;
+        calcScope = CalcScope.NOT_SPECIFIED;
         if (Utl.in(tp, 0, 1, 3, 4)) {
             // начисление, начисление для распределения объемов, начисление по одной услуге, для автоначисления
             KartDAO kartDao = SpringContext.getBean(KartDAO.class);
@@ -194,7 +193,6 @@ public class RequestConfigDirect implements Cloneable {
                 calcScope = CalcScope.HOUSE;
                 isLockForLongLastingProcess = false;
                 setTpSel(3);
-                //lstItems = kartMng.getKoByHouse(house).stream().map(Ko::getId).collect(Collectors.toList());
                 lstItems = kartDao.findAllKlskIdByHouseId(house.getId())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
                 if (tp == 3) {
@@ -208,7 +206,6 @@ public class RequestConfigDirect implements Cloneable {
                 calcScope = CalcScope.VVOD;
                 isLockForLongLastingProcess = false;
                 setTpSel(2);
-                //lstItems = kartMng.getKoByVvod(vvod).stream().map(Ko::getId).collect(Collectors.toList());
                 lstItems = kartDao.findAllKlskIdByVvodId(vvod.getId())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
                 if (tp == 3) {
@@ -272,9 +269,6 @@ public class RequestConfigDirect implements Cloneable {
             throw new IllegalArgumentException("Параметр tp=" + tp + " не обслуживается методом");
         }
 
-        // построить хранилище, для запроса
-        setCalcStore(buildCalcStore(genDt, tp, calcScope));
-
     }
 
     /**
@@ -285,49 +279,11 @@ public class RequestConfigDirect implements Cloneable {
         setChrgCountAmount(new ChrgCountAmount());
     }
 
-    /**
-     * Построить CalcStore
-     *
-     * @param genDt     дата формирования
-     * @param tp        тип операции
-     * @param calcScope диапазон расчета
-     */
-    private CalcStore buildCalcStore(Date genDt, int tp, CalcScope calcScope) {
-        ConfigApp config = SpringContext.getBean(ConfigApp.class);
-        CalcStore calcStore = new CalcStore();
-        // дата начала периода
-        calcStore.setCurDt1(config.getCurDt1());
-        // дата окончания периода
-        calcStore.setCurDt2(config.getCurDt2());
-        // дата расчета пени
-        calcStore.setGenDt(genDt);
-        // текущий период
-        calcStore.setPeriod(Integer.valueOf(config.getPeriod()));
-        // период - месяц назад
-        calcStore.setPeriodBack(Integer.valueOf(config.getPeriodBack()));
-        log.trace("Начало получения справочников");
-        if (tp == 1) {
-            // перенёс загузку в ConfigAppImpl
-            // справочник дат начала пени
-            //calcStore.setLstSprPen(sprPenDAO.findAll());
-            //calcStore.prepareSprPen(sprPenDAO.findAll());
-            //log.info("Загружен справочник дат начала обязательства по оплате");
-            // справочник ставок рефинансирования
-            //calcStore.setLstStavr(stavrDAO.findAll());
-            //log.info("Загружен справочник ставок рефинансирования");
-
-
-/* note этот код ведёт к OOM
-            if (calcScope.equals(CalcScope.ALL)) {
-                log.info("*** Продолжительный процесс *** Начало загрузки долгов предыдущ. периода по всем лиц.счетам");
-                Integer periodBack = Integer.valueOf(Utl.getStrFromDate(Utl.addMonths(genDt, -1), "yyyyMM"));
-                List<SumDebPenLskRec> debits = chargePayDAO.getDebitsAll(periodBack);
-                calcStore.setMapDeb(debits);
-                log.info("*** Продолжительный процесс *** Окончание загрузки долгов предыдущ. периода по всем лиц.счетам");
-            }
-*/
-        }
-        return calcStore;
+    // доля одного дня в периоде
+    public BigDecimal getPartDayMonth() {
+        BigDecimal oneDay = new BigDecimal("1");
+        BigDecimal monthDays = BigDecimal.valueOf(Utl.getCntDaysByDate(getCurDt1()));
+        return oneDay.divide(monthDays, 20, RoundingMode.HALF_UP);
     }
 
     // получить следующий id, для расчета в потоках
@@ -385,8 +341,6 @@ public class RequestConfigDirect implements Cloneable {
         Usl usl = null;
         // список Id объектов формирования
         List<Long> lstItems;
-        // хранилище справочников
-        CalcStore calcStore;
         // маркер остановки формирования
         String stopMark;
 
@@ -490,7 +444,6 @@ public class RequestConfigDirect implements Cloneable {
 
             requestConfigDirect.setUsl(usl);
             requestConfigDirect.setLstItems(lstItems);
-            //requestConfigDirect.setCalcStore(calcStore);
             requestConfigDirect.setStopMark(stopMark);
             requestConfigDirect.isMultiThreads = this.isMultiThreads;
 

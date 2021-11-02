@@ -35,7 +35,7 @@ public interface MeterMng {
 
     Optional<Meter> getActualMeterByKo(Ko koPremis, String usl, Date dt);
 
-    List<UslMeterDateVol> getPartDayMeterVol(List<SumMeterVol> lstMeterVol, CalcStore calcStore);
+    List<UslMeterDateVol> getPartDayMeterVol(List<SumMeterVol> lstMeterVol, Date dtFrom, Date dtTo);
 
     boolean isExistAnyMeter(List<SumMeterVol> lstMeterVol, String uslId, Date dt);
 

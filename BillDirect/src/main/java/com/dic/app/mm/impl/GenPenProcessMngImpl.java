@@ -1,15 +1,15 @@
 package com.dic.app.mm.impl;
 
 import com.dic.app.RequestConfigDirect;
+import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.DebitByLskThrMng;
 import com.dic.app.mm.GenPenProcessMng;
-import com.dic.app.mm.ReferenceMng;
 import com.dic.bill.dao.*;
-import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.CalcStoreLocal;
 import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.Ko;
 import com.ric.cmn.excp.ErrorWhileChrgPen;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -27,33 +27,20 @@ import javax.persistence.PersistenceContext;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class GenPenProcessMngImpl implements GenPenProcessMng {
 
-    private final PenDAO penDao;
     private final ChargeDAO chargeDao;
     private final ChangeDAO changeDao;
     private final KwtpMgDAO kwtpMgDao;
     private final CorrectPayDAO correctPayDao;
     private final ChargePayDAO chargePayDAO;
-    private final ReferenceMng refMng;
     private final DebitByLskThrMng debitByLskThrMng;
+    private final ConfigApp configApp;
 
     @PersistenceContext
     private EntityManager em;
 
-    public GenPenProcessMngImpl(PenDAO penDao, ChargeDAO chargeDao,
-                                ChangeDAO changeDao, KwtpMgDAO kwtpMgDao,
-                                CorrectPayDAO correctPayDao,
-                                ChargePayDAO chargePayDAO, ReferenceMng refMng, DebitByLskThrMng debitByLskThrMng) {
-        this.penDao = penDao;
-        this.chargeDao = chargeDao;
-        this.changeDao = changeDao;
-        this.kwtpMgDao = kwtpMgDao;
-        this.correctPayDao = correctPayDao;
-        this.chargePayDAO = chargePayDAO;
-        this.refMng = refMng;
-        this.debitByLskThrMng = debitByLskThrMng;
-    }
 
     /**
      * Рассчет задолженности и пени по всем лиц.счетам помещения
@@ -70,7 +57,7 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
     public void genDebitPen(RequestConfigDirect reqConf, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen {
         Ko ko = em.find(Ko.class, klskId);
         for (Kart kart : ko.getKart()) {
-            genDebitPenKart(reqConf.getCalcStore(), kart);
+            genDebitPenKart(reqConf, kart);
         }
     }
 
@@ -86,26 +73,26 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
             propagation = Propagation.REQUIRED,
             isolation = Isolation.READ_COMMITTED, // читать только закомиченные данные, не ставить другое, не даст запустить поток!
             rollbackFor = Exception.class)
-    public void genDebitPenForTest(CalcStore calcStore, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen {
+    public void genDebitPenForTest(RequestConfigDirect reqConf, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen {
         Ko ko = em.find(Ko.class, klskId);
         for (Kart kart : ko.getKart()) {
-            genDebitPenKart(calcStore, kart);
+            genDebitPenKart(reqConf, kart);
         }
     }
 
     /**
      * Рассчет задолженности и пени по лиц.счету
      *
-     * @param calcStore - хранилище справочников
-     * @param kart      - лиц.счет
+     * @param reqConf запрос
+     * @param kart    лиц.счет
      */
-    private void genDebitPenKart(CalcStore calcStore, Kart kart) throws ErrorWhileChrgPen {
+    private void genDebitPenKart(RequestConfigDirect reqConf, Kart kart) throws ErrorWhileChrgPen {
         // метод в разработке с 09.12.20
-        Integer period = calcStore.getPeriod();
-        Integer periodBack = calcStore.getPeriodBack();
+        Integer period = Integer.parseInt(configApp.getPeriod());
+        Integer periodBack = Integer.parseInt(configApp.getPeriodBack());
 
         // сформировать движение по лиц.счету (для пени - не нужно, сделал сюда, чтобы выполнялось многопоточно)
-        chargePayDAO.genChrgPay(kart.getLsk(), 0, calcStore.getGenDt());
+        chargePayDAO.genChrgPay(kart.getLsk(), 0, reqConf.getGenDt());
         // загрузить все финансовые операции по лиц.счету
         CalcStoreLocal localStore = new CalcStoreLocal();
         // задолженность предыдущего периода
@@ -127,7 +114,7 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
         localStore.setReuId(Integer.parseInt(kart.getUk().getReu()));
 
         // версия расчета в целом по лиц.счету
-        debitByLskThrMng.genDebPen(kart, calcStore, localStore);
+        debitByLskThrMng.genDebPen(kart, reqConf, localStore);
     }
 
 }

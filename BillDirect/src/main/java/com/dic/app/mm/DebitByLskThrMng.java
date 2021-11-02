@@ -1,14 +1,12 @@
 package com.dic.app.mm;
 
-import com.dic.bill.dto.CalcStore;
+import com.dic.app.RequestConfigDirect;
 import com.dic.bill.dto.CalcStoreLocal;
 import com.dic.bill.model.scott.Kart;
 import com.ric.cmn.excp.ErrorWhileChrgPen;
 
 public interface DebitByLskThrMng {
-	void genDebPen(Kart kart, CalcStore calcStore,
-				   CalcStoreLocal localStore) throws ErrorWhileChrgPen;
+    void genDebPen(Kart kart, RequestConfigDirect requestConfigDirect,
+                   CalcStoreLocal localStore) throws ErrorWhileChrgPen;
 
-//	List<SumDebRec> genDebitUsl(Kart kart, UslOrg u, CalcStore calcStore, CalcStoreLocal localStore)
-			//throws ErrorWhileChrgPen;
 }

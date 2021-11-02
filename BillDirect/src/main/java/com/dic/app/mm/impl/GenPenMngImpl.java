@@ -1,5 +1,6 @@
 package com.dic.app.mm.impl;
 
+import com.dic.app.RequestConfigDirect;
 import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.GenPenMng;
 import com.dic.bill.dto.CalcStore;
@@ -62,7 +63,7 @@ public class GenPenMngImpl implements GenPenMng {
      * @return
      */
     @Override
-    public Optional<PenDTO> calcPen(CalcStore calcStore, BigDecimal deb, Integer mg, Kart kart, Date curDt) {
+    public Optional<PenDTO> calcPen(BigDecimal deb, Integer mg, Kart kart, Date curDt) {
         // дата начала начисления пени
         SprPen penDt = getPenDt(mg, kart);
         // вернуть кол-во дней между датой расчета пени и датой начала пени по справочнику

@@ -19,9 +19,5 @@ public interface GenPenProcessMng {
 
     void genDebitPen(RequestConfigDirect reqConf, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen;
 
-    @Transactional(
-            propagation = Propagation.REQUIRED,
-            isolation = Isolation.READ_COMMITTED, // читать только закомиченные данные, не ставить другое, не даст запустить поток!
-            rollbackFor = Exception.class)
-    void genDebitPenForTest(CalcStore calcStore, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen;
+    void genDebitPenForTest(RequestConfigDirect reqConf, boolean isCalcPen, long klskId) throws ErrorWhileChrgPen;
 }

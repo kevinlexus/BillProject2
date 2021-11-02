@@ -37,8 +37,6 @@ public class CalcStore {
     // справочник ставок рефинансирования
     //List<Stavr> lstStavr;
 
-    // долги по всем лиц.счетам
-    Map<String, List<SumDebPenRec>> mapDebit = new HashMap<>();
 
     // справочник дат начала пени по типу услуг (пока отказался, решил использовать старый справочник ред.31.05.2019)
     //List<PenDt> lstPenDt;
@@ -55,15 +53,6 @@ public class CalcStore {
         BigDecimal oneDay = new BigDecimal("1");
         BigDecimal monthDays = BigDecimal.valueOf(Utl.getCntDaysByDate(getCurDt1()));
         return oneDay.divide(monthDays, 20, RoundingMode.HALF_UP);
-    }
-
-    public void setMapDeb(List<SumDebPenLskRec> debits) {
-        debits.forEach(t -> {
-            List<SumDebPenRec> prevVal = mapDebit.putIfAbsent(t.getLsk(), new ArrayList<>());
-            if (prevVal != null) {
-                prevVal.add(t);
-            }
-        });
     }
 
 }

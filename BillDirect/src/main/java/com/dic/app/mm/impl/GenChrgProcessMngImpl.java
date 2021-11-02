@@ -75,7 +75,6 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             throw new ErrorWhileChrg("ОШИБКА БЛОКИРОВКИ klskId=" + klskId);
         }
         try {
-            CalcStore calcStore = reqConf.getCalcStore();
             Ko ko = em.getReference(Ko.class, klskId);
 
             // создать локальное хранилище объемов
@@ -101,7 +100,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
 
             // все действующие счетчики объекта и их объемы
             List<SumMeterVol> lstMeterVol = meterDao.getMeterVolByKlskId(ko.getId(),
-                    calcStore.getCurDt1(), calcStore.getCurDt2());
+                    reqConf.getCurDt1(), reqConf.getCurDt2());
             /*System.out.println("Счетчики:");
             for (SumMeterVol t : lstMeterVol) {
                 log.trace("t.getMeterId={}, t.getUslId={}, t.getDtTo={}, t.getDtFrom={}, t.getVol={}",
@@ -109,7 +108,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             }*/
             // получить объемы по счетчикам в пропорции на 1 день их работы
             List<UslMeterDateVol> lstDayMeterVol = meterMng.getPartDayMeterVol(lstMeterVol,
-                    calcStore);
+                    reqConf.getCurDt1(), reqConf.getCurDt2());
 
             // очистить информационные строки по льготам
             List<Nabor> lstNabor = naborMng.getActualNabor(ko, null);
@@ -122,10 +121,9 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             // цикл по дням месяца
             int part = 1;
             log.trace("Расчет объемов услуг, до учёта экономии ОДН");
-            for (LocalDate date = LocalDate.ofInstant(calcStore.getCurDt1().toInstant(), ZoneId.systemDefault());
-                 date.isBefore(LocalDate.ofInstant(calcStore.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
-                 date = date.plusDays(1))
-            {
+            for (LocalDate date = LocalDate.ofInstant(reqConf.getCurDt1().toInstant(), ZoneId.systemDefault());
+                 date.isBefore(LocalDate.ofInstant(reqConf.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
+                 date = date.plusDays(1)) {
                 genPart.genVolPart(chrgCountAmountLocal, reqConf, parVarCntKpr,
                         parCapCalcKprTp, ko, lstMeterVol, lstSelUsl, lstDayMeterVol,
                         Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant()), part);
@@ -142,10 +140,9 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                 part = 2;
                 log.trace("Расчет объемов услуг, после учёта экономии ОДН");
 
-                for (LocalDate date = LocalDate.ofInstant(calcStore.getCurDt1().toInstant(), ZoneId.systemDefault());
-                     date.isBefore(LocalDate.ofInstant(calcStore.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
-                     date = date.plusDays(1))
-                {
+                for (LocalDate date = LocalDate.ofInstant(reqConf.getCurDt1().toInstant(), ZoneId.systemDefault());
+                     date.isBefore(LocalDate.ofInstant(reqConf.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
+                     date = date.plusDays(1)) {
                     genPart.genVolPart(chrgCountAmountLocal, reqConf, parVarCntKpr,
                             parCapCalcKprTp, ko, lstMeterVol, lstSelUsl, lstDayMeterVol,
                             Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant()), part);
@@ -173,7 +170,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                 chrgCountAmountLocal.saveChargeAndRound(ko);
 
                 // 9. Сохранить фактическое наличие счетчика, в случае отсутствия объема, для формирования статистики
-                chrgCountAmountLocal.saveFactMeterTp(ko, lstMeterVol, reqConf.getCalcStore().getCurDt2());
+                chrgCountAmountLocal.saveFactMeterTp(ko, lstMeterVol, reqConf.getCurDt2());
             }
 
             if (reqConf.getTp() == 4) {

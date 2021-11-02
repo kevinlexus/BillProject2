@@ -86,11 +86,12 @@ public class MeterMngImpl implements MeterMng {
     /**
      * Получить объем в доле одного дня по счетчикам помещения
      *
-     * @param lstMeterVol -  объемы по счетчикам
-     * @param calcStore   - хранилище необходимых данных для расчета пени, начисления
-     * @return - объем в доле 1 дня к периоду наличия рабочего счетчика
+     * @param lstMeterVol объемы по счетчикам
+     * @param dtFrom начало
+     * @param dtTo окончание
+     * @return объем в доле 1 дня к периоду наличия рабочего счетчика
      */
-    public List<UslMeterDateVol> getPartDayMeterVol(List<SumMeterVol> lstMeterVol, CalcStore calcStore) {
+    public List<UslMeterDateVol> getPartDayMeterVol(List<SumMeterVol> lstMeterVol, Date dtFrom, Date dtTo) {
         // distinct список кодов услуг найденных счетчиков
         List<Usl> lstMeterUsl = lstMeterVol.stream()
                 .map(t -> em.find(Usl.class, t.getUslId())).distinct().collect(Collectors.toList());
@@ -106,8 +107,8 @@ public class MeterMngImpl implements MeterMng {
             // перебрать дни текущего месяца
             BigDecimal diff = vol;
             UslMeterDateVol lastUslMeterDateVol = null;
-            for (LocalDate date = LocalDate.ofInstant(calcStore.getCurDt1().toInstant(), ZoneId.systemDefault());
-                 date.isBefore(LocalDate.ofInstant(calcStore.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
+            for (LocalDate date = LocalDate.ofInstant(dtFrom.toInstant(), ZoneId.systemDefault());
+                 date.isBefore(LocalDate.ofInstant(dtTo.toInstant(), ZoneId.systemDefault()).plusDays(1));
                  date = date.plusDays(1))
             {
                 Date curDt = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
@@ -120,8 +121,8 @@ public class MeterMngImpl implements MeterMng {
                 }
             }
 
-            for (LocalDate date = LocalDate.ofInstant(calcStore.getCurDt1().toInstant(), ZoneId.systemDefault());
-                 date.isBefore(LocalDate.ofInstant(calcStore.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
+            for (LocalDate date = LocalDate.ofInstant(dtFrom.toInstant(), ZoneId.systemDefault());
+                 date.isBefore(LocalDate.ofInstant(dtTo.toInstant(), ZoneId.systemDefault()).plusDays(1));
                  date = date.plusDays(1))
             {
                 Date curDt = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());

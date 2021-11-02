@@ -77,15 +77,15 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
     /**
      * Обработка запроса  из WebController
      *
-     * @param tp       - тип выполнения 0-начисление, 1-задолженность и пеня, 2 - распределение объемов по вводу,
+     * @param tp       тип выполнения 0-начисление, 1-задолженность и пеня, 2 - распределение объемов по вводу,
      *                 4 - начисление по одной услуге, для автоначисления
-     * @param debugLvl - уровень отладки
-     * @param genDt    - дата формирования
-     * @param house    - дом
-     * @param vvod     - ввод
-     * @param ko       - объект Ко
-     * @param uk       - УК
-     * @param usl      - услуга
+     * @param debugLvl уровень отладки
+     * @param genDt    дата формирования
+     * @param house    дом
+     * @param vvod     ввод
+     * @param ko       объект Ко
+     * @param uk       УК
+     * @param usl      услуга
      */
     @Override
     @Transactional(
@@ -121,8 +121,6 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
             try {
                 if (Utl.in(reqConf.getTp(), 0, 1, 2, 4)) {
                     // расчет начисления, распределение объемов, расчет пени
-                    reqConf.prepareChrgCountAmount();
-
                     if (reqConf.getLstItems().size() > 1)
                         log.info("Будет обработано {} объектов", reqConf.getLstItems().size());
                     ProcessMng processMng = ctx.getBean(ProcessMng.class);

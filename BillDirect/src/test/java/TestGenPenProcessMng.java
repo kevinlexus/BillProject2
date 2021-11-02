@@ -195,13 +195,13 @@ public class TestGenPenProcessMng {
                 .withStopMark("processMng.process")
                 .build();
         reqConf.prepareId();
-        reqConf.getCalcStore().setDebugLvl(1);
+        reqConf.setDebugLvl(1);
 
         // сбросить изменения в БД принудительно, иначе из за QueryHints, не будут получены данные insert-ов
         penCurDAO.flush();
 
         // рассчитать задолженность, пеню
-        genPenProcessMng.genDebitPenForTest(reqConf.getCalcStore(), true, ko.getId());
+        genPenProcessMng.genDebitPenForTest(reqConf, true, ko.getId());
 
         // для того чтобы увидеть insert-ы в тестом режиме
         penCurDAO.findAll().size();

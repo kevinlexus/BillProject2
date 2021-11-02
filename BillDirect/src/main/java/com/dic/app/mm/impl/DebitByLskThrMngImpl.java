@@ -1,5 +1,7 @@
 package com.dic.app.mm.impl;
 
+import com.dic.app.RequestConfigDirect;
+import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.DebitByLskThrMng;
 import com.dic.app.mm.GenPenMng;
 import com.dic.bill.dao.*;
@@ -13,6 +15,7 @@ import com.dic.bill.model.scott.Penya;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileChrgPen;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +42,7 @@ import static java.util.stream.Collectors.toMap;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class DebitByLskThrMngImpl implements DebitByLskThrMng {
 
     @PersistenceContext
@@ -49,18 +53,8 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
     private final ApenyaDAO apenyaDAO;
     private final PenCorrDAO penCorrDAO;
     private final KwtpMgDAO kwtpMgDAO;
+    private final ConfigApp configApp;
 
-
-    public DebitByLskThrMngImpl(EntityManager em, GenPenMng genPenMng, PenCurDAO penCurDAO,
-                                PenyaDAO penDAO, ApenyaDAO apenyaDAO, PenCorrDAO penCorrDAO, KwtpMgDAO kwtpMgDAO) {
-        this.em = em;
-        this.genPenMng = genPenMng;
-        this.penCurDAO = penCurDAO;
-        this.penDAO = penDAO;
-        this.apenyaDAO = apenyaDAO;
-        this.penCorrDAO = penCorrDAO;
-        this.kwtpMgDAO = kwtpMgDAO;
-    }
 
     @Getter
     @Setter
@@ -88,7 +82,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
     @Transactional(
             propagation = Propagation.REQUIRED,
             rollbackFor = Exception.class)
-    public void genDebPen(Kart kart, CalcStore calcStore,
+    public void genDebPen(Kart kart, RequestConfigDirect reqConf,
                           CalcStoreLocal localStore) throws ErrorWhileChrgPen {
         @Value
         class TempSumRec implements SumRecMgDt {
@@ -98,9 +92,9 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
             Integer tp;
         }
         // дата начала расчета
-        Date dt1 = calcStore.getCurDt1();
+        Date dt1 = reqConf.getCurDt1();
         // дата окончания расчета
-        Date dt2 = calcStore.getGenDt();
+        Date dt2 = reqConf.getGenDt();
 
         // долги предыдущего периода (вх.сальдо)
         Map<Integer, PeriodSumma> mapDebPart1 = new HashMap<>();
@@ -109,13 +103,13 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                         new PeriodSumma(t.getDebOut(), t.getDebOut())));
 
         // добавить текущий период, для корректного сворачивания переплаты
-        mapDebPart1.putIfAbsent(calcStore.getPeriod(), new PeriodSumma(BigDecimal.ZERO, BigDecimal.ZERO));
+        mapDebPart1.putIfAbsent(Integer.parseInt(configApp.getPeriod()), new PeriodSumma(BigDecimal.ZERO, BigDecimal.ZERO));
 
         // добавить текущее начисление
         BigDecimal chrgSumm = localStore.getChrgSum();
         List<SumRecMgDt> lst = new ArrayList<>();
         lst.add(new TempSumRec(chrgSumm, null, dt1, null));
-        process(lst, mapDebPart1, null, null, false, calcStore.getPeriod(), false);
+        process(lst, mapDebPart1, null, null, false, Integer.parseInt(configApp.getPeriod()), false);
 
         // долги потоком, текущего, расчетного дня
         HashMap<Integer, PeriodSumma> mapDebCurrentDay;
@@ -161,7 +155,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
             // и не включая для расчета пени
             lst = localStore.getLstPayFlow().stream()
                     .map(t -> new TempSumRec(t.getSumma(), t.getMg(),
-                            t.getDt().getTime() < calcStore.getCurDt1().getTime() ? calcStore.getCurDt1() : t.getDt(), // исправить дату оплаты, если была принята предыдущим периодом
+                            t.getDt().getTime() < reqConf.getCurDt1().getTime() ? reqConf.getCurDt1() : t.getDt(), // исправить дату оплаты, если была принята предыдущим периодом
                             null))
                     .collect(Collectors.toList());
             process(lst, mapDebCurrentDay, dt, dt, true, null, false);
@@ -207,7 +201,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
 
         }
         // рассчитать и сохранить пеню
-        genSavePen(kart, calcStore, mapDebPositiveValues, mapDebLastDay, mapDebAmount);
+        genSavePen(kart, reqConf, mapDebPositiveValues, mapDebLastDay, mapDebAmount);
     }
 
     /**
@@ -219,7 +213,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
      * @param mapDebLastDay        долги на последний день
      * @param mapDebAmount         общая сумма долга по периодам, сгруппированная по дням
      */
-    private void genSavePen(Kart kart, CalcStore calcStore, Map<Date,
+    private void genSavePen(Kart kart, RequestConfigDirect reqConf, Map<Date,
             Map<Integer, BigDecimal>> mapDebPositiveValues, Map<Integer, BigDecimal> mapDebLastDay,
                             Map<Date, BigDecimal> mapDebAmount) throws ErrorWhileChrgPen {
         // расчитать пеню по долгам
@@ -242,7 +236,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                 if (debForPen.compareTo(BigDecimal.ZERO) > 0) {
                     Integer mg = entry.getKey();
                     // расчет пени
-                    Optional<GenPenMngImpl.PenDTO> penDto = genPenMng.calcPen(calcStore, debForPen, mg, kart, dt);
+                    Optional<GenPenMngImpl.PenDTO> penDto = genPenMng.calcPen(debForPen, mg, kart, dt);
                     penDto.ifPresent(t -> {
                         if (mapDebAmount.get(dt) == null || mapDebAmount.get(dt).compareTo(BigDecimal.ZERO) <= 0) {
                             // занулить пеню, если совокупный долг по дню <= 0
@@ -304,7 +298,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         // формировать c_penya:
         Map<Integer, BigDecimal> mapForCpenya = new HashMap<>();
         // вх.сальдо по пене - APENYA
-        apenyaDAO.getByLsk(kart.getLsk(), String.valueOf(calcStore.getPeriodBack()))
+        apenyaDAO.getByLsk(kart.getLsk(), String.valueOf(configApp.getPeriodBack()))
                 .forEach(t -> mapForCpenya.put(Integer.parseInt(t.getMg1()), Utl.nvl(t.getPenya(), BigDecimal.ZERO)));
         // прибавить корректировки пени C_PEN_CORR
         penCorrDAO.getByLsk(kart.getLsk())
@@ -315,7 +309,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
                 .forEach(t -> mapForCpenya.merge(Integer.parseInt(t.getDopl()),
                         Utl.nvl(t.getPenya(), BigDecimal.ZERO).negate(), BigDecimal::add));
         // добавить текущий период, для отображения свернутой переплаты, если имеется
-        mapForCpenya.merge(calcStore.getPeriod(), BigDecimal.ZERO, BigDecimal::add);
+        mapForCpenya.merge(Integer.parseInt(configApp.getPeriod()), BigDecimal.ZERO, BigDecimal::add);
         // прибавить текущее начисление пени
         //lstPenCurRec.forEach(t -> mapForCpenya.merge(t.getMg(), t.getPen(), BigDecimal::add));
         mapRoundCurPenya.forEach((k, v) -> mapForCpenya.merge(k, v.setScale(2, RoundingMode.HALF_UP), BigDecimal::add)); // ред.27.08.21 добавил округление, почему то не было...

@@ -75,7 +75,6 @@ public class GenPartImpl implements GenPart {
             throws ErrorWhileChrg, WrongParam {
 
         List<Nabor> lstNabor = naborMng.getActualNabor(ko, curDt);
-        CalcStore calcStore = reqConf.getCalcStore();
         // объем по услуге, за рассчитанный день
         Map<String, UslPriceVolKart> mapUslPriceVol = new HashMap<>(30);
 
@@ -183,7 +182,7 @@ public class GenPartImpl implements GenPart {
                     if (fkCalcTp.equals(25)) {
                         // текущее содержание - получить соц.норму
                         socStandart = kartPrMng.getSocStdtVol(kartArea, nabor, countPers);
-                        dayVol = kartArea.multiply(calcStore.getPartDayMonth());
+                        dayVol = kartArea.multiply(reqConf.getPartDayMonth());
                     } else if (fkCalcTp.equals(37)) {
                         // капремонт
                         if (countPers.capPriv != null) {
@@ -199,11 +198,11 @@ public class GenPartImpl implements GenPart {
                                 chrgCountAmountLocal.setCapPrivAdded(true);
                             }
                         } else {
-                            dayVol = kartArea.multiply(calcStore.getPartDayMonth());
+                            dayVol = kartArea.multiply(reqConf.getPartDayMonth());
                         }
                     } else {
                         // прочие услуги
-                        dayVol = kartArea.multiply(calcStore.getPartDayMonth());
+                        dayVol = kartArea.multiply(reqConf.getPartDayMonth());
                     }
                 } else if (nabor.getUsl().isBaseWaterCalc2()) {
                     // Х.В., Г.В., без уровня соцнормы/свыше, электроэнергия
@@ -230,7 +229,7 @@ public class GenPartImpl implements GenPart {
                             }
                         } else {
                             // норматив в пропорции на 1 день месяца
-                            tempVol = socStandart.vol.multiply(calcStore.getPartDayMonth());
+                            tempVol = socStandart.vol.multiply(reqConf.getPartDayMonth());
                         }
 
                         dayVol = tempVol;
@@ -263,7 +262,7 @@ public class GenPartImpl implements GenPart {
                                 }
                             } else {
                                 // норматив в пропорции на 1 день месяца
-                                tempVol = socStandart.vol.multiply(calcStore.getPartDayMonth());
+                                tempVol = socStandart.vol.multiply(reqConf.getPartDayMonth());
                             }
                             // умножить на норматив гКал * объем м3
                             dayVol = tempVol.multiply(nabor.getNorm());
@@ -331,7 +330,7 @@ public class GenPartImpl implements GenPart {
                     }
                     //  в доле на 1 день
                     // помещение с проживающими
-                    dayVol = tempVol.multiply(calcStore.getPartDayMonth());
+                    dayVol = tempVol.multiply(reqConf.getPartDayMonth());
                 } else if (Utl.in(fkCalcTp, 54)) {
                     // Отопление гкал. с уровнем соцнормы/свыше (Полыс.)
                     socStandart = kartPrMng.getSocStdtVol(kartArea, nabor, countPers);
@@ -348,12 +347,12 @@ public class GenPartImpl implements GenPart {
                         if (kartArea.compareTo(BigDecimal.ZERO) != 0) {
                             if (distTp.equals(1)) {
                                 // есть ОДПУ по отоплению гкал, начислить по распределению
-                                tempVol = naborVol.multiply(calcStore.getPartDayMonth());
+                                tempVol = naborVol.multiply(reqConf.getPartDayMonth());
                             } else if (Utl.in(distTp, 4, 5)) {
                                 // нет ОДПУ по отоплению гкал, начислить по нормативу с учётом отопительного сезона
                                 if (isChargeInNotHeatingPeriod || Utl.between(curDt, sprParamMng.getD1("MONTH_HEAT3"),
                                         sprParamMng.getD1("MONTH_HEAT4"))) {
-                                    tempVol = kartArea.multiply(naborNorm).multiply(calcStore.getPartDayMonth());
+                                    tempVol = kartArea.multiply(naborNorm).multiply(reqConf.getPartDayMonth());
                                 }
                             }
                         }
@@ -365,7 +364,7 @@ public class GenPartImpl implements GenPart {
                 } else if (Utl.in(fkCalcTp, 58)) {
                     // Отопление м2 с уровнем соцнормы/свыше (ТСЖ)
                     socStandart = kartPrMng.getSocStdtVol(kartArea, nabor, countPers);
-                    tempVol = kartArea.multiply(calcStore.getPartDayMonth());
+                    tempVol = kartArea.multiply(reqConf.getPartDayMonth());
                     //  в доле на 1 день
                     dayVol = tempVol.multiply(socStandart.procNorm);
                     dayVolOverSoc = tempVol.subtract(dayVol);
@@ -402,7 +401,7 @@ public class GenPartImpl implements GenPart {
                             // норматив в пропорции на 1 день месяца
                             // получить соцнорму
                             socStandart = kartPrMng.getSocStdtVol(BigDecimal.ZERO, nabor, countPers);
-                            dayVol = socStandart.vol.multiply(calcStore.getPartDayMonth());
+                            dayVol = socStandart.vol.multiply(reqConf.getPartDayMonth());
                         }
                     }
                 } else if (Utl.in(fkCalcTp, 57)) {
@@ -448,7 +447,7 @@ public class GenPartImpl implements GenPart {
 
                 } else if (Utl.in(fkCalcTp, 12)) {
                     // Антенна, код.замок
-                    dayVol = calcStore.getPartDayMonth();
+                    dayVol = reqConf.getPartDayMonth();
                 } else if (Utl.in(fkCalcTp, 20, 21, 23)) {
                     // Х.В., Г.В., Эл.Эн. содерж.общ.им.МКД, Эл.эн.гараж
                     if (Utl.in(fkCalcTp, 20, 21)) {
@@ -461,11 +460,11 @@ public class GenPartImpl implements GenPart {
                                     nabor.getUsl().getId());
                         }
                     }
-                    dayVol = naborVolAdd.multiply(calcStore.getPartDayMonth());
+                    dayVol = naborVolAdd.multiply(reqConf.getPartDayMonth());
                 } else if (Utl.in(fkCalcTp, 34)) {
                     // Повыш.коэфф Полыс
                     if (nabor.getUsl().getParentUsl() != null) {
-                        dayVol = calcStore.getPartDayMonth().multiply(naborNorm);
+                        dayVol = reqConf.getPartDayMonth().multiply(naborNorm);
                     } else {
                         throw new ErrorWhileChrg("ОШИБКА! По услуге usl.id=" + nabor.getUsl().getId() +
                                 " отсутствует PARENT_USL");
@@ -478,7 +477,7 @@ public class GenPartImpl implements GenPart {
                 } else if (fkCalcTp.equals(49)) {
                     // Вывоз мусора - кол-во прожив * цену (Кис.)
                     //area = kartArea;
-                    dayVol = BigDecimal.valueOf(countPers.kprNorm).multiply(calcStore.getPartDayMonth());
+                    dayVol = BigDecimal.valueOf(countPers.kprNorm).multiply(reqConf.getPartDayMonth());
                 } else if (fkCalcTp.equals(47)) {
                     // Тепл.энергия для нагрева ХВС (Кис.)
                     //area = kartArea;
@@ -514,7 +513,7 @@ public class GenPartImpl implements GenPart {
                 } else if (fkCalcTp.equals(6) && countPers.kpr > 0) {
                     // Очистка выгр.ям (Полыс.) (при наличии проживающих)
                     // просто взять цену
-                    dayVol = new BigDecimal(countPers.kprNorm).multiply(calcStore.getPartDayMonth());
+                    dayVol = new BigDecimal(countPers.kprNorm).multiply(reqConf.getPartDayMonth());
                 }
 
                 UslPriceVolKart uslPriceVolKart;
@@ -522,7 +521,7 @@ public class GenPartImpl implements GenPart {
                     // водоотведение, добавить составляющие по х.в. и г.в.
                     // было ли учтено кол-во проживающих? для устранения удвоения в стате по водоотведению
                     // ред. 05.04.19 - Кис. попросили делать пустую строку, даже если нет объема, для статы
-                    uslPriceVolKart = buildVol(curDt, calcStore, nabor, null, null,
+                    uslPriceVolKart = buildVol(curDt, reqConf, nabor, null, null,
                             kartMain, detailUslPrice, countPers, socStandart, isColdMeterExist,
                             dayColdWaterVol, dayColdWaterVolOverSoc, kartArea, areaOverSoc, isForChrg);
                     // сгруппировать по лиц.счету, услуге, для распределения по вводу
@@ -533,14 +532,14 @@ public class GenPartImpl implements GenPart {
                     countPers.kprNorm = 0;
                     countPers.kprOt = 0;
                     countPers.kprWr = 0;
-                    uslPriceVolKart = buildVol(curDt, calcStore, nabor, null, null,
+                    uslPriceVolKart = buildVol(curDt, reqConf, nabor, null, null,
                             kartMain, detailUslPrice, countPers, socStandart, isHotMeterExist,
                             dayHotWaterVol, dayHotWaterVolOverSoc, kartArea, areaOverSoc, isForChrg);
                     // сгруппировать по лиц.счету, услуге, для распределения по вводу
                     chrgCountAmountLocal.groupUslVol(uslPriceVolKart);
                 } else {
                     // прочие услуги
-                    uslPriceVolKart = buildVol(curDt, calcStore, nabor, isLinkedEmpty, isLinkedExistMeter,
+                    uslPriceVolKart = buildVol(curDt, reqConf, nabor, isLinkedEmpty, isLinkedExistMeter,
                             kartMain, detailUslPrice, countPers, socStandart, isMeterExist,
                             dayVol, dayVolOverSoc, kartArea, areaOverSoc, isForChrg);
                     if (nabor.getUsl().isBaseWaterCalc2()) {
@@ -695,23 +694,21 @@ public class GenPartImpl implements GenPart {
     /**
      * Построить объем для начисления
      *
-     * @param curDt              - дата расчета
-     * @param calcStore          - хранилище объемов
-     * @param nabor              - строка набора
-     * @param isLinkedEmpty      -
-     * @param isLinkedExistMeter -
-     * @param kartMain           - лиц.счет
-     * @param detailUslPrice     - инф. о расценке
-     * @param countPers          - инф. о кол.прожив.
-     * @param socStandart        - соцнорма
-     * @param isMeterExist       - наличие счетчика
-     * @param dayVol             - объем
-     * @param dayVolOverSoc      - объем свыше соц.нормы
-     * @param kartArea           - площадь
-     * @param areaOverSoc        - площадь свыше соц.нормы
-     * @param isForChrg          - сохранять в начислении? (C_CHARGE)
+     * @param curDt              дата расчета
+     * @param reqConf            запрос
+     * @param nabor              строка набора
+     * @param kartMain           лиц.счет
+     * @param detailUslPrice     инф. о расценке
+     * @param countPers          инф. о кол.прожив.
+     * @param socStandart        соцнорма
+     * @param isMeterExist       наличие счетчика
+     * @param dayVol             объем
+     * @param dayVolOverSoc      объем свыше соц.нормы
+     * @param kartArea           площадь
+     * @param areaOverSoc        площадь свыше соц.нормы
+     * @param isForChrg          сохранять в начислении? (C_CHARGE)
      */
-    private UslPriceVolKart buildVol(Date curDt, CalcStore calcStore, Nabor nabor, Boolean isLinkedEmpty,
+    private UslPriceVolKart buildVol(Date curDt, RequestConfigDirect reqConf, Nabor nabor, Boolean isLinkedEmpty,
                                      Boolean isLinkedExistMeter, Kart kartMain, DetailUslPrice detailUslPrice,
                                      CountPers countPers, SocStandart socStandart, boolean isMeterExist,
                                      BigDecimal dayVol, BigDecimal dayVolOverSoc, BigDecimal kartArea,
@@ -738,7 +735,7 @@ public class GenPartImpl implements GenPart {
                 .withKprOt(countPers.kprOt)
                 .withKprWr(countPers.kprWr)
                 .withKprNorm(countPers.kprNorm)
-                .withPartDayMonth(calcStore.getPartDayMonth())
+                .withPartDayMonth(reqConf.getPartDayMonth())
                 .withIsForChrg(isForChrg)
                 .build();
     }
