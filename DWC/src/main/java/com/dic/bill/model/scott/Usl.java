@@ -118,9 +118,11 @@ public class Usl implements java.io.Serializable {
     private Usl uslChild;
 
     // коды REU, для округления, для ГИС ЖКХ
+/*
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "USL", referencedColumnName = "USL")
     private Set<UslRound> uslRound = new HashSet<>(0);
+*/
 
     // использовать ли объем, в расчете водоотведения, например для двухкомпонентной услуги (х.в. для г.в.+ тепл.энерг для г.в.)
     @Type(type = "org.hibernate.type.NumericBooleanType")

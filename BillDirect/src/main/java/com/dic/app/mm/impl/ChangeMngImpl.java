@@ -10,6 +10,8 @@ import com.ric.cmn.Utl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -27,6 +29,7 @@ public class ChangeMngImpl implements ChangeMng {
     private final ConfigApp configApp;
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public List<ResultChange> genChanges(ChangesParam changesParam, Long klskId, Map<String, Map<String, List<LskCharge>>> chargeByPeriod) {
         log.info("klskId = {}", klskId);
         List<ResultChange> resultChanges = new ArrayList<>();

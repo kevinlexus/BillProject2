@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import javax.persistence.QueryHint;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 
 public interface KartDAO extends JpaRepository<Kart, String> {
 
@@ -26,6 +27,10 @@ public interface KartDAO extends JpaRepository<Kart, String> {
     @Query(value = "select distinct t.k_lsk_id from SCOTT.KART t, SCOTT.C_VVOD d where d.house_id=t.house_id " +
             "and d.house_id=:houseId /*and t.PSCH not in (8,9)*/ order by t.k_lsk_id", nativeQuery = true)
     List<BigDecimal> findAllKlskIdByHouseId(@Param("houseId") long houseId);
+
+    @Query(value = "select distinct t.k_lsk_id from SCOTT.KART t where " +
+            "t.kul||t.nd in (:kulNds) order by t.k_lsk_id", nativeQuery = true)
+    List<BigDecimal> findAllKlskIdByKulNds(@Param("kulNds") List<String> kulNds);
 
     @Query(value = "select distinct t.k_lsk_id from SCOTT.KART t, SCOTT.C_VVOD d, SCOTT.NABOR n " +
             "where d.house_id=t.house_id " +
@@ -70,7 +75,7 @@ public interface KartDAO extends JpaRepository<Kart, String> {
             "from scott.arch_kart k " +
             "join scott.a_charge2 t on k.lsk=t.lsk and k.mg between t.mgFrom and t.mgTo " +
             "left join scott.v_lsk_tp tp on k.fk_tp=tp.id " +
-            "left join scott.a_nabor2 a on k.lsk=a.lsk and t.usl=a.usl and k.mg between a.mgFrom and a.mgTo and to_date(k.mg||'01', 'YYYYMMDD') between a.dt1 and a.dt2 "+  // для старых архивных записей nabor, не имеющих разделения периодов dt1, dt2 в месяце
+            "left join scott.a_nabor2 a on k.lsk=a.lsk and t.usl=a.usl and k.mg between a.mgFrom and a.mgTo and to_date(k.mg||'01', 'YYYYMMDD') between a.dt1 and a.dt2 " +  // для старых архивных записей nabor, не имеющих разделения периодов dt1, dt2 в месяце
             "join scott.usl u on t.usl=u.usl " +
             "where t.type=1 and k.kul||k.nd in (:kulNds) and t.usl in (:uslIds) " +
             "and k.mg between :periodFrom and :periodTo and coalesce(t.summa,0) <> 0 " +
@@ -100,7 +105,7 @@ public interface KartDAO extends JpaRepository<Kart, String> {
             "from scott.arch_kart k " +
             "join scott.a_charge2 t on k.lsk=t.lsk and k.mg between t.mgFrom and t.mgTo " +
             "left join scott.v_lsk_tp tp on k.fk_tp=tp.id " +
-            "left join scott.a_nabor2 a on k.lsk=a.lsk and t.usl=a.usl and k.mg between a.mgFrom and a.mgTo and to_date(k.mg||'01', 'YYYYMMDD') between a.dt1 and a.dt2 "+  // для старых архивных записей nabor, не имеющих разделения периодов dt1, dt2 в месяце
+            "left join scott.a_nabor2 a on k.lsk=a.lsk and t.usl=a.usl and k.mg between a.mgFrom and a.mgTo and to_date(k.mg||'01', 'YYYYMMDD') between a.dt1 and a.dt2 " +  // для старых архивных записей nabor, не имеющих разделения периодов dt1, dt2 в месяце
             "join scott.usl u on t.usl=u.usl " +
             "where t.type=1 and k.k_lsk_id in (:klskIds) and t.usl in (:uslIds) " +
             "and k.mg between :periodFrom and :periodTo and coalesce(t.summa,0) <> 0 " +
@@ -119,11 +124,14 @@ public interface KartDAO extends JpaRepository<Kart, String> {
             "                          (:status = 0 or :status = s2.status) and " +
             "                           scott.c_changes.is_sel_lsk(:isSch, s2.psch, u.cd, s2.sch_el, :psch) = 1) ", nativeQuery = true)
     List<LskCharge> getArchChargesByKlskIds(@Param("status") int status, @Param("isSch") int isSch, @Param("psch") int psch,
-                                          @Param("woKpr") int woKpr, @Param("kran1") int kran1,
-                                          @Param("lskTp") int lskTp,
-                                          @Param("periodFrom") String periodFrom,
-                                          @Param("periodTo") String periodTo,
-                                          @Param("klskIds") List<Long> klskIds,
-                                          @Param("uslIds") List<String> uslIds);
+                                            @Param("woKpr") int woKpr, @Param("kran1") int kran1,
+                                            @Param("lskTp") int lskTp,
+                                            @Param("periodFrom") String periodFrom,
+                                            @Param("periodTo") String periodTo,
+                                            @Param("klskIds") Set<Long> klskIds,
+                                            @Param("uslIds") List<String> uslIds);
+
+    @Query(value = "select distinct t.k_lsk_id from scott.kart t where t.lsk in (:lsks)", nativeQuery = true)
+    List<Long> findKlskIdByLsk(@Param("lsks") List<String> lsks);
 
 }

@@ -2,6 +2,7 @@ package com.dic.app.mm.impl;
 
 import com.dic.app.RequestConfigDirect;
 import com.dic.app.mm.*;
+import com.dic.bill.dao.HouseDAO;
 import com.dic.bill.dao.KartDAO;
 import com.dic.bill.dto.*;
 import com.dic.bill.enums.SelObjTypes;
@@ -9,7 +10,7 @@ import com.dic.bill.model.scott.*;
 import com.ric.cmn.CommonConstants;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileGen;
-import com.ric.dto.CommonResult;
+import com.ric.cmn.excp.WrongParam;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,12 +24,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -54,15 +50,14 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
     private final ChangeMng changeMng;
     private final DistVolMng distVolMng;
     private final KartDAO kartDAO;
+    private final HouseDAO houseDAO;
     private final ApplicationContext ctx;
 
-    @PersistenceContext
-    private EntityManager em;
 
     @Autowired
     public ProcessMngImpl(@Lazy DistVolMng distVolMng, ConfigApp config, ThreadMng<Long> threadMng,
                           GenChrgProcessMng genChrgProcessMng, GenPenProcessMng genPenProcessMng,
-                          MigrateMng migrateMng, ChangeMng changeMng, KartDAO kartDAO, ApplicationContext ctx) {
+                          MigrateMng migrateMng, ChangeMng changeMng, KartDAO kartDAO, HouseDAO houseDAO, ApplicationContext ctx) {
         this.distVolMng = distVolMng;
         this.config = config;
         this.threadMng = threadMng;
@@ -71,6 +66,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
         this.migrateMng = migrateMng;
         this.changeMng = changeMng;
         this.kartDAO = kartDAO;
+        this.houseDAO = houseDAO;
         this.ctx = ctx;
     }
 
@@ -123,7 +119,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                     // расчет начисления, распределение объемов, расчет пени
                     if (reqConf.getLstItems().size() > 1)
                         log.info("Будет обработано {} объектов", reqConf.getLstItems().size());
-                    ProcessMng processMng = ctx.getBean(ProcessMng.class);
+                    ProcessMng processMng = ctx.getBean(ProcessMng.class); // возможно создание нового объекта и вызов processAll - чтобы был evict кэша?
                     processMng.processAll(reqConf);
                 }
                 if (Utl.in(reqConf.getTp(), 4)) {
@@ -155,8 +151,8 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
     @CacheEvict(value = {"ReferenceMng.getUslOrgRedirect"}, allEntries = true)
     @Transactional(propagation = Propagation.REQUIRED,
             rollbackFor = Exception.class)
-    public void processAll(RequestConfigDirect reqConf) throws ErrorWhileGen {
-
+    public List<LskChargeUsl> processAll(RequestConfigDirect reqConf) throws ErrorWhileGen {
+        List<LskChargeUsl> resultChargeUsl;
         long startTime = System.currentTimeMillis();
         log.trace("НАЧАЛО процесса {} заданных объектов", reqConf.getTpName());
         // заблокировать, если нужно для долго длящегося процесса
@@ -170,14 +166,14 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
             // ВЫЗОВ
             if (reqConf.isMultiThreads()) {
                 // вызвать в новой транзакции, многопоточно
-                threadMng.invokeThreads(reqConf, reqConf.getRqn());
+                resultChargeUsl = threadMng.invokeThreads(reqConf, reqConf.getRqn());
             } else {
                 // не удалять комментарий, был случай выполнялось однопоточно на проде ред.09.03.21
                 log.info("ВНИМАНИЕ! ВЫПОЛНЯЕТСЯ ОДНОПОТОЧНО!!!");
                 log.info("ВНИМАНИЕ! ВЫПОЛНЯЕТСЯ ОДНОПОТОЧНО!!!");
                 log.info("ВНИМАНИЕ! ВЫПОЛНЯЕТСЯ ОДНОПОТОЧНО!!!");
                 // вызвать в той же транзакции, однопоточно, для Unit - тестов
-                selectInvokeProcess(reqConf);
+                resultChargeUsl = selectInvokeProcess(reqConf);
             }
 
         } finally {
@@ -202,6 +198,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
         log.trace("ОКОНЧАНИЕ процесса {} заданных объектов - Общее время выполнения = {} {}",
                 reqConf.getTpName(), totalTime, tpTime);
         log.trace("");
+        return resultChargeUsl;
     }
 
 
@@ -218,13 +215,12 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
         long startTime = System.currentTimeMillis();
         log.trace("НАЧАЛО потока {}", reqConf.getTpName());
 
-        selectInvokeProcess(reqConf);
-
-        CommonResult res = new CommonResult(-111111, 0);
+        List<LskChargeUsl> lskChargeUsls = selectInvokeProcess(reqConf);
+        CommonResult resultLskCharge = new CommonResult(lskChargeUsls);
         long endTime = System.currentTimeMillis();
         long totalTime = endTime - startTime;
         log.trace("ОКОНЧАНИЕ потока {}, время расчета={} мс", reqConf.getTpName(), totalTime);
-        return CompletableFuture.completedFuture(res);
+        return CompletableFuture.completedFuture(resultLskCharge);
     }
 
 
@@ -232,8 +228,10 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
      * Обработать очередь объектов
      *
      * @param reqConf - конфиг запроса
+     * @return
      */
-    private void selectInvokeProcess(RequestConfigDirect reqConf) throws ErrorWhileGen {
+    private List<LskChargeUsl> selectInvokeProcess(RequestConfigDirect reqConf) throws ErrorWhileGen {
+        List<LskChargeUsl> resultLskChargeUsl = new ArrayList<>();
         switch (reqConf.getTp()) {
             case 0:
             case 1:
@@ -262,7 +260,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                                     genPenProcessMng.genDebitPen(reqConf, true, id);
                                 } else {
                                     // расчет начисления и начисления для распределения объемов
-                                    genChrgProcessMng.genChrg(reqConf, id);
+                                    resultLskChargeUsl.addAll(genChrgProcessMng.genChrg(reqConf, id));
                                 }
                                 if (reqConf.isSingleObjectCalc()) {
                                     log.info("****** {} фин.лиц.сч. klskId={} - окончание   ******",
@@ -332,65 +330,56 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
             default:
                 throw new ErrorWhileGen("Некорректный параметр reqConf.tp=" + reqConf.getTp());
         }
+        return resultLskChargeUsl;
     }
 
     @Override
-    public int processChanges(ChangesParam changesParam) throws ExecutionException, InterruptedException {
-        // Map устроен: klskId, (mg, (uslId, List<LskCharges>))
-        Map<Long, Map<String, Map<String, List<LskCharge>>>> chargesByKlskId;
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public int processChanges(ChangesParam changesParam) throws ExecutionException, InterruptedException, ErrorWhileGen, WrongParam {
+        if (Integer.parseInt(changesParam.getPeriodTo()) > Integer.parseInt(config.getPeriod())) {
+            throw new WrongParam("Замыкающий период перерасчета " + changesParam.getPeriodTo() + " не может быть позже текущего" + changesParam.getPeriodTo());
+        }
+
         if (!CollectionUtils.isEmpty(changesParam.getSelObjList())) {
-            List<String> kulNdList = changesParam.getSelObjList().stream()
-                    .filter(t -> t.getTp().equals(SelObjTypes.HOUSE))
-                    .map(t -> t.getKul() + t.getNd()).collect(Collectors.toList());
-            List<Long> klskIdList = changesParam.getSelObjList().stream()
-                    .filter(t -> t.getTp().equals(SelObjTypes.FIN_ACCOUNT))
-                    .map(Selobj::getKlskId).collect(Collectors.toList());
-            List<String> lskList = changesParam.getSelObjList().stream()
-                    .filter(t -> t.getTp().equals(SelObjTypes.LSK))
-                    .map(Selobj::getLsk).collect(Collectors.toList());
-            List<String> uslListForQuery = changesParam.getChangeUslList().stream().map(ChangeUsl::getUslId).collect(Collectors.toList());
-            if (changesParam.getIsAddUslWaste()) {
-                // добавить в начисление услуги по водоотведению
-                if (uslListForQuery.stream().anyMatch(t -> config.getWaterUslCodes().contains(t))) {
-                    uslListForQuery.addAll(config.getWasteUslCodes());
-                } else if (uslListForQuery.stream().anyMatch(t -> config.getWaterOdnUslCodes().contains(t))) {
-                    uslListForQuery.addAll(config.getWasteOdnUslCodes());
+            // Получить список объектов
+            List<String> kulNds;
+            Set<Long> klskIds = new HashSet<>();
+            if (1 == 1 || changesParam.getSelObjList().stream().anyMatch(t -> t.getTp().equals(SelObjTypes.ALL))) {
+                // весь фонд. Выбрать все дома
+                kulNds = houseDAO.getAllKulNds();
+            } else {
+                // выборочно
+                kulNds = changesParam.getSelObjList().stream()
+                        .filter(t -> t.getTp().equals(SelObjTypes.HOUSE))
+                        .map(t -> t.getKul() + t.getNd()).collect(Collectors.toList());
+                klskIds = changesParam.getSelObjList().stream()
+                        .filter(t -> t.getTp().equals(SelObjTypes.FIN_ACCOUNT))
+                        .map(Selobj::getKlskId).collect(Collectors.toSet());
+                List<String> lsks = changesParam.getSelObjList().stream()
+                        .filter(t -> t.getTp().equals(SelObjTypes.LSK))
+                        .map(Selobj::getLsk).collect(Collectors.toList());
+                if (lsks.size() > 0) {
+                    klskIds.addAll(kartDAO.findKlskIdByLsk(lsks));
                 }
             }
 
-            List<LskCharge> charges = new ArrayList<>();
-            if (kulNdList.size() > 0) {
-                log.info("Перерасчет по домам:");
-                charges = kartDAO.getArchChargesByKulNd(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
-                        changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
-                        changesParam.getProcessKran(), changesParam.getProcessLskTp(),
-                        changesParam.getPeriodFrom(), changesParam.getPeriodTo(),
-                        kulNdList, uslListForQuery
-                );
+            // Получить текущее начисление по объектам
+            List<LskChargeUsl> currentCharges = new ArrayList<>();
+            if (Utl.between(Integer.parseInt(config.getPeriod()),
+                    Integer.parseInt(changesParam.getPeriodFrom()), Integer.parseInt(changesParam.getPeriodTo()))) {
+                currentCharges = getCurrentCharges(kulNds, klskIds);
             }
-            if (klskIdList.size() > 0) {
-                log.info("Перерасчет по фин.лиц.сч:");
-                charges = kartDAO.getArchChargesByKlskIds(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
-                        changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
-                        changesParam.getProcessKran(), changesParam.getProcessLskTp(),
-                        changesParam.getPeriodFrom(), changesParam.getPeriodTo(),
-                        klskIdList, uslListForQuery
-                );
-            }
-            if (lskList.size() > 0) {
-                log.info("Перерасчет по лиц.сч:");
-                // todo
+            currentCharges.forEach(t -> log.info("Текущее начисление klskId={}, lsk={}, uslId={}, orgId={}, area={}, summa={}, price={}",
+                    t.getKLskId(), t.getLsk(), t.getUslId(), t.getOrgId(), t.getArea(), t.getSumma(), t.getPrice()));
 
-            }
+            // Получить архивное начисление по объектам
+            List<LskCharge> archCharges = getArchCharges(changesParam, kulNds, klskIds);
 
-            if (changesParam.getSelObjList().get(0).getTp().equals(SelObjTypes.ALL)) {
-                log.info("Перерасчет по всему фонду:");
-                // todo
+            // Map устроен: klskId, (mg, (uslId, List<LskCharges>))
+            Map<Long, Map<String, Map<String, List<LskCharge>>>> chargesByKlskId;
+            chargesByKlskId = archCharges.stream().collect(groupingBy(LskCharge::getKlskId, groupingBy(LskCharge::getMg, groupingBy(LskCharge::getUslId))));
 
-            }
-            charges.forEach(t-> log.info("Начисление по lsk={}, mg={}, usl={}, chrg.org={}, nabor.org={}, составило summa={}",
-                    t.getLsk(), t.getMg(), t.getUslId(), t.getChrgOrgId(), t.getNaborOrgId(), t.getSumma()));
-            chargesByKlskId = charges.stream().collect(groupingBy(LskCharge::getKlskId, groupingBy(LskCharge::getMg, groupingBy(LskCharge::getUslId))));
+            // Выполнение перерасчета
             List<ResultChange> resultChanges = chargesByKlskId.entrySet().parallelStream()
                     .flatMap(t -> changeMng.genChanges(changesParam, t.getKey(), t.getValue()).stream())
                     .collect(Collectors.toList());
@@ -407,5 +396,115 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
 
         return 0;
     }
+
+    /**
+     * Получить архивное начисление по объектам
+     *
+     * @param changesParam параметры перерасчета
+     * @param kulNds       список домов
+     * @param klskIds      список фин.лиц.сч.
+     */
+
+    private List<LskCharge> getArchCharges(ChangesParam changesParam, List<String> kulNds, Set<Long> klskIds) {
+        String archPeriodTo;
+        if (Integer.parseInt(changesParam.getPeriodTo()) == Integer.parseInt(config.getPeriod())) {
+            archPeriodTo = config.getPeriodBack();
+        } else {
+            archPeriodTo = changesParam.getPeriodTo();
+        }
+
+        List<String> uslListForQuery = changesParam.getChangeUslList().stream().map(ChangeUsl::getUslId).collect(Collectors.toList());
+        if (changesParam.getIsAddUslWaste()) {
+            // добавить услуги по водоотведению
+            if (uslListForQuery.stream().anyMatch(t -> config.getWaterUslCodes().contains(t))) {
+                uslListForQuery.addAll(config.getWasteUslCodes());
+            } else if (uslListForQuery.stream().anyMatch(t -> config.getWaterOdnUslCodes().contains(t))) {
+                uslListForQuery.addAll(config.getWasteOdnUslCodes());
+            }
+        }
+
+        List<LskCharge> archCharges = new ArrayList<>();
+        if (kulNds.size() > 0) {
+            log.info("Перерасчет по домам:");
+            archCharges = kartDAO.getArchChargesByKulNd(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
+                    changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
+                    changesParam.getProcessKran(), changesParam.getProcessLskTp(),
+                    changesParam.getPeriodFrom(), archPeriodTo,
+                    kulNds, uslListForQuery
+            );
+        }
+        if (klskIds.size() > 0) {
+            log.info("Перерасчет по фин.лиц.сч:");
+            archCharges = kartDAO.getArchChargesByKlskIds(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
+                    changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
+                    changesParam.getProcessKran(), changesParam.getProcessLskTp(),
+                    changesParam.getPeriodFrom(), archPeriodTo,
+                    klskIds, uslListForQuery
+            );
+        }
+        archCharges.forEach(t -> log.info("Начисление по lsk={}, mg={}, usl={}, chrg.org={}, nabor.org={}, составило summa={}",
+                t.getLsk(), t.getMg(), t.getUslId(), t.getChrgOrgId(), t.getNaborOrgId(), t.getSumma()));
+        return archCharges;
+    }
+
+    /**
+     * Получить текущее начисление по объектам
+     *
+     * @param kulNds  список домов
+     * @param klskIds список фин.лиц.сч.
+     */
+    private List<LskChargeUsl> getCurrentCharges(List<String> kulNds, Set<Long> klskIds) throws ErrorWhileGen {
+        Set<Long> klskIdsCharged = new HashSet<>(); // для исключения дублей в начислении
+        Set<Long> klskIdsForCharge = new HashSet<>(klskIds);
+        List<LskChargeUsl> lskChargeUsl = new ArrayList<>();
+        if (kulNds.size() > 0) {
+            // по списку домов
+            RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
+                    .withTp(0)
+                    .withGenDt(config.getCurDt2())
+                    .withCurDt1(config.getCurDt1())
+                    .withCurDt2(config.getCurDt2())
+                    .withKulNds(kulNds)
+                    .withDebugLvl(1)
+                    .withRqn(config.incNextReqNum())
+                    .withIsMultiThreads(true)
+                    .withStopMark("processMng.process")
+                    .withsaveResult(false)
+                    .build();
+            reqConf.prepareId();
+            lskChargeUsl = processAll(reqConf);
+            lskChargeUsl.forEach(t -> klskIdsCharged.add(t.getKLskId()));
+        }
+        log.info("Кол-во записей начисления по домам {}", lskChargeUsl.size());
+
+        klskIdsForCharge.removeIf(klskIdsCharged::contains);
+        if (klskIdsForCharge.size() > 0) {
+            // по списку фин.лиц.сч.
+            genChargeByKlskIds(lskChargeUsl, klskIdsForCharge);
+        }
+        log.info("Кол-во записей начисления по фин.лиц.сч. {}", lskChargeUsl.size());
+        return lskChargeUsl;
+    }
+
+    private void genChargeByKlskIds(List<LskChargeUsl> lskChargeUsl, Set<Long> klskIds) throws ErrorWhileGen {
+
+        RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
+                .withTp(0)
+                .withGenDt(config.getCurDt2())
+                .withCurDt1(config.getCurDt1())
+                .withCurDt2(config.getCurDt2())
+                .withKlskIds(new ArrayList<>(klskIds))
+                .withDebugLvl(1)
+                .withRqn(config.incNextReqNum())
+                .withIsMultiThreads(true)
+                .withStopMark("processMng.process")
+                .withsaveResult(false)
+                .build();
+        reqConf.prepareId();
+        List<LskChargeUsl> charges = processAll(reqConf);
+        log.info("Кол-во записей начисления {}", charges.size());
+        lskChargeUsl.addAll(charges);
+    }
+
 
 }

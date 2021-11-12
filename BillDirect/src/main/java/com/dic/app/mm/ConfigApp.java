@@ -57,5 +57,7 @@ public interface ConfigApp {
 
     Set<String> getWasteOdnUslCodes();
 
-    void checkTerminate();
+    Map<String, Set<String>> getMapUslRound();
+
+    public void checkTerminate();
 }

@@ -3,8 +3,9 @@ package com.dic.app.mm.impl;
 import com.dic.app.RequestConfigDirect;
 import com.dic.app.mm.ProcessMng;
 import com.dic.app.mm.ThreadMng;
+import com.dic.bill.dto.CommonResult;
+import com.dic.bill.dto.LskChargeUsl;
 import com.ric.cmn.excp.ErrorWhileGen;
-import com.ric.dto.CommonResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -17,6 +18,8 @@ import javax.persistence.PersistenceContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 /**
  * Сервис создания потоков
@@ -35,13 +38,13 @@ public class ThreadMngImpl<T> implements ThreadMng<T> {
 
     /**
      * Вызвать выполнение потоков распределения объемов/ начисления - новый метод
-     *
-     * @param reqConf - кол-во потоков
-     * @param rqn     - номер запроса
+     * @param reqConf кол-во потоков
+     * @param  rqn     номер запроса
+     * @return результат начисления
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void invokeThreads(RequestConfigDirect reqConf, int rqn)
+    public List<LskChargeUsl> invokeThreads(RequestConfigDirect reqConf, int rqn)
             throws ErrorWhileGen {
         if (reqConf.getLstItems().size() > 1) log.info("Будет создано {} потоков", reqConf.getCntThreads());
         List<CompletableFuture<CommonResult>> lst = new ArrayList<>();
@@ -57,8 +60,14 @@ public class ThreadMngImpl<T> implements ThreadMng<T> {
         }
 
         // ждать потоки
-        lst.forEach(CompletableFuture::join);
-
+        return lst.stream().flatMap(t -> {
+            try {
+                return t.get().getLskChargeUsls().stream();
+            } catch (InterruptedException | ExecutionException e) {
+                log.error("Ошибка во время выполнения потока");
+            }
+            return null;
+        }).collect(Collectors.toList());
     }
 
 

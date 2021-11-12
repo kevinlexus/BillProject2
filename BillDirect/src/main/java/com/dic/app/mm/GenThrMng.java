@@ -3,7 +3,7 @@ package com.dic.app.mm;
 import java.util.concurrent.Future;
 
 import com.dic.bill.model.scott.SprGenItm;
-import com.ric.dto.CommonResult;
+import com.dic.bill.dto.CommonResult;
 
 public interface GenThrMng {
 

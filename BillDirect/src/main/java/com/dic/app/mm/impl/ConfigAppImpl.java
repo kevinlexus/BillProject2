@@ -4,14 +4,12 @@ import com.dic.app.mm.ConfigApp;
 import com.dic.bill.Lock;
 import com.dic.bill.dao.TuserDAO;
 import com.dic.bill.dao.UslDAO;
+import com.dic.bill.dao.UslRoundDAO;
 import com.dic.bill.dto.SprPenKey;
 import com.dic.bill.mm.ParMng;
 import com.dic.bill.mm.SprParamMng;
 import com.dic.bill.mm.impl.SprParamMngImpl;
-import com.dic.bill.model.scott.SprPen;
-import com.dic.bill.model.scott.Stavr;
-import com.dic.bill.model.scott.Tuser;
-import com.dic.bill.model.scott.Usl;
+import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +27,6 @@ import javax.persistence.EntityManager;
 import java.io.File;
 import java.text.ParseException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -50,6 +47,7 @@ public class ConfigAppImpl implements ConfigApp {
     private final SprParamMng sprParamMng;
     private final ParMng parMng;
     private final UslDAO uslDAO;
+    private final UslRoundDAO uslRoundDAO;
     private final TuserDAO tuserDAO;
 
     // номер текущего запроса
@@ -65,16 +63,18 @@ public class ConfigAppImpl implements ConfigApp {
     // справочник ставок рефинансирования
     private List<Stavr> lstStavr;
     // справочник дат начала пени
-    private Map<SprPenKey, SprPen> mapSprPen = new ConcurrentHashMap<>();
+    private Map<SprPenKey, SprPen> mapSprPen = new HashMap<>();
     // справочник дат
-    private Map<String, Date> mapDate = new ConcurrentHashMap<>();
+    private Map<String, Date> mapDate = new HashMap<>();
     // справочник булевых параметров
-    private Map<String, Boolean> mapParams = new ConcurrentHashMap<>();
+    private Map<String, Boolean> mapParams = new HashMap<>();
     // справочники кодов услуг для перерасчетов
     private Set<String> waterUslCodes;
     private Set<String> wasteUslCodes;
     private Set<String> waterOdnUslCodes;
     private Set<String> wasteOdnUslCodes;
+    // справочник кодов услуг, для округления начисления, для ГИС ЖКХ
+    private Map<String, Set<String>> mapUslRound = new HashMap<>();
 
     @PostConstruct
     private void setUp() {
@@ -204,6 +204,10 @@ public class ConfigAppImpl implements ConfigApp {
                 .stream().map(Usl::getId).collect(Collectors.toUnmodifiableSet());
         wasteOdnUslCodes = uslDAO.findByCdIn(List.of("канализ.ОДН"))
                 .stream().map(Usl::getId).collect(Collectors.toUnmodifiableSet());
+        mapUslRound =
+                uslRoundDAO.findAll().stream().collect(Collectors.groupingBy(UslRound::getReu,
+                        Collectors.mapping(t -> t.getUsl().getId(), Collectors.toSet())));
+
     }
 
 

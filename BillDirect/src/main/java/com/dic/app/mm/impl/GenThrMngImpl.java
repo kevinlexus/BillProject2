@@ -1,3 +1,4 @@
+/*
 package com.dic.app.mm.impl;
 
 import java.util.concurrent.Future;
@@ -16,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.dic.app.mm.ExecMng;
 import com.dic.app.mm.GenThrMng;
 import com.dic.bill.model.scott.SprGenItm;
-import com.ric.dto.CommonResult;
+import com.dic.bill.dto.CommonResult;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,13 +31,15 @@ public class GenThrMngImpl implements GenThrMng {
 	@Autowired
 	private ExecMng execMng;
 
-	/**
+	*/
+/**
 	 * Выполнить поток. Propagation.REQUIRES_NEW - так как не удается в новом потоке
 	 * продолжить транзакцию от главного, REQUIRED - не помогло.
 	 *
 	 * @param var - вид задачи
 	 * @param id - id объекта
-	 */
+	 *//*
+
 	@Async
 	@Override
 	@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor=Exception.class)
@@ -73,4 +76,4 @@ public class GenThrMngImpl implements GenThrMng {
 		CommonResult res = new CommonResult(0, 0);
 		return new AsyncResult<>(res);
 	}
-}
+}*/

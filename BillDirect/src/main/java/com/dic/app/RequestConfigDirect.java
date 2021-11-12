@@ -11,13 +11,11 @@ import com.ric.cmn.Utl;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -39,6 +37,8 @@ public class RequestConfigDirect implements Cloneable {
         PREMISE,
         UK,
         HOUSE,
+        KULNDS,
+        KLSK_IDS,
         VVOD,
         ALL,
         NOT_SPECIFIED
@@ -75,13 +75,14 @@ public class RequestConfigDirect implements Cloneable {
     Vvod vvod = null;
     // помещение
     Ko ko = null;
-
+    // список кодов улиц+домов (kul+nd)
+    List<String> kulNds;
+    // список фин.лиц.сч.
+    List<Long> klskIds;
     // начальный и конечный лиц.счет
     String lskFrom;
     String lskTo;
 
-    // выбранный тип объекта формирования
-    private int tpSel;
     // блокировать для выполнения длительного процесса?
     private boolean isLockForLongLastingProcess = false;
     // задан расчет одного объекта? (используется в логгировании)
@@ -99,8 +100,11 @@ public class RequestConfigDirect implements Cloneable {
     // список String объектов формирования
     List<String> lstStrItems;
 
-    // хранилище объемов по вводу (дому) (для ОДН и прочих нужд)
+    // хранилище объемов по вводу (дому) (для ОДН и прочих нужд) - работает только в начислении для распределения объема
     private ChrgCountAmount chrgCountAmount;
+
+    // сохранять результаты расчета в БД
+    boolean saveResult = true;
 
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -170,7 +174,6 @@ public class RequestConfigDirect implements Cloneable {
                 // по помещению
                 calcScope = CalcScope.PREMISE;
                 isLockForLongLastingProcess = false;
-                setTpSel(1);
                 lstItems = new ArrayList<>(1);
                 lstItems.add(ko.getId());
                 cntThreads = 1;
@@ -179,7 +182,6 @@ public class RequestConfigDirect implements Cloneable {
                 // по УК
                 calcScope = CalcScope.UK;
                 isLockForLongLastingProcess = true;
-                setTpSel(4); // почему 0 как и по всему фонду???
                 lstItems = kartDao.findAllKlskIdByReuId(uk.getReu())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
                 if (tp == 3) {
@@ -192,9 +194,31 @@ public class RequestConfigDirect implements Cloneable {
                 // по дому
                 calcScope = CalcScope.HOUSE;
                 isLockForLongLastingProcess = false;
-                setTpSel(3);
                 lstItems = kartDao.findAllKlskIdByHouseId(house.getId())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
+                if (tp == 3) {
+                    // кол-во потоков для начисления по распределению объемов
+                    cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
+                } else {
+                    cntThreads = CNT_THREADS_FOR_COMMON_TASKS;
+                }
+            } else if (!CollectionUtils.isEmpty(kulNds)) {
+                // по списку домов в виде kul+nd
+                calcScope = CalcScope.KULNDS;
+                isLockForLongLastingProcess = true;
+                lstItems = kartDao.findAllKlskIdByKulNds(kulNds)
+                        .stream().map(BigDecimal::longValue).collect(Collectors.toList());
+                if (tp == 3) {
+                    // кол-во потоков для начисления по распределению объемов
+                    cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
+                } else {
+                    cntThreads = CNT_THREADS_FOR_COMMON_TASKS;
+                }
+            } else if (!CollectionUtils.isEmpty(klskIds)) {
+                // по списку фин.лиц.сч.
+                calcScope = CalcScope.KLSK_IDS;
+                isLockForLongLastingProcess = true;
+                lstItems = klskIds;
                 if (tp == 3) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
@@ -205,7 +229,6 @@ public class RequestConfigDirect implements Cloneable {
                 // по вводу
                 calcScope = CalcScope.VVOD;
                 isLockForLongLastingProcess = false;
-                setTpSel(2);
                 lstItems = kartDao.findAllKlskIdByVvodId(vvod.getId())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
                 if (tp == 3) {
@@ -218,7 +241,6 @@ public class RequestConfigDirect implements Cloneable {
                 // по всему фонду
                 calcScope = CalcScope.ALL;
                 isLockForLongLastingProcess = true;
-                setTpSel(5);
                 // конвертировать из List<BD> в List<Long> (native JPA представляет k_lsk_id только в BD и происходит type Erasure)
                 lstItems = kartDao.findAllKlskId()
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
@@ -328,6 +350,10 @@ public class RequestConfigDirect implements Cloneable {
         Org uk = null;
         // дом
         House house = null;
+        // список кодов улиц+домов (kul+nd)
+        List<String> kulNds;
+        // список фин.лиц.сч.
+        List<Long> klskIds;
         // ввод
         Vvod vvod = null;
         // помещение
@@ -343,6 +369,8 @@ public class RequestConfigDirect implements Cloneable {
         List<Long> lstItems;
         // маркер остановки формирования
         String stopMark;
+        // сохранять результаты расчета в БД
+        boolean saveResult = true;
 
         private RequestConfigDirectBuilder() {
         }
@@ -396,6 +424,16 @@ public class RequestConfigDirect implements Cloneable {
             return this;
         }
 
+        public RequestConfigDirectBuilder withKulNds(List<String> kulNds) {
+            this.kulNds = kulNds;
+            return this;
+        }
+
+        public RequestConfigDirectBuilder withKlskIds(List<Long> klskIds) {
+            this.klskIds = klskIds;
+            return this;
+        }
+
         public RequestConfigDirectBuilder withVvod(Vvod vvod) {
             this.vvod = vvod;
             return this;
@@ -426,6 +464,11 @@ public class RequestConfigDirect implements Cloneable {
             return this;
         }
 
+        public RequestConfigDirectBuilder withsaveResult(boolean saveResult) {
+            this.saveResult = saveResult;
+            return this;
+        }
+
         // строить не builder-ом!!!
         public RequestConfigDirect build() {
             RequestConfigDirect requestConfigDirect = new RequestConfigDirect();
@@ -437,6 +480,8 @@ public class RequestConfigDirect implements Cloneable {
             requestConfigDirect.setCurDt2(curDt2);
             requestConfigDirect.setUk(uk);
             requestConfigDirect.setHouse(house);
+            requestConfigDirect.setKulNds(kulNds);
+            requestConfigDirect.setKlskIds(klskIds);
             requestConfigDirect.setVvod(vvod);
             requestConfigDirect.setKo(ko);
             requestConfigDirect.setLskFrom(lskFrom);

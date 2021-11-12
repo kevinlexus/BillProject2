@@ -2,6 +2,7 @@ package com.dic.app.mm.impl;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,9 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.dic.bill.dao.DebDAO;
 import com.dic.bill.dto.SumDebMgRec;
 import com.dic.bill.dto.SumDebUslMgRec;
-import com.ric.dto.CommonResult;
+import com.dic.bill.dto.CommonResult;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StopWatch;
 
 
@@ -271,7 +273,7 @@ public class MigrateMngImpl implements MigrateMng {
 
         log.info("ОКОНЧАНИЕ РАСПРЕДЕЛЕНИЯ лиц.счета={}", lsk);
         log.info("");
-        CommonResult res = new CommonResult(0, 0);
+        CommonResult res = new CommonResult(Collections.EMPTY_LIST);
     }
 
     /**

@@ -472,7 +472,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
      * @param isOverSoc
      */
     private void addUslVolChrg(UslPriceVolKartDt u, Usl uslFact, Org orgFact,
-            BigDecimal vol, BigDecimal area, BigDecimal price, boolean isOverSoc) {
+                               BigDecimal vol, BigDecimal area, BigDecimal price, boolean isOverSoc) {
         UslVolCharge prev = getLstUslVolCharge().stream()
                 .filter(t -> t.kart.equals(u.kart) && t.usl.equals(uslFact) && t.org.equals(orgFact)
                         && t.price.equals(price)
@@ -516,16 +516,21 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
     /**
      * Сохранить и округлить начисление в C_CHARGE
      *
-     * @param ko - квартира
+     * @param ko          фин.лиц.сч.
+     * @param mapUslRound услуги для округления в ГИС ЖКХ
+     * @return начисление по лиц.счетам в данном фин.лиц.сч.
      */
-    public void saveChargeAndRound(Ko ko) throws ErrorWhileChrg {
+    public List<LskChargeUsl> saveChargeAndRound(Ko ko, boolean isSaveResult, Map<String, Set<String>> mapUslRound) throws ErrorWhileChrg {
+        Map<String, List<LskChargeUsl>> chargeByLsk = new HashMap<>();
         // удалить информацию по текущему начислению, по квартире, только по type=0,1
         for (Kart kart : ko.getKart()) {
             kart.getCharge().removeIf(t -> t.getType().equals(0) || t.getType().equals(1));
+            chargeByLsk.putIfAbsent(kart.getLsk(), new ArrayList<>());
         }
         log.trace("Сохранено в C_CHARGE:");
         int i = 0; // № п.п.
         for (UslVolCharge uslVolCharge : getLstUslVolCharge()) {
+            Optional<LskChargeUsl> lskChargeUsl = Optional.empty();
             if (uslVolCharge.kart.getKartExt() != null && uslVolCharge.kart.getKartExt().size() > 0) {
                 // внешние лиц.счета, получить сумму начисления из внешнего источника
                 for (KartExt kartExt : uslVolCharge.kart.getKartExt()) {
@@ -534,7 +539,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                         BigDecimal summa = kartExt.getChrg();
 
                         // тип 1
-                        addCharge(i, uslVolCharge, area, summa);
+                        lskChargeUsl = addCharge(i, uslVolCharge, area, summa, isSaveResult);
                         // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
                         //addCharge(i, 0, u, area, summa);
 
@@ -553,7 +558,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     summa = uslVolCharge.vol.multiply(uslVolCharge.price).setScale(2, BigDecimal.ROUND_HALF_UP);
                 }
                 // тип 1
-                addCharge(i, uslVolCharge, area, summa);
+                lskChargeUsl = addCharge(i, uslVolCharge, area, summa, isSaveResult);
                 // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
                 //addCharge(i, 0, u, area, summa);
 
@@ -562,10 +567,12 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                         uslVolCharge.kart.getLsk(), uslVolCharge.usl.getId(), uslVolCharge.org.getId(),
                         uslVolCharge.vol, area, uslVolCharge.price, uslVolCharge.isMeter, summa);
             }
+            lskChargeUsl.ifPresent(t -> chargeByLsk.get(t.lsk).add(t));
         }
 
         // по услугам, базирующимся на сумме родительской услуги (Повыш. коэфф для Полыс.)
         for (UslVolCharge u : getLstUslVolCharge()) {
+            Optional<LskChargeUsl> lskChargeUsl = Optional.empty();
             if (u.getUsl().getFkCalcTp() != null && u.getUsl().getFkCalcTp().equals(34)) {
                 BigDecimal area = u.area.setScale(2, BigDecimal.ROUND_HALF_UP);
                 BigDecimal parentUslSumma = ko.getKart().stream()
@@ -583,8 +590,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     summa = parentUslSumma.multiply(u.vol).setScale(2, BigDecimal.ROUND_HALF_UP);
                 }
                 // тип 1
-                addCharge(i, u, area,
-                        summa);
+                lskChargeUsl = addCharge(i, u, area, summa, isSaveResult);
                 // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
                 //addCharge(i, 0, u, area,
                 //        summa);
@@ -592,80 +598,76 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                 log.trace("lsk={}, usl={}, testOpl={}, opl={}, testCena={}, isSch={}, summa={}",
                         u.kart.getLsk(), u.usl.getId(), u.vol, area, u.price, u.isMeter, summa);
             }
+            lskChargeUsl.ifPresent(t -> chargeByLsk.get(t.lsk).add(t));
         }
 
+        // округлить для ГИС ЖКХ
+        roundForGis(ko, chargeByLsk, mapUslRound);
+
+        return chargeByLsk.entrySet().stream().flatMap(t -> t.getValue().stream()).collect(Collectors.toList());
+    }
+
+    /*
+     * @param chargeByLsk начисление
+     * @param mapUslRound услуги для округления в ГИС ЖКХ
+     */
+    private void roundForGis(Ko ko, Map<String, List<LskChargeUsl>> chargeByLsk, Map<String, Set<String>> mapUslRound) throws ErrorWhileChrg {
         // округлить для ГИС ЖКХ
         //log.trace("Округление для ГИС ЖКХ:");
         for (Kart kart : ko.getKart()) {
             // по услугам:
             // цена
-            Map<Usl, BigDecimal> mapPrice = new HashMap<>();
+            Map<String, BigDecimal> mapPrice = new HashMap<>();
 
             // итоговая сумма
             BigDecimal summAmnt = BigDecimal.ZERO;
             // итоговая цена
             BigDecimal priceAmnt = BigDecimal.ZERO;
 
-            Charge firstCharge = null;
+            LskChargeUsl firstCharge = null;
 
             // сохранить все цены, суммы и объемы по услугам
             // по услугам, подлежащим округлению (находящимся в справочнике SCOTT.USL_ROUND)
             // соответствующего REU
-            //log.trace("Округление для ГИС ЖКХ: klskId={}, lsk={}", ko.getId(), kart.getLsk());
 
-/*            for (Charge charge : kart.getCharge().stream()
-                    .filter(t -> t.getType().equals(1))
-                    .filter(t -> t.getUsl().getUslRound().stream()
-                            .anyMatch(d -> d.getReu().equals(kart.getUk().getReu())))
-                    .sorted(Comparator.comparing(d -> d.getUsl().getId())) // сортировать по коду услуги
-                    .collect(Collectors.toList())) {
-                log.trace("$$$$ lsk={}, uk={}, usl={}",  kart.getLsk(), kart.getUk(),charge.getUsl().getId());
-                log.trace("$$$$ lsk={}, getUslRound()",  kart.getLsk(), charge.getUsl().getUslRound());
-                for (UslRound uslRound : charge.getUsl().getUslRound()) {
-                    log.trace("$$$$ lsk={}, uslRound={}", kart.getLsk(), uslRound.getUsl());
-                    log.trace("$$$$ lsk={}, uslRound.id={}", kart.getLsk(), uslRound.getUsl().getId());
-                    log.trace("$$$$ lsk={}, uslRound.reu={}", kart.getLsk(), uslRound.getReu());
-                }
-            }
-*/
-
-            for (Charge charge : kart.getCharge().stream()
-                    .filter(t -> t.getType().equals(1))
-                    .filter(t -> t.getUsl().getUslRound().stream()
-                            .anyMatch(d -> d.getReu().equals(kart.getUk().getReu())))
-                    .sorted(Comparator.comparing(d -> d.getUsl().getId())) // сортировать по коду услуги
+            for (LskChargeUsl lskChargeUsl : chargeByLsk.get(kart.getLsk()).stream()
+                    .filter(t -> mapUslRound.getOrDefault(kart.getUk().getReu(), Set.of()).contains(t.uslId))
+                    .sorted(Comparator.comparing(LskChargeUsl::getUslId)) // сортировать по коду услуги
                     .collect(Collectors.toList())
             ) {
                 // цена
-                if (mapPrice.get(charge.getUsl()) == null) {
-                    mapPrice.put(charge.getUsl(), charge.getTestCena());
-                    log.trace("usl={}, price={}", charge.getUsl().getId(), charge.getTestCena());
-                    priceAmnt = priceAmnt.add(charge.getTestCena());
+                if (mapPrice.get(lskChargeUsl.getUslId()) == null) {
+                    mapPrice.put(lskChargeUsl.getUslId(), lskChargeUsl.getPrice());
+                    log.trace("usl={}, price={}", lskChargeUsl.getUslId(), lskChargeUsl.getPrice());
+                    priceAmnt = priceAmnt.add(lskChargeUsl.getPrice());
                 }
 
                 // сумма
-                log.trace("lsk={}, summa={}, priceAmnt={}", kart.getLsk(), charge.getSumma(), priceAmnt);
-                summAmnt = summAmnt.add(charge.getSumma());
+                log.trace("lsk={}, summa={}, priceAmnt={}", kart.getLsk(), lskChargeUsl.getSumma(), priceAmnt);
+                summAmnt = summAmnt.add(lskChargeUsl.getSumma());
                 if (firstCharge == null)
-                    firstCharge = charge;
+                    firstCharge = lskChargeUsl;
+
+                // присвоить null, чтобы в коллекции не было ссылки на Entity Charge (освободить память)
+                lskChargeUsl.setCharge(null);
             }
             // округлить на первую услугу по порядку кода USL
             if (firstCharge != null) {
-                BigDecimal summCheck = Utl.nvl(firstCharge.getOpl(), BigDecimal.ZERO).multiply(priceAmnt).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal summCheck = Utl.nvl(firstCharge.getArea(), BigDecimal.ZERO).multiply(priceAmnt).setScale(2, RoundingMode.HALF_UP);
                 BigDecimal diff = summCheck.subtract(summAmnt);
-                log.trace("Итого сумма ={}, рассчит={}, общ.площадь:{}", summAmnt, summCheck, firstCharge.getOpl());
+                log.trace("Итого сумма ={}, рассчит={}, общ.площадь:{}", summAmnt, summCheck, firstCharge.getArea());
                 if (diff.abs().compareTo(new BigDecimal("0.05")) < 0) {
                     log.trace("Применено округление для ГИС ЖКХ, по lsk={}, usl={}, diff={}",
-                            kart.getLsk(), firstCharge.getUsl().getId(), diff);
+                            kart.getLsk(), firstCharge.getUslId(), diff);
                     firstCharge.setSumma(firstCharge.getSumma().add(diff));
+                    if (firstCharge.getCharge() != null) {
+                        firstCharge.getCharge().setSumma(firstCharge.getSumma().add(diff));
+                    }
                 } else {
                     throw new ErrorWhileChrg("ОШИБКА! Округление для ГИС ЖКХ превысило 0.05 по lsk=" + kart.getLsk());
                 }
             }
-
         }
-
-
     }
 
     /**
@@ -711,22 +713,40 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
      * @param area  - площадь
      * @param summa - сумма
      */
-    private void addCharge(int npp, UslVolCharge u, BigDecimal area, BigDecimal summa) {
-        Charge charge = new Charge();
-        charge.setNpp(npp);
-        charge.setType(1);
-        charge.setUsl(u.usl);
-        charge.setOrg(u.org);
-        charge.setKart(u.kart);
-        charge.setTestOpl(u.vol);
-        charge.setOpl(area);
-        charge.setTestCena(u.price);
-        charge.setKpr(u.getKpr().setScale(5, BigDecimal.ROUND_HALF_UP));
-        charge.setKprz(u.kprWr.setScale(5, BigDecimal.ROUND_HALF_UP));
-        charge.setKpro(u.kprOt.setScale(5, BigDecimal.ROUND_HALF_UP));
-        charge.setKpr2(u.getKprNorm().setScale(5, BigDecimal.ROUND_HALF_UP));
-        charge.setIsSch(u.isMeter);
-        charge.setSumma(summa);
-        u.kart.getCharge().add(charge);
+    private Optional<LskChargeUsl> addCharge(int npp, UslVolCharge u, BigDecimal area, BigDecimal summa, boolean isSaveResult) {
+        Optional<LskChargeUsl> lskChargeUsl = Optional.empty();
+        if (summa.compareTo(BigDecimal.ZERO) != 0) {
+            lskChargeUsl = Optional.of(LskChargeUsl.builder()
+                    .kLskId(u.getKart().getKoKw().getId())
+                    .lsk(u.getKart().getLsk())
+                    .uslId(u.getUsl().getId())
+                    .orgId(u.getOrg().getId())
+                    .vol(u.getVol())
+                    .summa(summa)
+                    .price(u.price)
+                    .uslId(u.usl.getId())
+                    .area(area)
+                    .build());
+        }
+        if (isSaveResult) {
+            Charge charge = new Charge();
+            charge.setNpp(npp);
+            charge.setType(1);
+            charge.setUsl(u.usl);
+            charge.setOrg(u.org);
+            charge.setKart(u.kart);
+            charge.setTestOpl(u.vol);
+            charge.setOpl(area);
+            charge.setTestCena(u.price);
+            charge.setKpr(u.getKpr().setScale(5, BigDecimal.ROUND_HALF_UP));
+            charge.setKprz(u.kprWr.setScale(5, BigDecimal.ROUND_HALF_UP));
+            charge.setKpro(u.kprOt.setScale(5, BigDecimal.ROUND_HALF_UP));
+            charge.setKpr2(u.getKprNorm().setScale(5, BigDecimal.ROUND_HALF_UP));
+            charge.setIsSch(u.isMeter);
+            charge.setSumma(summa);
+            u.kart.getCharge().add(charge);
+            lskChargeUsl.ifPresent(t -> t.setCharge(charge));
+        }
+        return lskChargeUsl;
     }
 }

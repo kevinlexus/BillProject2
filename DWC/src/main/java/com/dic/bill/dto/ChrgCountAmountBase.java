@@ -1,5 +1,7 @@
 package com.dic.bill.dto;
 
+import com.dic.bill.model.scott.Ko;
+import com.ric.cmn.excp.ErrorWhileChrg;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -37,4 +39,5 @@ abstract class ChrgCountAmountBase {
         lstUslVolKartGrp.clear();
         lstUslVolVvod.clear();
     }
+
 }

@@ -14,10 +14,6 @@ import javax.persistence.QueryHint;
 
 public interface HouseDAO extends JpaRepository<House, Integer> {
 
-	/**
-	 * Найти все открытые дома
-	 * @return
-	 */
 	@Query(value = "select t from com.dic.bill.model.scott.House t where nvl(t.psch,0) = 0 ")
 	List<House> getNotClosed();
 
@@ -25,4 +21,7 @@ public interface HouseDAO extends JpaRepository<House, Integer> {
 	Optional<House> findByGuid(String guid);
 
 	List<House> findByGuidIsNotNull();
+
+	@Query(value = "select distinct t.kul||t.nd as kulNd from scott.c_houses t", nativeQuery = true)
+	List<String> getAllKulNds();
 }

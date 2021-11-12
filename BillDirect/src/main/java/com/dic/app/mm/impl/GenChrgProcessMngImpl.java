@@ -12,6 +12,7 @@ import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileChrg;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.dto.SumMeterVol;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -33,47 +34,37 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class GenChrgProcessMngImpl implements GenChrgProcessMng {
-
-    private final NaborMng naborMng;
-    private final MeterMng meterMng;
-    private final GenPart genPart;
-    private final MeterDAO meterDao;
-    private final ConfigApp config;
-    private final SprParamMng sprParamMng;
 
     @PersistenceContext
     private EntityManager em;
 
-    public GenChrgProcessMngImpl(NaborMng naborMng,
-                                 MeterMng meterMng, GenPart genPart, MeterDAO meterDao,
-                                 ConfigApp config, SprParamMng sprParamMng) {
-        this.naborMng = naborMng;
-        this.meterMng = meterMng;
-        this.genPart = genPart;
-        this.meterDao = meterDao;
-        this.config = config;
-        this.sprParamMng = sprParamMng;
-    }
-
+    private final ConfigApp config;
+    private final NaborMng naborMng;
+    private final MeterMng meterMng;
+    private final GenPart genPart;
+    private final MeterDAO meterDao;
+    private final SprParamMng sprParamMng;
     /**
      * Рассчитать начисление
      * Внимание! Расчет идёт по помещению (помещению), но информация группируется по лиц.счету(Kart)
      * так как теоретически может быть одинаковая услуга на разных лиц.счетах, но на одной помещению!
      * ОПИСАНИЕ: https://docs.google.com/document/d/1mtK2KdMX4rGiF2cUeQFVD4HBcZ_F0Z8ucp1VNK8epx0/edit
-     *
-     * @param reqConf - конфиг запроса
+     *  @param reqConf - конфиг запроса
      * @param klskId  - klskId помещения
+     * @return начисление по лиц.счетам
      */
     @Override
     @Transactional(
             propagation = Propagation.REQUIRES_NEW,
             rollbackFor = Exception.class)
-    public void genChrg(RequestConfigDirect reqConf, long klskId) throws ErrorWhileChrg {
+    public List<LskChargeUsl> genChrg(RequestConfigDirect reqConf, long klskId) throws ErrorWhileChrg {
         // заблокировать объект Ko для расчета
         if (!config.getLock().aquireLockId(reqConf.getRqn(), 1, klskId, 60)) {
             throw new ErrorWhileChrg("ОШИБКА БЛОКИРОВКИ klskId=" + klskId);
         }
+        List<LskChargeUsl> resultLskChargeUsl = new ArrayList<>();
         try {
             Ko ko = em.getReference(Ko.class, klskId);
 
@@ -86,7 +77,6 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             int parCapCalcKprTp =
                     Utl.nvl(sprParamMng.getN1("CAP_CALC_KPR_TP"), 0D).intValue();
 
-            //ChrgCount chrgCount = new ChrgCount();
             // выбранные услуги для формирования
             List<Usl> lstSelUsl = new ArrayList<>();
             if (Utl.in(reqConf.getTp(), 0, 4) && reqConf.getUsl() != null) {
@@ -167,7 +157,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                 chrgCountAmountLocal.groupUslVolChrg();
 
                 // 7. Умножить объем на цену (расчет в рублях), сохранить в C_CHARGE, округлить для ГИС ЖКХ
-                chrgCountAmountLocal.saveChargeAndRound(ko);
+                resultLskChargeUsl = chrgCountAmountLocal.saveChargeAndRound(ko, reqConf.isSaveResult(), config.getMapUslRound());
 
                 // 9. Сохранить фактическое наличие счетчика, в случае отсутствия объема, для формирования статистики
                 chrgCountAmountLocal.saveFactMeterTp(ko, lstMeterVol, reqConf.getCurDt2());
@@ -187,6 +177,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             config.getLock().unlockId(reqConf.getRqn(), 1, klskId);
             //log.info("******* klskId={} разблокирован после расчета", klskId);
         }
+        return resultLskChargeUsl;
     }
 
     /**
