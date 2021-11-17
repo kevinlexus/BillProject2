@@ -71,7 +71,7 @@ public interface KartDAO extends JpaRepository<Kart, String> {
     List<Kart> findActualByReuStatusOrderedByAddress(@Param("reu") String reu,
                                                      @Param("statusLst") List<String> statusLst, @Param("tpCd") String tpCd);
 
-    @Query(value = "select k.k_lsk_id as klskId, k.lsk as lsk, k.mg as mg, t.usl as uslId, t.org as chrgOrgId, a.org as naborOrgId, t.summa as summa, t.test_opl as vol " +
+    @Query(value = "select k.k_lsk_id as klskId, k.lsk as lsk, k.mg as mg, t.usl as uslId, t.org as orgId, a.org as naborOrgId, t.summa as summa, t.test_opl as vol " +
             "from scott.arch_kart k " +
             "join scott.a_charge2 t on k.lsk=t.lsk and k.mg between t.mgFrom and t.mgTo " +
             "left join scott.v_lsk_tp tp on k.fk_tp=tp.id " +
@@ -101,7 +101,7 @@ public interface KartDAO extends JpaRepository<Kart, String> {
                                           @Param("kulNds") List<String> kulNds,
                                           @Param("uslIds") List<String> uslIds);
 
-    @Query(value = "select k.k_lsk_id as klskId, k.lsk as lsk, k.mg as mg, t.usl as uslId, t.org as chrgOrgId, a.org as naborOrgId, t.summa as summa, t.test_opl as vol " +
+    @Query(value = "select k.k_lsk_id as klskId, k.lsk as lsk, k.mg as mg, t.usl as uslId, t.org as orgId, a.org as naborOrgId, t.summa as summa, t.test_opl as vol " +
             "from scott.arch_kart k " +
             "join scott.a_charge2 t on k.lsk=t.lsk and k.mg between t.mgFrom and t.mgTo " +
             "left join scott.v_lsk_tp tp on k.fk_tp=tp.id " +

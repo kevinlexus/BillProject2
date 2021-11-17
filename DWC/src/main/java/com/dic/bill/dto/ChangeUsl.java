@@ -12,11 +12,8 @@ import java.math.BigDecimal;
 @Setter
 public class ChangeUsl {
     String uslId;
-    Integer org1Id;
-    BigDecimal proc1;
-    Integer org2Id;
-    BigDecimal proc2;
+    Integer orgId;
+    BigDecimal proc;
     BigDecimal absSet;
     Integer cntDays;
-    Integer cntDays2;
 }

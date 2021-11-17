@@ -30,9 +30,12 @@ public class Change implements java.io.Serializable  {
 	@Column(name = "id", unique = true, updatable = false, nullable = false)
 	private Integer id;
 
+	@Column(name = "LSK")
+	private String lsk;
+
 	// лиц.счет
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name="LSK", referencedColumnName="LSK")
+	@JoinColumn(name="LSK", referencedColumnName="LSK", insertable = false, updatable = false)
 	private Kart kart;
 
 	// документ перерасчета
@@ -48,19 +51,29 @@ public class Change implements java.io.Serializable  {
 	@Column(name = "MGCHANGE")
 	private String mgchange;
 
+	@Column(name = "usl")
+	private String uslId;
+
 	// услуга
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "USL", referencedColumnName = "USl", nullable = false)
+	@JoinColumn(name = "USL", referencedColumnName = "USl", nullable = false, insertable = false, updatable = false)
 	private Usl usl;
+
+	@Column(name = "ORG")
+	private Integer orgId;
 
 	// организация - поставщик услуги
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "ORG", referencedColumnName = "ID", nullable = false)
+	@JoinColumn(name = "ORG", referencedColumnName = "ID", nullable = false, insertable = false, updatable = false)
 	private Org org;
+
+
+	@Column(name = "USER_ID")
+	private Integer userId;
 
 	// пользователь
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "USER_ID", referencedColumnName = "ID", nullable = false)
+	@JoinColumn(name = "USER_ID", referencedColumnName = "ID", nullable = false, insertable = false, updatable = false)
 	private Tuser user;
 
 	// период, которым надо провести разовые изменения

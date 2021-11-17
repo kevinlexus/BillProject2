@@ -157,7 +157,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                 chrgCountAmountLocal.groupUslVolChrg();
 
                 // 7. Умножить объем на цену (расчет в рублях), сохранить в C_CHARGE, округлить для ГИС ЖКХ
-                resultLskChargeUsl = chrgCountAmountLocal.saveChargeAndRound(ko, reqConf.isSaveResult(), config.getMapUslRound());
+                resultLskChargeUsl = chrgCountAmountLocal.saveChargeAndRound(ko, reqConf.isSaveResult(), config.getMapUslRound(), config.getPeriod());
 
                 // 9. Сохранить фактическое наличие счетчика, в случае отсутствия объема, для формирования статистики
                 chrgCountAmountLocal.saveFactMeterTp(ko, lstMeterVol, reqConf.getCurDt2());

@@ -10,8 +10,8 @@ import java.math.BigDecimal;
 
 @Builder
 @Data
-public class LskChargeUsl {
-    Long kLskId;
+public class LskChargeUsl implements LskCharge {
+    Long klskId;
     String lsk;
     String uslId;
     Integer orgId;
@@ -21,4 +21,9 @@ public class LskChargeUsl {
     BigDecimal price;
     BigDecimal area;
     Charge charge;
+    // для совместимости с LskCharge:
+    String mg;
+    Integer naborOrgId;
+
+
 }

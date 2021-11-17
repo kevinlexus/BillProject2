@@ -4,7 +4,7 @@ import com.dic.app.mm.ChangeMng;
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.dto.ChangeUsl;
 import com.dic.bill.dto.ChangesParam;
-import com.dic.bill.dto.LskCharge;
+import com.dic.bill.dto.LskChargeUsl;
 import com.dic.bill.dto.ResultChange;
 import com.ric.cmn.Utl;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +30,8 @@ public class ChangeMngImpl implements ChangeMng {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public List<ResultChange> genChanges(ChangesParam changesParam, Long klskId, Map<String, Map<String, List<LskCharge>>> chargeByPeriod) {
-        log.info("klskId = {}", klskId);
+    public List<ResultChange> genChanges(ChangesParam changesParam, Long klskId, Map<String, Map<String, List<LskChargeUsl>>> chargeByPeriod) {
+        //log.info("klskId = {}", klskId);
         List<ResultChange> resultChanges = new ArrayList<>();
         LocalDate dtFrom = LocalDate.of(Integer.parseInt(changesParam.getPeriodFrom().substring(0, 4)),
                 Integer.parseInt(changesParam.getPeriodFrom().substring(4)), 1);
@@ -40,29 +40,36 @@ public class ChangeMngImpl implements ChangeMng {
         // перебрать заданные периоды
         for (LocalDate dt = dtFrom; dt.isBefore(dtTo.plusDays(1)); dt = dt.plusMonths(1)) {
             String period = Utl.getPeriodFromDate(dt);
-            Map<String, List<LskCharge>> chargesByUsl = chargeByPeriod.get(period);
+            Map<String, List<LskChargeUsl>> chargesByUsl = chargeByPeriod.get(period);
             if (chargesByUsl != null) {
                 // объем по услугам водоотведения
-                List<LskCharge> chargeWasteList = chargesByUsl.entrySet().stream()
+                List<LskChargeUsl> chargeWasteList = chargesByUsl.entrySet().stream()
                         .filter(t -> configApp.getWasteUslCodes().contains(t.getKey()))
                         .flatMap(t -> t.getValue().stream())
                         .collect(Collectors.toList());
                 // объем по услугам водоотведения (ОДН)
-                List<LskCharge> chargeWasteOdnList = chargesByUsl.entrySet().stream()
+                List<LskChargeUsl> chargeWasteOdnList = chargesByUsl.entrySet().stream()
                         .filter(t -> configApp.getWasteOdnUslCodes().contains(t.getKey()))
                         .flatMap(t -> t.getValue().stream())
                         .collect(Collectors.toList());
                 for (ChangeUsl changeUsl : changesParam.getChangeUslList()) {
+                    BigDecimal proc = changeUsl.getProc();
+                    if (changeUsl.getCntDays() != null && changeUsl.getCntDays() != 0) {
+                        // получить процент из отношения кол-во дней перерасчета / кол-во дней месяца
+                        proc = BigDecimal.valueOf(changeUsl.getCntDays() * 100).divide(BigDecimal.valueOf(dt.lengthOfMonth()), 2, RoundingMode.HALF_UP);
+                    }
+
+
                     // перебрать заданные в перерасчете услуги
-                    if (changeUsl.getProc1().compareTo(BigDecimal.ZERO) != 0) {
-                        List<LskCharge> charges = chargesByUsl.get(changeUsl.getUslId());
+                    if (proc.compareTo(BigDecimal.ZERO) != 0) {
+                        List<LskChargeUsl> charges = chargesByUsl.get(changeUsl.getUslId());
                         if (charges != null) {
-                            for (LskCharge lskCharge : charges) {
+                            for (LskChargeUsl lskCharge : charges) {
                                 // перебрать начисление по услуге (может идти несколькими строками, разбито по орг)
                                 if (lskCharge.getSumma().compareTo(BigDecimal.ZERO) != 0) {
                                     BigDecimal sumChange = lskCharge.getSumma()
                                             .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
-                                            .multiply(changeUsl.getProc1()).setScale(2, RoundingMode.HALF_UP);
+                                            .multiply(proc).setScale(2, RoundingMode.HALF_UP);
                                     Integer orgId = getChangeOrgId(changeUsl, lskCharge);
                                     if (orgId == null) {
                                         log.error("Значение orgId должно быть либо задано пользователем, либо получено из начисления за период, или из наборов услуг");
@@ -72,8 +79,8 @@ public class ChangeMngImpl implements ChangeMng {
                                             .lsk(lskCharge.getLsk())
                                             .mg(lskCharge.getMg())
                                             .uslId(changeUsl.getUslId())
-                                            .org1Id(orgId)
-                                            .proc1(changeUsl.getProc1())
+                                            .orgId(orgId)
+                                            .proc(proc)
                                             .summa(sumChange).build();
                                     resultChanges.add(resultChange);
                                     if (changesParam.getIsAddUslWaste()) {
@@ -94,13 +101,13 @@ public class ChangeMngImpl implements ChangeMng {
         return resultChanges;
     }
 
-    private List<ResultChange> getWastedChangesResult(List<LskCharge> chargeWasteList, ChangeUsl changeUsl, LskCharge lskCharge) {
+    private List<ResultChange> getWastedChangesResult(List<LskChargeUsl> chargeWasteList, ChangeUsl changeUsl, LskChargeUsl lskCharge) {
         List<ResultChange> resultChanges = new ArrayList<>();
-        for (LskCharge lskChargeWaste : chargeWasteList) {
+        for (LskChargeUsl lskChargeWaste : chargeWasteList) {
             if (lskChargeWaste.getVol() != null && lskChargeWaste.getVol().compareTo(BigDecimal.ZERO) != 0) {
                 BigDecimal procWaste = lskCharge.getVol()
                         .divide(lskChargeWaste.getVol(), 10, RoundingMode.HALF_UP)
-                        .multiply(changeUsl.getProc1()).setScale(2, RoundingMode.HALF_UP);
+                        .multiply(changeUsl.getProc()).setScale(2, RoundingMode.HALF_UP);
                 if (procWaste.compareTo(BigDecimal.ZERO) != 0) {
                     BigDecimal sumChange = lskChargeWaste.getSumma()
                             .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
@@ -110,8 +117,8 @@ public class ChangeMngImpl implements ChangeMng {
                             .lsk(lskChargeWaste.getLsk())
                             .mg(lskCharge.getMg())
                             .uslId(lskChargeWaste.getUslId())
-                            .org1Id(orgId)
-                            .proc1(procWaste)
+                            .orgId(orgId)
+                            .proc(procWaste)
                             .summa(sumChange).build();
                     resultChanges.add(resultChange);
                 }
@@ -126,12 +133,12 @@ public class ChangeMngImpl implements ChangeMng {
      * @param changeUsl параметры перерасчета от пользователя
      * @param lskCharge текущая строка начисления
      */
-    private Integer getChangeOrgId(ChangeUsl changeUsl, LskCharge lskCharge) {
+    private Integer getChangeOrgId(ChangeUsl changeUsl, LskChargeUsl lskCharge) {
         Integer orgId;
-        if (changeUsl.getOrg1Id() != null) {
-            orgId = changeUsl.getOrg1Id(); // провести орг. заданной из перерасчета
-        } else if (lskCharge.getChrgOrgId() != null) {
-            orgId = lskCharge.getChrgOrgId(); // получить орг. из начисления
+        if (changeUsl.getOrgId() != null) {
+            orgId = changeUsl.getOrgId(); // провести орг. заданной из перерасчета
+        } else if (lskCharge.getOrgId() != null) {
+            orgId = lskCharge.getOrgId(); // получить орг. из начисления
         } else {
             orgId = lskCharge.getNaborOrgId(); // получить орг. из наборов (старый вариант, когда начисление было без орг.)
         }

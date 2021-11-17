@@ -343,6 +343,21 @@ public class Utl {
     }
 
     /**
+     * Вернуть обрезанную дату, без времени
+     */
+    public static Date getDateTruncated(Date date) {
+        return getDateFromLocalDate(getLocalDateFromDate(date));
+    }
+
+    public static Date getDateFromLocalDate(LocalDate localDate) {
+        return Date.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    public static LocalDate getLocalDateFromDate(Date date) {
+        return LocalDate.ofInstant(date.toInstant(), ZoneId.systemDefault());
+    }
+
+    /**
      * Вернуть дату в виде строки по формату
      *
      * @param dt

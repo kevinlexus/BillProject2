@@ -520,7 +520,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
      * @param mapUslRound услуги для округления в ГИС ЖКХ
      * @return начисление по лиц.счетам в данном фин.лиц.сч.
      */
-    public List<LskChargeUsl> saveChargeAndRound(Ko ko, boolean isSaveResult, Map<String, Set<String>> mapUslRound) throws ErrorWhileChrg {
+    public List<LskChargeUsl> saveChargeAndRound(Ko ko, boolean isSaveResult, Map<String, Set<String>> mapUslRound, String period) throws ErrorWhileChrg {
         Map<String, List<LskChargeUsl>> chargeByLsk = new HashMap<>();
         // удалить информацию по текущему начислению, по квартире, только по type=0,1
         for (Kart kart : ko.getKart()) {
@@ -539,7 +539,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                         BigDecimal summa = kartExt.getChrg();
 
                         // тип 1
-                        lskChargeUsl = addCharge(i, uslVolCharge, area, summa, isSaveResult);
+                        lskChargeUsl = addCharge(i, uslVolCharge, area, summa, isSaveResult, period);
                         // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
                         //addCharge(i, 0, u, area, summa);
 
@@ -558,7 +558,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     summa = uslVolCharge.vol.multiply(uslVolCharge.price).setScale(2, BigDecimal.ROUND_HALF_UP);
                 }
                 // тип 1
-                lskChargeUsl = addCharge(i, uslVolCharge, area, summa, isSaveResult);
+                lskChargeUsl = addCharge(i, uslVolCharge, area, summa, isSaveResult, period);
                 // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
                 //addCharge(i, 0, u, area, summa);
 
@@ -590,7 +590,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     summa = parentUslSumma.multiply(u.vol).setScale(2, BigDecimal.ROUND_HALF_UP);
                 }
                 // тип 1
-                lskChargeUsl = addCharge(i, u, area, summa, isSaveResult);
+                lskChargeUsl = addCharge(i, u, area, summa, isSaveResult, period);
                 // тип 0 убрал нафиг, если что, потом добавим эту строчку, простой копией из type=1 ред.07.04.2021
                 //addCharge(i, 0, u, area,
                 //        summa);
@@ -648,8 +648,6 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                 if (firstCharge == null)
                     firstCharge = lskChargeUsl;
 
-                // присвоить null, чтобы в коллекции не было ссылки на Entity Charge (освободить память)
-                lskChargeUsl.setCharge(null);
             }
             // округлить на первую услугу по порядку кода USL
             if (firstCharge != null) {
@@ -667,6 +665,8 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     throw new ErrorWhileChrg("ОШИБКА! Округление для ГИС ЖКХ превысило 0.05 по lsk=" + kart.getLsk());
                 }
             }
+            // присвоить null, чтобы в коллекции не было ссылки на Entity Charge (освободить память)
+            chargeByLsk.get(kart.getLsk()).forEach(t->t.setCharge(null));
         }
     }
 
@@ -713,11 +713,11 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
      * @param area  - площадь
      * @param summa - сумма
      */
-    private Optional<LskChargeUsl> addCharge(int npp, UslVolCharge u, BigDecimal area, BigDecimal summa, boolean isSaveResult) {
+    private Optional<LskChargeUsl> addCharge(int npp, UslVolCharge u, BigDecimal area, BigDecimal summa, boolean isSaveResult, String period) {
         Optional<LskChargeUsl> lskChargeUsl = Optional.empty();
         if (summa.compareTo(BigDecimal.ZERO) != 0) {
             lskChargeUsl = Optional.of(LskChargeUsl.builder()
-                    .kLskId(u.getKart().getKoKw().getId())
+                    .klskId(u.getKart().getKoKw().getId())
                     .lsk(u.getKart().getLsk())
                     .uslId(u.getUsl().getId())
                     .orgId(u.getOrg().getId())
@@ -726,6 +726,7 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     .price(u.price)
                     .uslId(u.usl.getId())
                     .area(area)
+                    .mg(period)
                     .build());
         }
         if (isSaveResult) {

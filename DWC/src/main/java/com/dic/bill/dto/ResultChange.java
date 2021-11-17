@@ -10,7 +10,7 @@ public class ResultChange {
     String lsk;
     String mg;
     String uslId;
-    Integer org1Id;
-    BigDecimal proc1;
+    Integer orgId;
+    BigDecimal proc;
     BigDecimal summa;
 }

@@ -49,9 +49,12 @@ public class ChangeDoc implements java.io.Serializable  {
 	@Column(name = "TEXT", updatable = false)
 	private String text;
 
+	@Column(name = "USER_ID")
+	private Integer userId;
+
 	// пользователь
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "USER_ID", referencedColumnName = "ID", nullable = false)
+	@JoinColumn(name = "USER_ID", referencedColumnName = "ID", nullable = false, insertable = false, updatable = false)
 	private Tuser user;
 
 	// перерасчеты

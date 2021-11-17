@@ -2,8 +2,10 @@ package com.dic.app.mm.impl;
 
 import com.dic.app.RequestConfigDirect;
 import com.dic.app.mm.*;
+import com.dic.bill.dao.ChangeDocDAO;
 import com.dic.bill.dao.HouseDAO;
 import com.dic.bill.dao.KartDAO;
+import com.dic.bill.dao.TuserDAO;
 import com.dic.bill.dto.*;
 import com.dic.bill.enums.SelObjTypes;
 import com.dic.bill.model.scott.*;
@@ -50,14 +52,16 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
     private final ChangeMng changeMng;
     private final DistVolMng distVolMng;
     private final KartDAO kartDAO;
+    private final TuserDAO tuserDAO;
     private final HouseDAO houseDAO;
+    private final ChangeDocDAO changeDocDAO;
     private final ApplicationContext ctx;
 
 
     @Autowired
     public ProcessMngImpl(@Lazy DistVolMng distVolMng, ConfigApp config, ThreadMng<Long> threadMng,
                           GenChrgProcessMng genChrgProcessMng, GenPenProcessMng genPenProcessMng,
-                          MigrateMng migrateMng, ChangeMng changeMng, KartDAO kartDAO, HouseDAO houseDAO, ApplicationContext ctx) {
+                          MigrateMng migrateMng, ChangeMng changeMng, KartDAO kartDAO, TuserDAO tuserDAO, HouseDAO houseDAO, ChangeDocDAO changeDocDAO, ApplicationContext ctx) {
         this.distVolMng = distVolMng;
         this.config = config;
         this.threadMng = threadMng;
@@ -66,7 +70,9 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
         this.migrateMng = migrateMng;
         this.changeMng = changeMng;
         this.kartDAO = kartDAO;
+        this.tuserDAO = tuserDAO;
         this.houseDAO = houseDAO;
+        this.changeDocDAO = changeDocDAO;
         this.ctx = ctx;
     }
 
@@ -344,7 +350,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
             // Получить список объектов
             List<String> kulNds;
             Set<Long> klskIds = new HashSet<>();
-            if (1 == 1 || changesParam.getSelObjList().stream().anyMatch(t -> t.getTp().equals(SelObjTypes.ALL))) {
+            if (changesParam.getSelObjList().stream().anyMatch(t -> t.getTp().equals(SelObjTypes.ALL))) {
                 // весь фонд. Выбрать все дома
                 kulNds = houseDAO.getAllKulNds();
             } else {
@@ -369,26 +375,56 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                     Integer.parseInt(changesParam.getPeriodFrom()), Integer.parseInt(changesParam.getPeriodTo()))) {
                 currentCharges = getCurrentCharges(kulNds, klskIds);
             }
-            currentCharges.forEach(t -> log.info("Текущее начисление klskId={}, lsk={}, uslId={}, orgId={}, area={}, summa={}, price={}",
-                    t.getKLskId(), t.getLsk(), t.getUslId(), t.getOrgId(), t.getArea(), t.getSumma(), t.getPrice()));
+            //currentCharges.forEach(t -> log.info("Текущее начисление klskId={}, lsk={}, uslId={}, orgId={}, area={}, summa={}, price={}",
+            //        t.getKlskId(), t.getLsk(), t.getUslId(), t.getOrgId(), t.getArea(), t.getSumma(), t.getPrice()));
+
 
             // Получить архивное начисление по объектам
-            List<LskCharge> archCharges = getArchCharges(changesParam, kulNds, klskIds);
+            List<LskChargeUsl> archCharges = getArchCharges(changesParam, kulNds, klskIds);
+            archCharges.addAll(currentCharges);
 
-            // Map устроен: klskId, (mg, (uslId, List<LskCharges>))
-            Map<Long, Map<String, Map<String, List<LskCharge>>>> chargesByKlskId;
-            chargesByKlskId = archCharges.stream().collect(groupingBy(LskCharge::getKlskId, groupingBy(LskCharge::getMg, groupingBy(LskCharge::getUslId))));
+            // Map устроен: klskId, (mg, (uslId, List<LskChargeUsl>))
+            Map<Long, Map<String, Map<String, List<LskChargeUsl>>>> chargesByKlskId =
+                    archCharges.stream().collect(groupingBy(LskChargeUsl::getKlskId, groupingBy(LskChargeUsl::getMg,
+                            groupingBy(LskChargeUsl::getUslId))));
+
 
             // Выполнение перерасчета
             List<ResultChange> resultChanges = chargesByKlskId.entrySet().parallelStream()
                     .flatMap(t -> changeMng.genChanges(changesParam, t.getKey(), t.getValue()).stream())
                     .collect(Collectors.toList());
-            log.info("resultChanges size={}", resultChanges.size());
+            //log.info("resultChanges size={}", resultChanges.size());
 
-            for (ResultChange resultChange : resultChanges) {
-                log.info("Перерасчет по lsk={}, period={}, usl={}, org={}, proc={}, составил summa={}",
-                        resultChange.getLsk(), resultChange.getMg(), resultChange.getUslId(),
-                        resultChange.getOrg1Id(), resultChange.getProc1(), resultChange.getSumma());
+            if (resultChanges.size() > 0) {
+                Tuser user = tuserDAO.findByCd(changesParam.getUser().toUpperCase());
+                ChangeDoc changeDoc = new ChangeDoc();
+                changeDoc.setDt(Utl.getDateTruncated(changesParam.getDt()));
+                changeDoc.setMgchange(changesParam.getPeriodFrom()); // todo убрать период - на фиг не нужен
+                changeDoc.setUserId(user.getId());
+                changeDocDAO.save(changeDoc);
+                for (ResultChange resultChange : resultChanges) {
+/*
+                    if (resultChange.getLsk().equals("00000007")) {
+                        log.info("Перерасчет по lsk={}, period={}, usl={}, org={}, proc={}, составил summa={}",
+                                resultChange.getLsk(), resultChange.getMg(), resultChange.getUslId(),
+                                resultChange.getOrgId(), resultChange.getProc(), resultChange.getSumma());
+                    }
+*/
+
+                    Change change = new Change();
+                    change.setChangeDoc(changeDoc);
+                    change.setLsk(resultChange.getLsk());
+                    change.setUslId(resultChange.getUslId());
+                    change.setOrgId(resultChange.getOrgId());
+                    change.setOrgId(resultChange.getOrgId());
+                    change.setUserId(user.getId());
+                    change.setMg2(changesParam.getPeriodProcess() != null ? changesParam.getPeriodProcess() : resultChange.getMg());
+                    change.setMgchange(resultChange.getMg());
+                    change.setSumma(resultChange.getSumma());
+                    change.setDt(Utl.getDateTruncated(changesParam.getDt()));
+                    changeDoc.getChange().add(change);
+
+                }
             }
         } else {
             log.warn("Не найдены объекты, для перерасчета!");
@@ -405,7 +441,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
      * @param klskIds      список фин.лиц.сч.
      */
 
-    private List<LskCharge> getArchCharges(ChangesParam changesParam, List<String> kulNds, Set<Long> klskIds) {
+    private List<LskChargeUsl> getArchCharges(ChangesParam changesParam, List<String> kulNds, Set<Long> klskIds) {
         String archPeriodTo;
         if (Integer.parseInt(changesParam.getPeriodTo()) == Integer.parseInt(config.getPeriod())) {
             archPeriodTo = config.getPeriodBack();
@@ -425,7 +461,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
 
         List<LskCharge> archCharges = new ArrayList<>();
         if (kulNds.size() > 0) {
-            log.info("Перерасчет по домам:");
+            //log.info("Перерасчет по домам:");
             archCharges = kartDAO.getArchChargesByKulNd(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
                     changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
                     changesParam.getProcessKran(), changesParam.getProcessLskTp(),
@@ -434,7 +470,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
             );
         }
         if (klskIds.size() > 0) {
-            log.info("Перерасчет по фин.лиц.сч:");
+            //log.info("Перерасчет по фин.лиц.сч:");
             archCharges = kartDAO.getArchChargesByKlskIds(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
                     changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
                     changesParam.getProcessKran(), changesParam.getProcessLskTp(),
@@ -442,9 +478,12 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                     klskIds, uslListForQuery
             );
         }
-        archCharges.forEach(t -> log.info("Начисление по lsk={}, mg={}, usl={}, chrg.org={}, nabor.org={}, составило summa={}",
-                t.getLsk(), t.getMg(), t.getUslId(), t.getChrgOrgId(), t.getNaborOrgId(), t.getSumma()));
-        return archCharges;
+        //archCharges.forEach(t -> log.info("Начисление по lsk={}, mg={}, usl={}, chrg.org={}, nabor.org={}, составило summa={}",
+        //        t.getLsk(), t.getMg(), t.getUslId(), t.getOrgId(), t.getNaborOrgId(), t.getSumma()));
+        return archCharges.stream().map(t -> LskChargeUsl.builder()
+                .klskId(t.getKlskId()).lsk(t.getLsk()).mg(t.getMg()).uslId(t.getUslId())
+                .orgId(t.getOrgId()).naborOrgId(t.getNaborOrgId())
+                .summa(t.getSumma()).vol(t.getVol()).build()).collect(Collectors.toList());
     }
 
     /**
@@ -473,16 +512,16 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                     .build();
             reqConf.prepareId();
             lskChargeUsl = processAll(reqConf);
-            lskChargeUsl.forEach(t -> klskIdsCharged.add(t.getKLskId()));
+            lskChargeUsl.forEach(t -> klskIdsCharged.add(t.getKlskId()));
         }
-        log.info("Кол-во записей начисления по домам {}", lskChargeUsl.size());
+        //log.info("Кол-во записей начисления по домам {}", lskChargeUsl.size());
 
         klskIdsForCharge.removeIf(klskIdsCharged::contains);
         if (klskIdsForCharge.size() > 0) {
             // по списку фин.лиц.сч.
             genChargeByKlskIds(lskChargeUsl, klskIdsForCharge);
         }
-        log.info("Кол-во записей начисления по фин.лиц.сч. {}", lskChargeUsl.size());
+        //log.info("Кол-во записей начисления по фин.лиц.сч. {}", lskChargeUsl.size());
         return lskChargeUsl;
     }
 

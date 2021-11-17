@@ -72,17 +72,13 @@ public class TestAchargeDAO {
      * Проверка projection для перерасчетов
      */
     @Test
+    @Rollback(value = false)
     public void checkProjectionForChanges() throws JsonProcessingException, ExecutionException, InterruptedException, ErrorWhileGen, WrongParam {
         log.info("-----------------Begin");
 
 
         ObjectMapper objectMapper = new ObjectMapper();
-        //ChangesParam changesParam = objectMapper.readValue("{\"periodFrom\": \"201401\",\"periodTo\": \"201404\",\"selObjList\":[{\"id\":\"54\",\"kul\":\"0001\",\"nd\":\"00017А\",\"klskId\":\"104887\",\"tp\":\"1\"}],\"isAddUslSvSocn\": \"true\",\"isAddUslWaste\": \"true\",\"processMeter\": \"1\",\"processAccount\": \"0\",\"processStatus\": \"2\",\"processLskTp\": \"2\",\"processTp\": \"1\",\"processEmpty\": \"0\",\"comment\": \"коммент\",\"changeUslList\": [{\"uslId\":\"011\",\"org1Id\":\"4\",\"proc1\":\"23\",\"org2Id\":\"\",\"proc2\":\"\",\"absSet\":\"\",\"cntDays\":\"\",\"cntDays2\":\"\"},{\"uslId\":\"015\",\"org1Id\":\"5\",\"proc1\":\"15\",\"org2Id\":\"\",\"proc2\":\"\",\"absSet\":\"\",\"cntDays\":\"\",\"cntDays2\":\"\"}]}", ChangesParam.class);
-        ChangesParam changesParam = objectMapper.readValue("{\"periodFrom\": \"201401\",\"periodTo\": \"201404\",\"selObjList\":[" +
-                "{\"id\":\"1\",\"kul\":\"0001\",\"nd\":\"00017А\",\"tp\":\"0\"}," +
-                "{\"id\":\"2\",\"klskId\":\"104880\",\"tp\":\"1\"}," +
-                "{\"id\":\"3\",\"lsk\":\"00000010\",\"tp\":\"2\"}]," +
-                "\"isAddUslSvSocn\": \"true\",\"isAddUslWaste\": \"true\",\"processMeter\": \"1\",\"processAccount\": \"0\",\"processStatus\": \"2\",\"processLskTp\": \"2\",\"processTp\": \"1\",\"processEmpty\": \"0\",\"comment\": \"коммент\",\"changeUslList\": [{\"uslId\":\"011\",\"org1Id\":\"4\",\"proc1\":\"23\",\"org2Id\":\"\",\"proc2\":\"\",\"absSet\":\"\",\"cntDays\":\"\",\"cntDays2\":\"\"},{\"uslId\":\"015\",\"org1Id\":\"5\",\"proc1\":\"15\",\"org2Id\":\"\",\"proc2\":\"\",\"absSet\":\"\",\"cntDays\":\"\",\"cntDays2\":\"\"}]}", ChangesParam.class);
+        ChangesParam changesParam = objectMapper.readValue("{\"dt\": \"17.04.2014\",\"user\": \"bugh1\",\"periodFrom\": \"201401\",\"periodTo\": \"201404\",\"periodProcess\": \"201401\",\"selObjList\":[{\"id\":\"31\",\"kul\":\"0001\",\"nd\":\"00017А\",\"klskId\":\"\",\"tp\":\"0\"}, {\"id\":\"225\",\"kul\":\"0001\",\"nd\":\"000033\",\"klskId\":\"\",\"tp\":\"0\"}, {\"id\":\"42\",\"kul\":\"0001\",\"nd\":\"00017А\",\"klskId\":\"559766\",\"tp\":\"1\"}, {\"id\":\"40\",\"kul\":\"0001\",\"nd\":\"00017А\",\"klskId\":\"559762\",\"tp\":\"1\"}],\"isAddUslSvSocn\": \"true\",\"isAddUslWaste\": \"true\",\"processMeter\": \"1\",\"processAccount\": \"0\",\"processStatus\": \"2\",\"processLskTp\": \"2\",\"processTp\": \"1\",\"processEmpty\": \"0\",\"comment\": \"коммент\",\"changeUslList\": [{\"uslId\":\"003\",\"orgId\":\"\",\"proc\":\"15\",\"absSet\":\"\",\"cntDays\":\"11\"},{\"uslId\":\"011\",\"orgId\":\"5\",\"proc\":\"26\",\"absSet\":\"\",\"cntDays\":\"\"}]}", ChangesParam.class);
         processMng.processChanges(changesParam);
 
         log.info("-----------------End");
