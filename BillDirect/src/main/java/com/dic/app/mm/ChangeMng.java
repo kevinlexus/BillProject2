@@ -1,14 +1,16 @@
 package com.dic.app.mm;
 
-import com.dic.bill.dto.ChangesParam;
-import com.dic.bill.dto.LskCharge;
-import com.dic.bill.dto.LskChargeUsl;
-import com.dic.bill.dto.ResultChange;
+import com.dic.bill.dto.*;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 
 public interface ChangeMng {
 
-    List<ResultChange> genChanges(ChangesParam changesParam, Long klskId, Map<String, Map<String, List<LskChargeUsl>>> value);
+    List<ResultChange> genChangesProc(ChangesParam changesParam, Long klskId, Map<String, Map<String, List<LskChargeUsl>>> value);
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    List<ResultChange> genChangesAbs(ChangesParam changesParam, Long klskId, Map<String, Map<String, List<LskNabor>>> chargeByPeriod);
 }

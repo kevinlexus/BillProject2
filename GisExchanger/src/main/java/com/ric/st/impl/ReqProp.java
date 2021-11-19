@@ -191,7 +191,7 @@ public class ReqProp implements ReqProps {
     }
 
     /**
-     * Получить рекурсивно eolink УК, содержащий PPGUID Организации и другие параметры
+     * Получить рекурсивно eolink УК
      *
      * @param eolink - текущий объект
      * @param task   - задание
@@ -199,17 +199,8 @@ public class ReqProp implements ReqProps {
     private Eolink getUkByTaskEolink(Eolink eolink, Task task) throws CantPrepSoap {
         Eolink eolFound;
         if (eolink.getObjTp().getCd().equals("Организация")) {
-            // родительская организация
-            if (eolink.getGuid() == null/* && eolink.getGuid2() == null */) {
-                // нет PPGUID
-                throw new CantPrepSoap("Не заведен GUID организации по Task.id=" + task.getId());
-            } else {
-                // вернуть объект, содержащий PPGUID
-                eolFound = eolink;
-            }
+            eolFound = eolink;
         } else {
-            // не организация, или не родительская организация
-            // получить объект, содержащий PPGUID, у уровня выше
             eolFound = getUkByTaskEolink(eolink.getParent(), task);
         }
         return eolFound;

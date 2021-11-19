@@ -1,10 +1,8 @@
 package com.dic.bill.dto;
 
 import com.dic.bill.model.scott.Charge;
-import com.dic.bill.model.scott.Usl;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Value;
 
 import java.math.BigDecimal;
 

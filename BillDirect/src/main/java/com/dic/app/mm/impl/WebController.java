@@ -707,7 +707,7 @@ public class WebController implements CommonConstants {
         try {
             processMng.processChanges(changesParam);
         } catch (Exception e) {
-            log.error("Ошибка выполнения метода /genChanges", e);
+            log.error("Ошибка выполнения метода /genChangesProc", e);
             return "ERROR";
         }
         return "OK";

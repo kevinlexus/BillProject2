@@ -26,6 +26,8 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -369,30 +371,40 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                 }
             }
 
-            // Получить текущее начисление по объектам
-            List<LskChargeUsl> currentCharges = new ArrayList<>();
-            if (Utl.between(Integer.parseInt(config.getPeriod()),
-                    Integer.parseInt(changesParam.getPeriodFrom()), Integer.parseInt(changesParam.getPeriodTo()))) {
-                currentCharges = getCurrentCharges(kulNds, klskIds);
+            boolean isExistProc = changesParam.getChangeUslList().stream()
+                    .anyMatch(t -> t.getProc() != null && t.getProc().compareTo(BigDecimal.ZERO) != 0 || t.getCntDays() != null && t.getCntDays() != 0);
+            boolean isExistAbs = changesParam.getChangeUslList().stream()
+                    .anyMatch(t -> t.getAbsSet() != null && t.getAbsSet().compareTo(BigDecimal.ZERO) != 0);
+            LocalDate dtFrom = LocalDate.of(Integer.parseInt(changesParam.getPeriodFrom().substring(0, 4)),
+                    Integer.parseInt(changesParam.getPeriodFrom().substring(4)), 1);
+            LocalDate dtTo = LocalDate.of(Integer.parseInt(changesParam.getPeriodTo().substring(0, 4)),
+                    Integer.parseInt(changesParam.getPeriodTo().substring(4)), 1);
+            String archPeriodTo;
+            if (Integer.parseInt(changesParam.getPeriodTo()) == Integer.parseInt(config.getPeriod())) {
+                archPeriodTo = config.getPeriodBack();
+            } else {
+                archPeriodTo = changesParam.getPeriodTo();
             }
-            //currentCharges.forEach(t -> log.info("Текущее начисление klskId={}, lsk={}, uslId={}, orgId={}, area={}, summa={}, price={}",
-            //        t.getKlskId(), t.getLsk(), t.getUslId(), t.getOrgId(), t.getArea(), t.getSumma(), t.getPrice()));
+            changesParam.setArchPeriodTo(archPeriodTo);
+            changesParam.setDtFrom(dtFrom);
+            changesParam.setDtTo(dtTo);
+            changesParam.setUslListForQuery(changesParam.getChangeUslList().stream().map(ChangeUsl::getUslId).collect(Collectors.toList()));
 
+            // ВЫПОЛНЕНИЕ ПЕРЕРАСЧЕТА
+            List<ResultChange> resultChanges = new ArrayList<>();
+            if (isExistProc) {
+                Map<Long, Map<String, Map<String, List<LskChargeUsl>>>> chargesByKlskId = getChargesByKlskId(changesParam, kulNds, klskIds);
+                resultChanges = chargesByKlskId.entrySet().parallelStream()
+                        .flatMap(t -> changeMng.genChangesProc(changesParam, t.getKey(), t.getValue()).stream())
+                        .collect(Collectors.toList());
+            }
+            if (isExistAbs) {
+                Map<Long, Map<String, Map<String, List<LskNabor>>>> naborByKlskId = getNaborsByKlskId(changesParam, kulNds, klskIds);
+                resultChanges.addAll(naborByKlskId.entrySet().parallelStream()
+                        .flatMap(t -> changeMng.genChangesAbs(changesParam, t.getKey(), t.getValue()).stream())
+                        .collect(Collectors.toList()));
+            }
 
-            // Получить архивное начисление по объектам
-            List<LskChargeUsl> archCharges = getArchCharges(changesParam, kulNds, klskIds);
-            archCharges.addAll(currentCharges);
-
-            // Map устроен: klskId, (mg, (uslId, List<LskChargeUsl>))
-            Map<Long, Map<String, Map<String, List<LskChargeUsl>>>> chargesByKlskId =
-                    archCharges.stream().collect(groupingBy(LskChargeUsl::getKlskId, groupingBy(LskChargeUsl::getMg,
-                            groupingBy(LskChargeUsl::getUslId))));
-
-
-            // Выполнение перерасчета
-            List<ResultChange> resultChanges = chargesByKlskId.entrySet().parallelStream()
-                    .flatMap(t -> changeMng.genChanges(changesParam, t.getKey(), t.getValue()).stream())
-                    .collect(Collectors.toList());
             //log.info("resultChanges size={}", resultChanges.size());
 
             if (resultChanges.size() > 0) {
@@ -433,6 +445,104 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
         return 0;
     }
 
+    private Map<Long, Map<String, Map<String, List<LskNabor>>>> getNaborsByKlskId(ChangesParam changesParam, List<String> kulNds, Set<Long> klskIds) throws ErrorWhileGen {
+        final List<LskNabor> currentNabors = new ArrayList<>();
+        // Получить текущие наборы услуг по объектам
+        if (Utl.between(Integer.parseInt(config.getPeriod()),
+                Integer.parseInt(changesParam.getPeriodFrom()), Integer.parseInt(changesParam.getPeriodTo()))) {
+            getCurrentNabors(currentNabors, changesParam, kulNds, klskIds);
+        }
+
+        // Получить архивные наборы услуг по объектам
+        if (Integer.parseInt(changesParam.getPeriodFrom()) < Integer.parseInt(config.getPeriod())) {
+            getArchNabors(currentNabors, changesParam, kulNds, klskIds);
+        }
+
+        boolean existsDuplicates = currentNabors.stream().anyMatch(t -> currentNabors.stream()
+                .anyMatch(d -> !t.equals(d) && d.getLsk().equals(t.getLsk()) && d.getMg().equals(t.getMg()) && d.getUslId().equals(t.getUslId())
+                ));
+        if (existsDuplicates) {
+            throw new ErrorWhileGen("Обнаружены дубли в полученном списке услуг");
+        }
+
+        // Возвращаемый Map устроен: klskId, (mg, (uslId, List<LskNabor>))
+        return currentNabors.stream().collect(groupingBy(LskNabor::getKlskId, groupingBy(LskNabor::getMg,
+                groupingBy(LskNabor::getUslId))));
+
+    }
+
+    private Map<Long, Map<String, Map<String, List<LskChargeUsl>>>> getChargesByKlskId(ChangesParam changesParam, List<String> kulNds, Set<Long> klskIds) throws ErrorWhileGen {
+        // Получить текущее начисление по объектам
+        List<LskChargeUsl> currentCharges = new ArrayList<>();
+        if (Utl.between(Integer.parseInt(config.getPeriod()),
+                Integer.parseInt(changesParam.getPeriodFrom()), Integer.parseInt(changesParam.getPeriodTo()))) {
+            currentCharges = getCurrentCharges(kulNds, klskIds);
+        }
+
+        // Получить архивное начисление по объектам
+        if (Integer.parseInt(changesParam.getPeriodFrom()) < Integer.parseInt(config.getPeriod())) {
+            List<LskChargeUsl> archCharges = getArchCharges(changesParam, kulNds, klskIds);
+            currentCharges.addAll(archCharges);
+        }
+
+        // Возвращаемый Map устроен: klskId, (mg, (uslId, List<LskChargeUsl>))
+        return currentCharges.stream().collect(groupingBy(LskChargeUsl::getKlskId, groupingBy(LskChargeUsl::getMg,
+                groupingBy(LskChargeUsl::getUslId))));
+    }
+
+    private void getCurrentNabors(List<LskNabor> currentNabors, ChangesParam changesParam, List<String> kulNds, Set<Long> klskIds) {
+        List<String> uslListForQuery = changesParam.getUslListForQuery();
+        List<LskNabor> nabors = new ArrayList<>();
+        Set<Long> klskIdsProcessed = new HashSet<>(); // для исключения дублей в наборах услуг
+        Set<Long> klskIdsForProcess = new HashSet<>(klskIds);
+
+        if (kulNds.size() > 0) {
+            nabors = kartDAO.getNaborsByKulNd(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
+                    changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
+                    changesParam.getProcessKran(), changesParam.getProcessLskTp(),
+                    kulNds, uslListForQuery);
+            nabors.forEach(t -> klskIdsProcessed.add(t.getKlskId()));
+        }
+
+        klskIdsForProcess.removeIf(klskIdsProcessed::contains);
+        if (klskIds.size() > 0) {
+            List<LskNabor> klskIdNabors = kartDAO.getNaborsByKlskIds(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
+                    changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
+                    changesParam.getProcessKran(), changesParam.getProcessLskTp(),
+                    klskIdsForProcess, uslListForQuery);
+            nabors.addAll(klskIdNabors);
+        }
+        currentNabors.addAll(nabors);
+    }
+
+    private void getArchNabors(List<LskNabor> currentNabors, ChangesParam changesParam, List<String> kulNds, Set<Long> klskIds) {
+        List<String> uslListForQuery = changesParam.getUslListForQuery();
+        List<LskNabor> nabors = new ArrayList<>();
+        Set<Long> klskIdsProcessed = new HashSet<>(); // для исключения дублей в наборах услуг
+        Set<Long> klskIdsForProcess = new HashSet<>(klskIds);
+
+        if (kulNds.size() > 0) {
+            nabors = kartDAO.getArchNaborsByKulNd(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
+                    changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
+                    changesParam.getProcessKran(), changesParam.getProcessLskTp(),
+                    changesParam.getPeriodFrom(), changesParam.getArchPeriodTo(),
+                    kulNds, uslListForQuery);
+            nabors.forEach(t -> klskIdsProcessed.add(t.getKlskId()));
+        }
+
+        klskIdsForProcess.removeIf(klskIdsProcessed::contains);
+        if (klskIds.size() > 0) {
+            List<LskNabor> klskIdNabors = kartDAO.getArchNaborsByKlskIds(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
+                    changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
+                    changesParam.getProcessKran(), changesParam.getProcessLskTp(),
+                    changesParam.getPeriodFrom(), changesParam.getArchPeriodTo(),
+                    klskIdsForProcess, uslListForQuery);
+            nabors.addAll(klskIdNabors);
+        }
+        currentNabors.addAll(nabors);
+    }
+
+
     /**
      * Получить архивное начисление по объектам
      *
@@ -442,14 +552,9 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
      */
 
     private List<LskChargeUsl> getArchCharges(ChangesParam changesParam, List<String> kulNds, Set<Long> klskIds) {
-        String archPeriodTo;
-        if (Integer.parseInt(changesParam.getPeriodTo()) == Integer.parseInt(config.getPeriod())) {
-            archPeriodTo = config.getPeriodBack();
-        } else {
-            archPeriodTo = changesParam.getPeriodTo();
-        }
-
-        List<String> uslListForQuery = changesParam.getChangeUslList().stream().map(ChangeUsl::getUslId).collect(Collectors.toList());
+        List<String> uslListForQuery = changesParam.getUslListForQuery();
+        Set<Long> klskIdsProcessed = new HashSet<>(); // для исключения дублей в наборах услуг
+        Set<Long> klskIdsForProcess = new HashSet<>(klskIds);
         if (changesParam.getIsAddUslWaste()) {
             // добавить услуги по водоотведению
             if (uslListForQuery.stream().anyMatch(t -> config.getWaterUslCodes().contains(t))) {
@@ -465,18 +570,22 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
             archCharges = kartDAO.getArchChargesByKulNd(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
                     changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
                     changesParam.getProcessKran(), changesParam.getProcessLskTp(),
-                    changesParam.getPeriodFrom(), archPeriodTo,
+                    changesParam.getPeriodFrom(), changesParam.getArchPeriodTo(),
                     kulNds, uslListForQuery
             );
+            archCharges.forEach(t -> klskIdsProcessed.add(t.getKlskId()));
         }
+
+        klskIdsForProcess.removeIf(klskIdsProcessed::contains);
         if (klskIds.size() > 0) {
             //log.info("Перерасчет по фин.лиц.сч:");
-            archCharges = kartDAO.getArchChargesByKlskIds(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
+            List<LskCharge> klskIdsCharges = kartDAO.getArchChargesByKlskIds(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
                     changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
                     changesParam.getProcessKran(), changesParam.getProcessLskTp(),
-                    changesParam.getPeriodFrom(), archPeriodTo,
-                    klskIds, uslListForQuery
+                    changesParam.getPeriodFrom(), changesParam.getArchPeriodTo(),
+                    klskIdsForProcess, uslListForQuery
             );
+            archCharges.addAll(klskIdsCharges);
         }
         //archCharges.forEach(t -> log.info("Начисление по lsk={}, mg={}, usl={}, chrg.org={}, nabor.org={}, составило summa={}",
         //        t.getLsk(), t.getMg(), t.getUslId(), t.getOrgId(), t.getNaborOrgId(), t.getSumma()));
@@ -493,8 +602,8 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
      * @param klskIds список фин.лиц.сч.
      */
     private List<LskChargeUsl> getCurrentCharges(List<String> kulNds, Set<Long> klskIds) throws ErrorWhileGen {
-        Set<Long> klskIdsCharged = new HashSet<>(); // для исключения дублей в начислении
-        Set<Long> klskIdsForCharge = new HashSet<>(klskIds);
+        Set<Long> klskIdsProcessed = new HashSet<>(); // для исключения дублей в начислении
+        Set<Long> klskIdsForProcess = new HashSet<>(klskIds);
         List<LskChargeUsl> lskChargeUsl = new ArrayList<>();
         if (kulNds.size() > 0) {
             // по списку домов
@@ -512,14 +621,14 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                     .build();
             reqConf.prepareId();
             lskChargeUsl = processAll(reqConf);
-            lskChargeUsl.forEach(t -> klskIdsCharged.add(t.getKlskId()));
+            lskChargeUsl.forEach(t -> klskIdsProcessed.add(t.getKlskId()));
         }
         //log.info("Кол-во записей начисления по домам {}", lskChargeUsl.size());
 
-        klskIdsForCharge.removeIf(klskIdsCharged::contains);
-        if (klskIdsForCharge.size() > 0) {
+        klskIdsForProcess.removeIf(klskIdsProcessed::contains);
+        if (klskIdsForProcess.size() > 0) {
             // по списку фин.лиц.сч.
-            genChargeByKlskIds(lskChargeUsl, klskIdsForCharge);
+            genChargeByKlskIds(lskChargeUsl, klskIdsForProcess);
         }
         //log.info("Кол-во записей начисления по фин.лиц.сч. {}", lskChargeUsl.size());
         return lskChargeUsl;
