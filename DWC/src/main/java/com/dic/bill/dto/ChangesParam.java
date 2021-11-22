@@ -1,6 +1,7 @@
 package com.dic.bill.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,7 +20,9 @@ public class ChangesParam {
     private List<Selobj> selObjList; // выбранные объекты
     private String periodFrom; // начальный период
     private String periodTo; // конечный период
+    @JsonIgnore
     private LocalDate dtFrom; // дата начала перерасчета (заполняется на бэке)
+    @JsonIgnore
     private LocalDate dtTo; // дата окончания перерасчета (заполняется на бэке)
     private String periodProcess; // провести периодом
     private Boolean isAddUslSvSocn; // добавлять услуги свыше соц.н.?
@@ -33,6 +36,8 @@ public class ChangesParam {
     private int processEmpty; // 0-по всем лицевым, 1-там где никто не проживает
     private String comment; // комментарий
     private List<ChangeUsl> changeUslList; // параметры перерасчета по услугам и организациям
+    @JsonIgnore
     private String archPeriodTo; // период выборки архивов (заполняется на бэке)
+    @JsonIgnore
     private List<String> uslListForQuery; // список услуг (заполняется на бэке)
 }

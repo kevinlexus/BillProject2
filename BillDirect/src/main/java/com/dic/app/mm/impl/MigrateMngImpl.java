@@ -75,7 +75,7 @@ public class MigrateMngImpl implements MigrateMng {
         StopWatch sw = new StopWatch();
         sw.start("TIMING: " + reqConf.getTpName());
 
-        ProcessMng processMng = ctx.getBean(ProcessMng.class);
+        ProcessAllMng processMng = ctx.getBean(ProcessAllMng.class);
         processMng.processAll(reqConf);
 
         sw.stop();

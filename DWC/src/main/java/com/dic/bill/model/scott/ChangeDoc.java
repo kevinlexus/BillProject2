@@ -49,6 +49,10 @@ public class ChangeDoc implements java.io.Serializable  {
 	@Column(name = "TEXT", updatable = false)
 	private String text;
 
+	// параметр перерасчета, в виде JSON
+	@Column(name = "PARAM_JSON", updatable = false)
+	private String paramJson;
+
 	@Column(name = "USER_ID")
 	private Integer userId;
 
@@ -110,6 +114,8 @@ public class ChangeDoc implements java.io.Serializable  {
 		// updatable = false - чтобы не было Update Foreign key
 		private List<CorrectPay> correctPay = new ArrayList<>(0);
 
+		private String paramJson;
+
 		private ChangeDocBuilder() {
 		}
 
@@ -139,6 +145,11 @@ public class ChangeDoc implements java.io.Serializable  {
 
 		public ChangeDocBuilder withText(String text) {
 			this.text = text;
+			return this;
+		}
+
+		public ChangeDocBuilder withParamJson(String paramJson) {
+			this.paramJson = paramJson;
 			return this;
 		}
 

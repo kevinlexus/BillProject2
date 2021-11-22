@@ -1,5 +1,6 @@
 package com.dic.bill.model.scott;
 
+import com.dic.bill.enums.ChangeTps;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -47,6 +48,15 @@ public class Change implements java.io.Serializable  {
 	@Column(name = "SUMMA")
 	private BigDecimal summa;
 
+	// процент перерасчета
+	@Column(name = "PROC")
+	private BigDecimal proc;
+
+	// кол-во дней перерасчета
+	@Column(name = "CNT_DAYS")
+	private Integer cntDays;
+
+
 	// период за который перерасчет
 	@Column(name = "MGCHANGE")
 	private String mgchange;
@@ -70,6 +80,10 @@ public class Change implements java.io.Serializable  {
 
 	@Column(name = "USER_ID")
 	private Integer userId;
+
+	// тип перерасчета (0- в %, 1-в денежном выражении)
+	@Column(name = "TP")
+	private ChangeTps tp;
 
 	// пользователь
 	@ManyToOne(fetch = FetchType.LAZY)

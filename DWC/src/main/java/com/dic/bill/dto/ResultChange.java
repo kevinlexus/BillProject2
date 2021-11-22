@@ -1,6 +1,8 @@
 package com.dic.bill.dto;
 
-import lombok.*;
+import com.dic.bill.enums.ChangeTps;
+import lombok.Builder;
+import lombok.Value;
 
 import java.math.BigDecimal;
 
@@ -13,4 +15,6 @@ public class ResultChange {
     Integer orgId;
     BigDecimal proc;
     BigDecimal summa;
+    Integer cntDays;
+    ChangeTps tp;
 }

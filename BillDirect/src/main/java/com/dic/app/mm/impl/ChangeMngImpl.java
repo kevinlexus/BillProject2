@@ -3,6 +3,7 @@ package com.dic.app.mm.impl;
 import com.dic.app.mm.ChangeMng;
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.dto.*;
+import com.dic.bill.enums.ChangeTps;
 import com.ric.cmn.Utl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,28 +36,44 @@ public class ChangeMngImpl implements ChangeMng {
         for (LocalDate dt = changesParam.getDtFrom(); dt.isBefore(changesParam.getDtTo().plusDays(1)); dt = dt.plusMonths(1)) {
             String period = Utl.getPeriodFromDate(dt);
             Map<String, List<LskChargeUsl>> chargesByUsl = chargeByPeriod.get(period);
-                genChangesByProc(changesParam, resultChanges, dt, chargesByUsl);
+            genChangesByProc(changesParam, resultChanges, dt, chargesByUsl);
         }
         return resultChanges;
     }
+
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public List<ResultChange> genChangesAbs(ChangesParam changesParam, Long klskId, Map<String, Map<String, List<LskNabor>>> naborByPeriod) {
-        // fixme доделать
-        List<ResultChange> resultChanges = new ArrayList<>();
-/*
+    public List<ResultChange> genChangesAbs(ChangesParam changesParam, Long klskId, Map<String, Map<String, List<LskNabor>>> naborsByPeriod) {
+        final List<ResultChange> resultChanges = new ArrayList<>();
         // перебрать заданные периоды
-        for (LocalDate dt = dtFrom; dt.isBefore(dtTo.plusDays(1)); dt = dt.plusMonths(1)) {
+        for (LocalDate dt = changesParam.getDtFrom(); dt.isBefore(changesParam.getDtTo().plusDays(1)); dt = dt.plusMonths(1)) {
             String period = Utl.getPeriodFromDate(dt);
-            Map<String, List<LskChargeUsl>> chargesByUsl = naborByPeriod.get(period);
-            genChangesByAbs(changesParam, resultChanges, dt, chargesByUsl);
+            Map<String, List<LskNabor>> naborsByUsl = naborsByPeriod.get(period);
+            genChangesByAbs(changesParam, resultChanges, dt, naborsByUsl);
         }
-*/
         return resultChanges;
     }
 
-    private void genChangesByAbs(ChangesParam changesParam, List<ResultChange> resultChanges, LocalDate dt, Map<String, List<LskChargeUsl>> chargesByUsl) {
+    private void genChangesByAbs(ChangesParam changesParam, List<ResultChange> resultChanges, LocalDate dt, Map<String, List<LskNabor>> naborsByUsl) {
+        if (naborsByUsl != null) {
+            for (ChangeUsl changeUsl : changesParam.getChangeUslList()) {
+                List<LskNabor> nabors = naborsByUsl.get(changeUsl.getUslId());
+                if (nabors != null) {
+                    for (LskNabor nabor : nabors) {
 
+                        Integer orgId = changeUsl.getOrgId() != null ? changeUsl.getOrgId() : nabor.getOrgId();
+                        ResultChange resultChange = ResultChange.builder()
+                                .lsk(nabor.getLsk())
+                                .mg(nabor.getMg())
+                                .uslId(changeUsl.getUslId())
+                                .orgId(orgId)
+                                .tp(ChangeTps.ABS)
+                                .summa(changeUsl.getAbsSet()).build();
+                        resultChanges.add(resultChange);
+                    }
+                }
+            }
+        }
     }
 
     private void genChangesByProc(ChangesParam changesParam, List<ResultChange> resultChanges, LocalDate dt, Map<String, List<LskChargeUsl>> chargesByUsl) {
@@ -72,14 +89,13 @@ public class ChangeMngImpl implements ChangeMng {
                     .flatMap(t -> t.getValue().stream())
                     .collect(Collectors.toList());
             for (ChangeUsl changeUsl : changesParam.getChangeUslList()) {
-                BigDecimal proc = changeUsl.getProc();
                 if (changeUsl.getCntDays() != null && changeUsl.getCntDays() != 0) {
                     // получить процент из отношения кол-во дней перерасчета / кол-во дней месяца
-                    proc = BigDecimal.valueOf(changeUsl.getCntDays() * 100).divide(BigDecimal.valueOf(dt.lengthOfMonth()), 2, RoundingMode.HALF_UP);
+                    changeUsl.setProc(BigDecimal.valueOf(changeUsl.getCntDays() * 100).divide(BigDecimal.valueOf(dt.lengthOfMonth()), 2, RoundingMode.HALF_UP));
                 }
 
                 // перебрать заданные в перерасчете услуги
-                if (proc.compareTo(BigDecimal.ZERO) != 0) {
+                if (changeUsl.getProc().compareTo(BigDecimal.ZERO) != 0) {
                     List<LskChargeUsl> charges = chargesByUsl.get(changeUsl.getUslId());
                     if (charges != null) {
                         for (LskChargeUsl lskCharge : charges) {
@@ -87,7 +103,7 @@ public class ChangeMngImpl implements ChangeMng {
                             if (lskCharge.getSumma().compareTo(BigDecimal.ZERO) != 0) {
                                 BigDecimal sumChange = lskCharge.getSumma()
                                         .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
-                                        .multiply(proc).setScale(2, RoundingMode.HALF_UP);
+                                        .multiply(changeUsl.getProc()).setScale(2, RoundingMode.HALF_UP);
                                 Integer orgId = getChangeOrgId(changeUsl, lskCharge);
                                 if (orgId == null) {
                                     log.error("Значение orgId должно быть либо задано пользователем, либо получено из начисления за период, или из наборов услуг");
@@ -98,7 +114,9 @@ public class ChangeMngImpl implements ChangeMng {
                                         .mg(lskCharge.getMg())
                                         .uslId(changeUsl.getUslId())
                                         .orgId(orgId)
-                                        .proc(proc)
+                                        .proc(changeUsl.getProc())
+                                        .cntDays(changeUsl.getCntDays())
+                                        .tp(ChangeTps.PROC)
                                         .summa(sumChange).build();
                                 resultChanges.add(resultChange);
                                 if (changesParam.getIsAddUslWaste()) {
@@ -135,6 +153,8 @@ public class ChangeMngImpl implements ChangeMng {
                             .uslId(lskChargeWaste.getUslId())
                             .orgId(orgId)
                             .proc(procWaste)
+                            .cntDays(changeUsl.getCntDays())
+                            .tp(ChangeTps.PROC)
                             .summa(sumChange).build();
                     resultChanges.add(resultChange);
                 }

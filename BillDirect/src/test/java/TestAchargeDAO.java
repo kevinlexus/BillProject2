@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileGen;
 import com.ric.cmn.excp.WrongParam;
+import com.ric.cmn.excp.WrongParamPeriod;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,13 +73,14 @@ public class TestAchargeDAO {
      * Проверка projection для перерасчетов
      */
     @Test
-    @Rollback(value = false)
-    public void checkProjectionForChanges() throws JsonProcessingException, ExecutionException, InterruptedException, ErrorWhileGen, WrongParam {
+    @Rollback(value = true)
+    public void checkProjectionForChanges() throws JsonProcessingException, ExecutionException, InterruptedException, ErrorWhileGen, WrongParam, WrongParamPeriod {
         log.info("-----------------Begin");
 
 
         ObjectMapper objectMapper = new ObjectMapper();
-        ChangesParam changesParam = objectMapper.readValue("{\"dt\": \"17.04.2014\",\"user\": \"bugh1\",\"periodFrom\": \"201401\",\"periodTo\": \"201404\",\"periodProcess\": \"201401\",\"selObjList\":[{\"id\":\"31\",\"kul\":\"0001\",\"nd\":\"00017А\",\"klskId\":\"\",\"tp\":\"0\"}, {\"id\":\"225\",\"kul\":\"0001\",\"nd\":\"000033\",\"klskId\":\"\",\"tp\":\"0\"}, {\"id\":\"42\",\"kul\":\"0001\",\"nd\":\"00017А\",\"klskId\":\"559766\",\"tp\":\"1\"}, {\"id\":\"40\",\"kul\":\"0001\",\"nd\":\"00017А\",\"klskId\":\"559762\",\"tp\":\"1\"}],\"isAddUslSvSocn\": \"true\",\"isAddUslWaste\": \"true\",\"processMeter\": \"1\",\"processAccount\": \"0\",\"processStatus\": \"2\",\"processLskTp\": \"2\",\"processTp\": \"1\",\"processEmpty\": \"0\",\"comment\": \"коммент\",\"changeUslList\": [{\"uslId\":\"003\",\"orgId\":\"\",\"proc\":\"15\",\"absSet\":\"55.25\",\"cntDays\":\"11\"},{\"uslId\":\"011\",\"orgId\":\"5\",\"proc\":\"26\",\"absSet\":\"17.89\",\"cntDays\":\"\"}]}", ChangesParam.class);
+        //ChangesParam changesParam = objectMapper.readValue("{\"dt\": \"17.04.2014\",\"user\": \"bugh1\",\"periodFrom\": \"201401\",\"periodTo\": \"201404\",\"periodProcess\": \"201401\",\"selObjList\":[{\"id\":\"31\",\"kul\":\"0001\",\"nd\":\"00017А\",\"klskId\":\"\",\"tp\":\"0\"}, {\"id\":\"225\",\"kul\":\"0001\",\"nd\":\"000033\",\"klskId\":\"\",\"tp\":\"0\"}, {\"id\":\"42\",\"kul\":\"0001\",\"nd\":\"00017А\",\"klskId\":\"559766\",\"tp\":\"1\"}, {\"id\":\"40\",\"kul\":\"0001\",\"nd\":\"00017А\",\"klskId\":\"559762\",\"tp\":\"1\"}],\"isAddUslSvSocn\": \"true\",\"isAddUslWaste\": \"true\",\"processMeter\": \"1\",\"processAccount\": \"0\",\"processStatus\": \"2\",\"processLskTp\": \"2\",\"processTp\": \"1\",\"processEmpty\": \"0\",\"comment\": \"коммент\",\"changeUslList\": [{\"uslId\":\"003\",\"orgId\":\"\",\"proc\":\"15\",\"absSet\":\"55.25\",\"cntDays\":\"11\"},{\"uslId\":\"011\",\"orgId\":\"5\",\"proc\":\"26\",\"absSet\":\"17.89\",\"cntDays\":\"\"}]}", ChangesParam.class);
+        ChangesParam changesParam = objectMapper.readValue("{\"dt\": \"30.04.2014\",\"user\": \"bugh1\",\"periodFrom\": \"201312\",\"periodTo\": \"201404\",\"periodProcess\": \"200901\",\"selObjList\":[{\"id\":\"31\",\"kul\":\"0001\",\"nd\":\"00017À\",\"klskId\":\"\",\"tp\":\"0\"}, {\"id\":\"225\",\"kul\":\"0001\",\"nd\":\"000033\",\"klskId\":\"\",\"tp\":\"0\"}, {\"id\":\"200\",\"kul\":\"0001\",\"nd\":\"00017À\",\"klskId\":\"104778\",\"tp\":\"1\"}],\"isAddUslSvSocn\": \"true\",\"isAddUslWaste\": \"true\",\"processMeter\": \"1\",\"processAccount\": \"0\",\"processStatus\": \"2\",\"processLskTp\": \"2\",\"processTp\": \"1\",\"processEmpty\": \"0\",\"comment\": \"êîììåíò\",\"changeUslList\": [{\"uslId\":\"011\",\"orgId\":\"5\",\"proc\":\"\",\"absSet\":\"\",\"cntDays\":\"-15\"},{\"uslId\":\"015\",\"orgId\":\"\",\"proc\":\"-18\",\"absSet\":\"\",\"cntDays\":\"\"}]}", ChangesParam.class);
         processMng.processChanges(changesParam);
 
         log.info("-----------------End");

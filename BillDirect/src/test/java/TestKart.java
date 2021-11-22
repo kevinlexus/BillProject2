@@ -3,6 +3,7 @@ import com.dic.app.RequestConfigDirect;
 import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.GenChrgProcessMng;
 import com.dic.app.mm.ProcessMng;
+import com.dic.app.mm.impl.ProcessAllMng;
 import com.dic.bill.dao.KartDAO;
 import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.NaborMng;
@@ -48,7 +49,7 @@ public class TestKart {
     @Autowired
     private NaborMng naborMng;
     @Autowired
-    private ProcessMng processMng;
+    private ProcessAllMng processMng;
     @Autowired
     private GenChrgProcessMng genChrgProcessMng;
     @Autowired

@@ -12,11 +12,13 @@ import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.NaborMng;
 import com.dic.bill.mm.ObjParMng;
 import com.dic.bill.model.scott.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ric.cmn.CommonConstants;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileDistPay;
 import com.ric.cmn.excp.ErrorWhileGen;
 import com.ric.cmn.excp.WrongParam;
+import com.ric.cmn.excp.WrongParamPeriod;
 import com.ric.dto.ListKoAddress;
 import com.ric.dto.ListMeter;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Контроллер WEB - запросов
@@ -704,13 +707,17 @@ public class WebController implements CommonConstants {
     @ResponseBody
     public String genChanges(@RequestBody ChangesParam changesParam) {
         log.info("GOT /processChanges");
+        int changeDocId;
         try {
-            processMng.processChanges(changesParam);
-        } catch (Exception e) {
-            log.error("Ошибка выполнения метода /genChangesProc", e);
-            return "ERROR";
+            changeDocId = processMng.processChanges(changesParam);
+        } catch (WrongParamPeriod e) {
+            log.error("Некорректный период, при вызове метода /genChangesProc", e);
+            return "ERROR " + e.getMessage();
+        } catch (ErrorWhileGen | ExecutionException | InterruptedException | JsonProcessingException | WrongParam e) {
+            log.error("Произошла ошибка в процессе перерасчета", e);
+            return "ERROR Произошла ошибка в процессе перерасчета";
         }
-        return "OK";
+        return "OK " + changeDocId;
     }
 
 }

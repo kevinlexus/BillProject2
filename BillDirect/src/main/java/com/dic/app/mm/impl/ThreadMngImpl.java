@@ -1,7 +1,6 @@
 package com.dic.app.mm.impl;
 
 import com.dic.app.RequestConfigDirect;
-import com.dic.app.mm.ProcessMng;
 import com.dic.app.mm.ThreadMng;
 import com.dic.bill.dto.CommonResult;
 import com.dic.bill.dto.LskChargeUsl;
@@ -13,12 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -33,13 +31,12 @@ public class ThreadMngImpl<T> implements ThreadMng<T> {
 
     @Autowired
     private ApplicationContext ctx;
-    @PersistenceContext
-    private EntityManager em;
 
     /**
      * Вызвать выполнение потоков распределения объемов/ начисления - новый метод
+     *
      * @param reqConf кол-во потоков
-     * @param  rqn     номер запроса
+     * @param rqn     номер запроса
      * @return результат начисления
      */
     @Override
@@ -51,7 +48,7 @@ public class ThreadMngImpl<T> implements ThreadMng<T> {
         for (int i = 0; i < reqConf.getCntThreads(); i++) {
             // создать новый поток, передать информацию о % выполнения
             if (reqConf.getLstItems().size() > 1) log.info("********* Создан новый поток {}", reqConf.getTpName());
-            ProcessMng processMng = ctx.getBean(ProcessMng.class);
+            ProcessAllMng processMng = ctx.getBean(ProcessAllMng.class);
             //log.info("********* Создан новый поток-2 tpName={}", reqConf.getTpName());
             CompletableFuture<CommonResult> ret = processMng.process(reqConf);
             //log.info("********* Создан новый поток-3 tpName={}", reqConf.getTpName());
@@ -59,15 +56,23 @@ public class ThreadMngImpl<T> implements ThreadMng<T> {
             //log.info("********* Создан новый поток-4 tpName={}", reqConf.getTpName());
         }
 
+        AtomicBoolean isError = new AtomicBoolean(false);
         // ждать потоки
-        return lst.stream().flatMap(t -> {
+        List<LskChargeUsl> resultLst = lst.stream().flatMap(t -> {
             try {
                 return t.get().getLskChargeUsls().stream();
             } catch (InterruptedException | ExecutionException e) {
+                isError.set(true);
                 log.error("Ошибка во время выполнения потока");
             }
             return null;
         }).collect(Collectors.toList());
+
+        if (isError.get()) {
+            throw new ErrorWhileGen("Ошибка во время выполнения потока");
+        } else {
+            return resultLst;
+        }
     }
 
 

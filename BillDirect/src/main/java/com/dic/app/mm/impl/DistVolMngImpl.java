@@ -43,12 +43,6 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
 
     @PersistenceContext
     private EntityManager em;
-    //@Autowired
-    //private ProcessMng processMng;
-    @Autowired
-    private VvodDAO vvodDAO;
-    @Autowired
-    private ProcessMng processMng;
     @Autowired
     private ObjParMng objParMng;
     @Autowired
@@ -147,7 +141,7 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                     // кол-во лиц.счетов, объемы, кол-во прожив.
                     // собрать информацию об объемах по лиц.счетам принадлежащим вводу
 
-                    ProcessMng processMng = ctx.getBean(ProcessMng.class);
+                    ProcessAllMng processMng = ctx.getBean(ProcessAllMng.class);
                     processMng.processAll(reqConf2);
 
                     // объемы по лиц.счетам (базовый фильтр по услуге)
