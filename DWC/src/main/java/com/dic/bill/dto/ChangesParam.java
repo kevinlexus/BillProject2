@@ -31,7 +31,6 @@ public class ChangesParam {
     private int processAccount; // 0-по всем лицевым, 1-только по закрытым, 2-только по открытым
     private int processStatus; //  статусы: 0 - по всем, или ID статуса жилья из спр. status
     private int processLskTp; // вариант перерасчета (0-только по основным лс., 1 - только по дополнит лс., 2 - по тем и другим)
-    private int processTp; //  тип перерасчета, 0 - все остальные, 1 - корректировка сальдо
     private int processKran; // 0-по всем лицевым, 1-при наличии крана из системы отоп., 2- при отсутствии крана
     private int processEmpty; // 0-по всем лицевым, 1-там где никто не проживает
     private String comment; // комментарий

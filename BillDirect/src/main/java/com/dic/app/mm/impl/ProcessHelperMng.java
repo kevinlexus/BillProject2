@@ -36,6 +36,10 @@ public class ProcessHelperMng {
         if (Utl.between(Integer.parseInt(config.getPeriod()),
                 Integer.parseInt(changesParam.getPeriodFrom()), Integer.parseInt(changesParam.getPeriodTo()))) {
             getCurrentCharges(currentCharges, kulNds, klskIds);
+            // убрать лишние лиц счета, так как getCurrentCharges выдаст все лс, без учета фильтра в параметрах перерасчета
+            final List<LskNabor> currentNabors = new ArrayList<>();
+            getCurrentNabors(currentNabors, changesParam, kulNds, klskIds);
+            currentCharges.removeIf(t-> currentNabors.stream().noneMatch(d->d.getLsk().equals(t.getLsk())));
         }
 
         // Получить архивное начисление по объектам

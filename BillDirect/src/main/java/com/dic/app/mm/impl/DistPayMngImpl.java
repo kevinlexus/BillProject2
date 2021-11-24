@@ -533,31 +533,8 @@ public class DistPayMngImpl implements DistPayMng {
 
         // сформировать начисление
         if (isGenChrg) {
-            if (Utl.in(amount.getDistTp(), 1)) {
-                // только вариант Кис.
                 processMng.processWebRequest(0, 0, amount.getDtek(), null, null,
                         amount.getKart().getKoKw(), null, null);
-                //} else {
-                // ТСЖ - вызвать начисление PL/SQL - не надо! делается в Direct
-                // расчитать начисление по одному лиц счету
-/*
-                StoredProcedureQuery qr = em.createStoredProcedureQuery("scott.c_charges.gen_charges");
-                // id дома
-                qr.registerStoredProcedureParameter(1, String.class, ParameterMode.IN);
-                qr.registerStoredProcedureParameter(2, String.class, ParameterMode.IN);
-                qr.registerStoredProcedureParameter(3, Integer.class, ParameterMode.IN);
-                qr.registerStoredProcedureParameter(4, Integer.class, ParameterMode.IN);
-                qr.registerStoredProcedureParameter(5, Integer.class, ParameterMode.IN);
-                qr.registerStoredProcedureParameter(6, Integer.class, ParameterMode.IN);
-                qr.setParameter(1, kart.getLsk());
-                qr.setParameter(2, kart.getLsk());
-                qr.setParameter(3, null);
-                qr.setParameter(4, null);
-                qr.setParameter(5, 1);
-                qr.setParameter(6, 0);
-                qr.executeUpdate();
-*/
-            }
         }
 
         // получить вх.общ.сал.
