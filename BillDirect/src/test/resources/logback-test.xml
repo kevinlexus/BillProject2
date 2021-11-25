@@ -24,12 +24,6 @@
     </encoder>
   </appender>
 
-    <!--
-    <logger name="org.hibernate.type" level="TRACE" />
-        <logger name="org.hibernate" level="TRACE" />
--->
-
-
       <logger name="org.hibernate.engine.loading.internal.CollectionLoadContext" level="ERROR"/>
 
        <logger name="com.ric" level="INFO"/>

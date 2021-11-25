@@ -45,6 +45,13 @@
             <version>0.0.8</version>
         </dependency>
 
+        <!-- GIS -->
+        <dependency>
+            <groupId>com.dic.gis</groupId>
+            <artifactId>GIS</artifactId>
+            <version>1.0.7</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-aspects</artifactId>
@@ -147,7 +154,56 @@
             <artifactId>mail</artifactId>
             <version>1.5.0-b01</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.sun.xml.ws</groupId>
+            <artifactId>jaxws-rt</artifactId>
+            <version>2.3.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.diffplug.durian</groupId>
+            <artifactId>durian</artifactId>
+            <version>3.4.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.quartz-scheduler</groupId>
+            <artifactId>quartz</artifactId>
+            <version>2.2.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.quartz-scheduler</groupId>
+            <artifactId>quartz-jobs</artifactId>
+            <version>2.2.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.digt</groupId>
+            <artifactId>trustedJava</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpmime</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+        </dependency>
+
     </dependencies>
+
+
 
     <build>
         <finalName>BillDirect</finalName>

@@ -38,13 +38,6 @@
             <version>0.0.8</version>
         </dependency>
 
-        <!-- GIS -->
-        <dependency>
-            <groupId>com.dic.gis</groupId>
-            <artifactId>GIS</artifactId>
-            <version>1.0.7</version>
-        </dependency>
-
         <!-- https://mvnrepository.com/artifact/org.springframework.data/spring-data-jpa -->
         <dependency>
             <groupId>org.quartz-scheduler</groupId>
@@ -291,7 +284,7 @@
                                         implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.ric.web.Soap2GisApplication</mainClass>
+                                    <mainClass>com.ric.app.Soap2GisApplication</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

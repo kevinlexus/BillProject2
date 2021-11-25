@@ -1,5 +1,6 @@
 package com.dic.app;
 
+import com.google.common.cache.CacheBuilder;
 import org.springframework.beans.BeansException;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.cache.CacheManager;
@@ -18,57 +19,70 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import java.util.Arrays;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 @ComponentScan({"com.dic.bill", "com.dic.app"}) // это нужно чтобы работали Unit-тесты! (по сути можно закомментить)
-@EnableJpaRepositories(basePackages="com.dic.bill.dao")
+@EnableJpaRepositories(basePackages = "com.dic.bill.dao")
 @EnableTransactionManagement
 @EnableCaching
 @EnableAsync
 @EnableScheduling
 @EntityScan(basePackages = {"com.dic.bill"})
 @PropertySources({
-		@PropertySource("file:.\\config\\application.properties"),
-		@PropertySource("file:.\\config\\private.properties")
+        @PropertySource("file:.\\config\\application.properties"),
+        @PropertySource("file:.\\config\\private.properties")
 })
-public class Config  implements ApplicationContextAware, AsyncConfigurer {
+public class Config implements ApplicationContextAware, AsyncConfigurer {
 
-	private static ApplicationContext ctx = null;
+    private static ApplicationContext ctx = null;
 
-    // новый комментарий-3
-	@Override
-	public void setApplicationContext(ApplicationContext context) throws BeansException {
-		ctx = context;
-	}
+    @Override
+    public void setApplicationContext(ApplicationContext context) throws BeansException {
+        ctx = context;
+    }
 
-	// 1-2 - добавлено из ветки today3
-	@Bean
-	public CacheManager cacheManager() {
-		SimpleCacheManager cacheManager = new SimpleCacheManager();
-		cacheManager.setCaches(Arrays.asList(
-				new ConcurrentMapCache("NaborMng.getCached"),
-				new ConcurrentMapCache("KartMng.getKartMainLsk"),
-				new ConcurrentMapCache("PriceMng.multiplyPrice"),
-				new ConcurrentMapCache("HouseMng.findByGuid"),
-				new ConcurrentMapCache("ReferenceMng.getUslOrgRedirect")));
-		return cacheManager;
-	}
+    @Bean
+    public CacheManager cacheManager() {
+        // fixme отдельно разбораться, как здесь работает кэш 24.11.21
+        SimpleCacheManager cacheManager = new SimpleCacheManager();
+        cacheManager.setCaches(Arrays.asList(
+                new ConcurrentMapCache("NaborMng.getCached"),
+                new ConcurrentMapCache("KartMng.getKartMainLsk"),
+                new ConcurrentMapCache("PriceMng.multiplyPrice"),
+                new ConcurrentMapCache("HouseMng.findByGuid"),
+                new ConcurrentMapCache("ReferenceMng.getUslOrgRedirect"),
+                new ConcurrentMapCache("ParDAOImpl.getByKlskCd",CacheBuilder
+                        .newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).build().asMap(), false),
+                new ConcurrentMapCache("MeterLogMngImpl.getKart",CacheBuilder
+                        .newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).build().asMap(), false),
+                new ConcurrentMapCache("ParMngImpl.isExByCd",CacheBuilder
+                        .newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).build().asMap(), false),
+                new ConcurrentMapCache("LstMngImpl.getByCD",CacheBuilder
+                        .newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).build().asMap(), false),
+                new ConcurrentMapCache("EolinkDAOImpl.getEolinkByGuid"),
+                new ConcurrentMapCache("UlistMngImpl.getUslByResource"),
+                new ConcurrentMapCache("UlistMngImpl.getServCdByResource"),
+                new ConcurrentMapCache("UlistMngImpl.getResourceByUsl"),
+                new ConcurrentMapCache("TaskDAOImpl.getByKlskCd")
+				));
+        return cacheManager;
+    }
 
-	// 2-3 - добавлено из ветки today3
-	public static ApplicationContext getContext(){
-	      return ctx;
-	}
+    public static ApplicationContext getContext() {
+        return ctx;
+    }
 
-	@Bean
-	public Executor taskExecutor() {
-		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-		executor.setCorePoolSize(10); // минимальное кол-во потоков
-		executor.setMaxPoolSize(20); // максимальное кол-во потоков
-		executor.setQueueCapacity(50); //
-		executor.setThreadNamePrefix("BillDirect-");
-		executor.setRejectedExecutionHandler(new RejectedExecutionHandlerImpl());
-		executor.initialize();
-		return executor;
-	}
+    @Bean
+    public Executor taskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(10); // минимальное кол-во потоков
+        executor.setMaxPoolSize(20); // максимальное кол-во потоков
+        executor.setQueueCapacity(50); //
+        executor.setThreadNamePrefix("BillDirect-");
+        executor.setRejectedExecutionHandler(new RejectedExecutionHandlerImpl());
+        executor.initialize();
+        return executor;
+    }
 
 }
