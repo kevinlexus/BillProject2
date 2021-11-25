@@ -1,10 +1,14 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
 
-import com.dic.app.gis.service.soapbuilders.DeviceMeteringAsyncBindingBuilders;
 import com.dic.app.gis.service.maintaners.ReqProps;
-import com.dic.app.gis.service.soap.impl.SoapBuilder;
+import com.dic.app.gis.service.maintaners.TaskControllers;
+import com.dic.app.gis.service.maintaners.UlistMng;
 import com.dic.app.gis.service.soap.SoapConfigs;
+import com.dic.app.gis.service.soap.impl.SoapBuilder;
+import com.dic.app.gis.service.soapbuilders.DeviceMeteringAsyncBindingBuilders;
+import com.dic.app.gis.service.soapbuilders.PseudoTaskBuilders;
+import com.dic.bill.UlistDAO;
 import com.dic.bill.dao.EolinkDAO;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dao.TaskDAO;
@@ -16,15 +20,7 @@ import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.Ulist;
 import com.ric.cmn.CommonErrs;
 import com.ric.cmn.Utl;
-import com.ric.cmn.excp.UnusableCode;
-import com.ric.cmn.excp.WrongGetMethod;
-import com.ric.cmn.excp.WrongParam;
-import com.dic.app.gis.service.maintaners.TaskControllers;
-import com.dic.app.gis.service.soapbuilders.PseudoTaskBuilders;
-import com.dic.bill.UlistDAO;
-import com.ric.cmn.excp.CantPrepSoap;
-import com.ric.cmn.excp.CantSendSoap;
-import com.dic.app.gis.service.maintaners.UlistMng;
+import com.ric.cmn.excp.*;
 import com.sun.xml.ws.developer.WSBindingProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,11 +79,7 @@ public class DeviceMeteringAsyncBindingBuilder implements DeviceMeteringAsyncBin
     @Autowired
     private TaskEolinkParMng teParMng;
     @Autowired
-    private EolinkParMng eolinkParMng;
-    @Autowired
     private ReqProps reqProp;
-    @Autowired
-    private LstMng lstMng;
     @Autowired
     private SoapConfigs soapConfig;
     @Autowired
@@ -182,7 +174,7 @@ public class DeviceMeteringAsyncBindingBuilder implements DeviceMeteringAsyncBin
                 && state.getErrorMessage().getErrorCode() != null
                 && !(task.getAct().getCd().equals("GIS_EXP_METER_VALS") // не ситуация, когда экспорт счетчиков и ошибка "Нет объектов для экспорта"
                 && state.getErrorMessage().getErrorCode().equals("INT002012"))
-                ) {
+        ) {
             // Ошибки контролей или бизнес-процесса
             err = true;
             errStr = state.getErrorMessage().getDescription();
@@ -516,6 +508,7 @@ public class DeviceMeteringAsyncBindingBuilder implements DeviceMeteringAsyncBin
         return err;
 
     }
+
     /**
      * Получить результат экспорта показаний счетиков
      *
@@ -523,7 +516,7 @@ public class DeviceMeteringAsyncBindingBuilder implements DeviceMeteringAsyncBin
      */
     @Override
     @Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    @CacheEvict(value = {"EolinkDAOImpl.getEolinkByGuid" }, allEntries = true) // здесь Evict потому что
+    @CacheEvict(value = {"EolinkDAOImpl.getEolinkByGuid"}, allEntries = true) // здесь Evict потому что
     // пользователь может обновить Ko объекта счетчика мз Директа(осуществить привязку)
     // и тогда должен быть получен обновленный объект! ред.07.12.18
     public void exportMeteringDeviceValuesAsk(Task task) throws WrongGetMethod, IOException, CantPrepSoap, WrongParam, UnusableCode {
@@ -567,7 +560,7 @@ public class DeviceMeteringAsyncBindingBuilder implements DeviceMeteringAsyncBin
                     log.trace("При выгрузке показаний, счетчик с GUID={} НЕ НАЙДЕН, ожидается его экспорт из ГИС",
                             t.getMeteringDeviceRootGUID());
                 } else {
-                    if (meterEol.getKoObj()!=null) {
+                    if (meterEol.getKoObj() != null) {
                         if (meterMng.getCanSaveDataMeter(meterEol, dt2)) {
                             // погасить ошибку неактуальности счетчика в Директ
                             soapConfig.saveError(meterEol, CommonErrs.ERR_METER_NOT_ACTUAL_DIRECT, false);
@@ -579,7 +572,7 @@ public class DeviceMeteringAsyncBindingBuilder implements DeviceMeteringAsyncBin
                                     // проверить сохранены ли уже показания
                                     if (Utl.between(Utl.getDateFromXmlGregCal(e.getEnterIntoSystem()), dt1, dt2) &&
                                             !meterMng.getIsMeterDataExist(mdLst, t.getMeteringDeviceRootGUID(),
-                                            e.getEnterIntoSystem()) && e.getMeteringValue() != null) {
+                                                    e.getEnterIntoSystem()) && e.getMeteringValue() != null) {
                                         // показания еще не были сохранены, сохранить
                                         log.trace("Получены показания по OneRateDeviceValue: " +
                                                         "MeteringDeviceRootGUID={} DateValue={}, EnterIntoSystem={}, OrgPPAGUID={}, " +
@@ -598,7 +591,7 @@ public class DeviceMeteringAsyncBindingBuilder implements DeviceMeteringAsyncBin
                                     // проверить сохранены ли уже показания
                                     if (Utl.between(Utl.getDateFromXmlGregCal(e.getEnterIntoSystem()), dt1, dt2) &&
                                             !meterMng.getIsMeterDataExist(mdLst, t.getMeteringDeviceRootGUID(),
-                                            e.getEnterIntoSystem()) && e.getMeteringValueT1() != null) {
+                                                    e.getEnterIntoSystem()) && e.getMeteringValueT1() != null) {
                                         log.trace("показания по ElectricDeviceValue: GUID={} date={}, enter={}, val={}",
                                                 t.getMeteringDeviceRootGUID(), e.getDateValue(), e.getEnterIntoSystem(),
                                                 e.getMeteringValueT1());
@@ -630,9 +623,10 @@ public class DeviceMeteringAsyncBindingBuilder implements DeviceMeteringAsyncBin
 
     /**
      * Сохранение показания по счетчику в базу
-     * @param meter - счетчик
-     * @param num1 - показание
-     * @param ts - timestamp
+     *
+     * @param meter  - счетчик
+     * @param num1   - показание
+     * @param ts     - timestamp
      * @param period - период для T_OBJXPAR
      */
     private void saveMeterData(Eolink meter, String num1, XMLGregorianCalendar ts, String period) throws UnusableCode {
