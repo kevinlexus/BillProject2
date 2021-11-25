@@ -1,22 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <timestamp key="myTimestamp" datePattern="yyyy-MM-dd"/>
-    <!--  <appender name="FILE2" class="ch.qos.logback.core.rolling.RollingFileAppender">
-                <file>C:\Progs\BillDirect\BillDirect${myTimestamp}.log</file>
-                <append>true</append>
-            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-              <fileNamePattern>BillDirect-%d{yyyy-MM-dd}.gz</fileNamePattern>
-              <maxHistory>30</maxHistory>
-              <totalSizeCap>5GB</totalSizeCap>
-            </rollingPolicy>
-                <encoder>
-                    <pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %msg         [%thread] %-5level %logger{36}%n</pattern>
-                </encoder>
-      </appender> -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>C:\Progs\BillDirect\BillDirect_brief${myTimestamp}.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-   	    <cleanHistoryOnStart>true</cleanHistoryOnStart>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
             <!-- архивировать ежедневно -->
             <fileNamePattern>BillDirect_brief-%d{yyyy-MM-dd}.gz</fileNamePattern>
             <!-- оставить 30 дней истории, не более 5 гигов -->
@@ -31,9 +19,24 @@
     <appender name="FILE_PAYMENT" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>C:\Progs\BillDirect\BillDirect_payment${myTimestamp}.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-	    <cleanHistoryOnStart>true</cleanHistoryOnStart>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
             <!-- архивировать ежедневно -->
             <fileNamePattern>BillDirect_payment-%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <!-- оставить 30 дней истории, не более 5 гигов -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %msg [%thread]%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_GIS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>C:\Progs\BillDirect\BillDirect_gis${myTimestamp}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+            <!-- архивировать ежедневно -->
+            <fileNamePattern>BillDirect_gis-%d{yyyy-MM-dd}.gz</fileNamePattern>
             <!-- оставить 30 дней истории, не более 5 гигов -->
             <maxHistory>30</maxHistory>
             <totalSizeCap>5GB</totalSizeCap>
@@ -46,14 +49,15 @@
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <!-- Log message format -->
         <encoder>
-            <pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} [%thread] %logger{36} %msg%n</pattern>
+            <pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %msg%n
+            </pattern>
         </encoder>
     </appender>
 
-     <logger name="org.hibernate.type" level="ERROR" />  <!-- TRACE - показать BIND переменные -->
-     <logger name="org.hibernate" level="ERROR" />
-     <logger name="org.hibernate.SQL" level="ERROR" /> <!-- DEBUG - показать SQL запрос -->
-
+    <!--  <logger name="org.hibernate.type" level="TRACE" />
+      <logger name="org.hibernate" level="TRACE" />
+    <logger name="org.hibernate.SQL" level="DEBUG" />
+     -->
 
     <logger name="org.hibernate.engine.loading.internal.CollectionLoadContext" level="ERROR"/>
 
@@ -64,6 +68,11 @@
     <logger name="com.dic.app.mm.impl.DistPayMngImpl" level="INFO" additivity="false">
         <appender-ref ref="FILE_PAYMENT"/>
     </logger>
+    <!-- логгер для ГИС -->
+    <logger name="com.dic.app.gis" level="INFO" additivity="false">
+        <appender-ref ref="FILE_GIS"/>
+    </logger>
+
     <logger name="com.dic.app.mm.impl.DistPayMngImpl" level="INFO" additivity="false">
         <appender-ref ref="STDOUT"/>
     </logger>
@@ -76,13 +85,6 @@
     <logger name="org.hibernate.stat" level="ERROR"/>
     <logger name="org.thymeleaf" level="ERROR"/>
 
-<!-- для отслеживания начала и окончания транзакций
-    <logger name="org.springframework.orm.jpa" level="TRACE" />
-    <logger name="org.springframework.transaction.interceptor" level="TRACE" />
--->
-
-    <!--   <logger name="org.springframework.cache" level="TRACE" />-->
-
     <!--   <logger name="org.apache.catalina.core" level="DEBUG"/>
       <logger name="org.apache.catalina.session.level" level="DEBUG"/>
       <logger name="java.util.logging.ConsoleHandler.level" level="DEBUG"/>
@@ -92,6 +94,8 @@
     <!-- Setting the root level of logging to INFO - Здесь менять уровни логгинга в Spring Boot-->
     <root level="INFO">
         <appender-ref ref="FILE"/>
+        <appender-ref ref="FILE_PAYMENT"/>
+        <appender-ref ref="FILE_GIS"/>
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
