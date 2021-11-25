@@ -61,7 +61,7 @@ public class TaskController implements TaskControllers {
     @Autowired
     private HcsPaymentAsyncBuilders pay;
     @Autowired
-    private TaskBuilders tb;
+    private TaskServices tb;
     @Autowired
     private UlistMng ulistMng;
     @Autowired

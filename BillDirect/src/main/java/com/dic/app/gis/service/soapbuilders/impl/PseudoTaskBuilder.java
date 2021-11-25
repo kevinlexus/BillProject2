@@ -37,8 +37,6 @@ public class PseudoTaskBuilder implements PseudoTaskBuilders {
 	@Autowired
 	private LstMng lstMng;
 	@Autowired
-	private SoapConfigs soapConfig;
-	@Autowired
 	private ParDAO parDao;
 	@Autowired
 	private TaskEolinkParMng teParMng;

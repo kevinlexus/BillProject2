@@ -36,7 +36,6 @@ public class SoapBuilder implements SoapBuilders {
     private SoapConfig config;
 
     private BindingProvider bp;
-    private WSBindingProvider ws;
 
     @Override
     public void makeRndMsgGuid() {
@@ -111,7 +110,7 @@ public class SoapBuilder implements SoapBuilders {
                        RequestHeader rh, boolean sign,
                        boolean isOperatorSigned, String ppGuid, String hostIp) throws CantSendSoap {
         bp = port;
-        ws = (WSBindingProvider) port;
+        WSBindingProvider ws = (WSBindingProvider) port;
 
         // подпись
         setSign(sign);

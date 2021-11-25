@@ -1,15 +1,14 @@
-package com.dic.app.gis.service.soapbuilders.impl;
+package com.dic.app.gis.service.maintaners.impl;
 
 
+import com.dic.app.gis.service.soapbuilders.TaskServices;
 import com.dic.bill.dao.TaskDAO;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.TaskPar;
 import com.ric.cmn.Utl;
-import com.dic.app.gis.service.soapbuilders.TaskBuilders;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.CronExpression;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -19,7 +18,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,20 +29,18 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class TaskBuilder implements TaskBuilders {
+public class TaskService implements TaskServices {
 
     @PersistenceContext
     private EntityManager em;
     @Autowired
     private TaskDAO taskDao;
-    @Autowired
-    private ApplicationContext ctx;
     // расписание
-    List<TaskPar> lstSched = new ArrayList<TaskPar>(20);
+    List<TaskPar> lstSched = new ArrayList<>(20);
     // список сработавших событий в расписании
-    List<Integer> lstTrg = new ArrayList<Integer>();
+    List<Integer> lstTrg = new ArrayList<>();
     // список обработанных событий в расписании
-    List<Integer> lstTrgProc = new ArrayList<Integer>();
+    List<Integer> lstTrgProc = new ArrayList<>();
 
     /**
      * Активация повторяемого задания
@@ -128,8 +124,6 @@ public class TaskBuilder implements TaskBuilders {
 
     /**
      * Определить статусы заданий
-     *
-     * @throws java.text.ParseException
      */
     @Scheduled(fixedDelay = 1000)
     @Transactional
@@ -155,16 +149,8 @@ public class TaskBuilder implements TaskBuilders {
                     if (lstTrgProc.contains(t.getId())) {
                         //log.info("Убрать отметки!");
 
-                        for (Iterator<Integer> iter = lstTrg.listIterator(); iter.hasNext(); ) {
-                            if (iter.next().equals(t.getId())) {
-                                iter.remove();
-                            }
-                        }
-                        for (Iterator<Integer> iter = lstTrgProc.listIterator(); iter.hasNext(); ) {
-                            if (iter.next().equals(t.getId())) {
-                                iter.remove();
-                            }
-                        }
+                        lstTrg.removeIf(integer -> integer.equals(t.getId()));
+                        lstTrgProc.removeIf(integer -> integer.equals(t.getId()));
                     }
                 }
             }
@@ -174,9 +160,6 @@ public class TaskBuilder implements TaskBuilders {
 
     /**
      * Проверить, выполнять ли задание
-     *
-     * @param task
-     * @return
      */
     @Override
     @Transactional
@@ -190,7 +173,6 @@ public class TaskBuilder implements TaskBuilders {
                 return t;
             }
         }
-        ;
         return null;
     }
 
@@ -198,7 +180,6 @@ public class TaskBuilder implements TaskBuilders {
      * Отметить выполненное задание
      *
      * @param taskPar - параметр задания
-     * @return
      */
     @Override
     @Transactional
@@ -220,8 +201,8 @@ public class TaskBuilder implements TaskBuilders {
     private void loadSchedules() {
         // Получить все параметры определённого типа по всем задачам
         synchronized (lstSched) {
-            lstSched = new ArrayList<TaskPar>(0);
-            List<Task> lstTask = taskDao.getByTp("GIS_SYSTEM_RPT").stream().collect(Collectors.toList());
+            lstSched = new ArrayList<>(0);
+            List<Task> lstTask = new ArrayList<>(taskDao.getByTp("GIS_SYSTEM_RPT"));
             for (Task t : lstTask) {
                 TaskPar par = t.getTaskPar().stream()
                         .filter(d -> d.getPar().getCd().equals("ГИС ЖКХ.Crone"))
@@ -229,7 +210,7 @@ public class TaskBuilder implements TaskBuilders {
                 if (par != null) {
                     lstSched.add(par);
                 } else {
-                    log.error("ОШИБКА! Не обнаружен параметр \"ГИС ЖКХ.Crone\" по повторяемому заданию с типом \"GIS_SYSTEM_RPT\"");
+                    log.warn("ОШИБКА! Не обнаружен параметр \"ГИС ЖКХ.Crone\" по повторяемому заданию с типом \"GIS_SYSTEM_RPT\"");
                 }
             }
         }
