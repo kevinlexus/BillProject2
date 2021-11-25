@@ -664,9 +664,6 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     log.trace("Применено округление для ГИС ЖКХ, по lsk={}, usl={}, diff={}",
                             kart.getLsk(), firstCharge.getUslId(), diff);
                     firstCharge.setSumma(firstCharge.getSumma().add(diff));
-
-                    log.trace("firstCharge.getCharge()={}", firstCharge.getCharge());
-
                     if (firstCharge.getCharge() != null) {
                         firstCharge.getCharge().setSumma(firstCharge.getSumma());
                     } else {
