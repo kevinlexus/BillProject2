@@ -11,7 +11,7 @@ import java.math.BigDecimal;
  * DTO для хранения объемов для записи начисления в C_CHARGE
  */
 @Getter @Setter
-class UslVolCharge extends UslVolKart {
+public class UslVolCharge extends UslVolKart {
 
     // цена
     BigDecimal price = BigDecimal.ZERO;

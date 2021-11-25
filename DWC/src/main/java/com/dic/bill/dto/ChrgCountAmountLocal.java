@@ -9,6 +9,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -23,6 +26,9 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @Slf4j
+@Service
+@Scope("prototype")
+@Transactional
 public class ChrgCountAmountLocal extends ChrgCountAmountBase {
 
     @PersistenceContext
@@ -658,8 +664,13 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     log.trace("Применено округление для ГИС ЖКХ, по lsk={}, usl={}, diff={}",
                             kart.getLsk(), firstCharge.getUslId(), diff);
                     firstCharge.setSumma(firstCharge.getSumma().add(diff));
+
+                    log.trace("firstCharge.getCharge()={}", firstCharge.getCharge());
+
                     if (firstCharge.getCharge() != null) {
-                        firstCharge.getCharge().setSumma(firstCharge.getSumma().add(diff));
+                        firstCharge.getCharge().setSumma(firstCharge.getSumma());
+                    } else {
+                        log.error("НЕТ ЗАПИСИ CHARGE!!!");
                     }
                 } else {
                     throw new ErrorWhileChrg("ОШИБКА! Округление для ГИС ЖКХ превысило 0.05 по lsk=" + kart.getLsk());

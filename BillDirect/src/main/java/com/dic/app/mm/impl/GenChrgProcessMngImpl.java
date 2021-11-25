@@ -6,14 +6,20 @@ import com.dic.app.mm.GenChrgProcessMng;
 import com.dic.app.mm.GenPart;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dto.*;
-import com.dic.bill.mm.*;
-import com.dic.bill.model.scott.*;
+import com.dic.bill.mm.MeterMng;
+import com.dic.bill.mm.NaborMng;
+import com.dic.bill.mm.SprParamMng;
+import com.dic.bill.model.scott.ChargePrep;
+import com.dic.bill.model.scott.Ko;
+import com.dic.bill.model.scott.Nabor;
+import com.dic.bill.model.scott.Usl;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileChrg;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.dto.SumMeterVol;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +29,9 @@ import javax.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -46,12 +54,15 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
     private final GenPart genPart;
     private final MeterDAO meterDao;
     private final SprParamMng sprParamMng;
+    private final ApplicationContext ctx;
+
     /**
      * Рассчитать начисление
      * Внимание! Расчет идёт по помещению (помещению), но информация группируется по лиц.счету(Kart)
      * так как теоретически может быть одинаковая услуга на разных лиц.счетах, но на одной помещению!
      * ОПИСАНИЕ: https://docs.google.com/document/d/1mtK2KdMX4rGiF2cUeQFVD4HBcZ_F0Z8ucp1VNK8epx0/edit
-     *  @param reqConf - конфиг запроса
+     *
+     * @param reqConf - конфиг запроса
      * @param klskId  - klskId помещения
      * @return начисление по лиц.счетам
      */
@@ -69,7 +80,8 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             Ko ko = em.getReference(Ko.class, klskId);
 
             // создать локальное хранилище объемов
-            ChrgCountAmountLocal chrgCountAmountLocal = new ChrgCountAmountLocal();
+            ChrgCountAmountLocal chrgCountAmountLocal = ctx.getBean(ChrgCountAmountLocal.class);
+
             // параметр подсчета кол-во проживающих (0-для Кис, 1-Полыс., 1 - для ТСЖ (пока, может поправить)
             int parVarCntKpr =
                     Utl.nvl(sprParamMng.getN1("VAR_CNT_KPR"), 0D).intValue();
