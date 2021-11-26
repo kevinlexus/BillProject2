@@ -15,7 +15,6 @@
         <module>BillCommon</module>
         <module>BillDirect</module>
         <module>DWC</module>
-        <module>GisExchanger</module>
     </modules>
 
     <groupId>com.dic.bill</groupId>

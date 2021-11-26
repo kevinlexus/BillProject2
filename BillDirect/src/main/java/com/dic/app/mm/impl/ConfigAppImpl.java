@@ -1,5 +1,6 @@
 package com.dic.app.mm.impl;
 
+import com.dic.app.gis.service.maintaners.TaskControllers;
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.Lock;
 import com.dic.bill.dao.TuserDAO;
@@ -49,6 +50,7 @@ public class ConfigAppImpl implements ConfigApp {
     private final UslDAO uslDAO;
     private final UslRoundDAO uslRoundDAO;
     private final TuserDAO tuserDAO;
+    private final TaskControllers taskController;
 
     // номер текущего запроса
     private int reqNum = 0;
@@ -225,5 +227,12 @@ public class ConfigAppImpl implements ConfigApp {
             SpringApplication.exit(ctx, () -> 0);
         }
     }
+
+    @Scheduled(fixedDelay = 5000)
+    @Override
+    public void searchGisTasks() {
+        taskController.searchTask();
+    }
+
 
 }

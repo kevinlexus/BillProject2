@@ -91,8 +91,6 @@ public class DeviceMeteringAsyncBindingBuilder implements DeviceMeteringAsyncBin
 
     @Autowired
     private PseudoTaskBuilders ptb;
-    @Autowired
-    TaskControllers taskCtrl;
 
     private DeviceMeteringServiceAsync service;
     private DeviceMeteringPortTypesAsync port;

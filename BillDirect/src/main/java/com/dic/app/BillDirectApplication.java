@@ -59,13 +59,6 @@ public class BillDirectApplication {
         }
 
 
-        TaskController taskContr = app.getBean(TaskController.class);
-        try {
-            taskContr.searchTask();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
 
     }
 

@@ -60,4 +60,7 @@ public interface ConfigApp {
     Map<String, Set<String>> getMapUslRound();
 
     public void checkTerminate();
+
+    @Scheduled(fixedDelay = 5000)
+    void searchGisTasks();
 }

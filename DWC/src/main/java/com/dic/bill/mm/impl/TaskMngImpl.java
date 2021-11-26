@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
+@Transactional
 public class TaskMngImpl implements TaskMng {
 
     @PersistenceContext
@@ -29,7 +30,6 @@ public class TaskMngImpl implements TaskMng {
      * Установить статус задания
      */
 	@Override
-    @Transactional
     public void setState(Task task, String state) {
     	Task foundTask = em.find(Task.class, task.getId());
 		foundTask.setState(state);
@@ -39,7 +39,6 @@ public class TaskMngImpl implements TaskMng {
      * Установить результат задания
      */
 	@Override
-    @Transactional
     public void setResult(Task task, String result) {
     	Task foundTask = em.find(Task.class, task.getId());
 		foundTask.setResult(result);
@@ -49,7 +48,6 @@ public class TaskMngImpl implements TaskMng {
      * Очистить результат в т.ч. дочерних заданий
      */
 	@Override
-    @Transactional
     public void clearAllResult(Task task) {
     	Task foundTask = em.find(Task.class, task.getId());
     	setResult(foundTask, null);
@@ -66,7 +64,6 @@ public class TaskMngImpl implements TaskMng {
 	 * @param status - статус
 	 */
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void setEolinkIdf(Eolink eo, String guid, String un, Integer status) {
 		if (eo.getGuid() == null) {
 			eo.setGuid(guid);
@@ -105,7 +102,7 @@ public class TaskMngImpl implements TaskMng {
 					task.getId(), task.getAct().getName(), task.getState(),
 					isStart?"Начало":"Окончание", isSucc?"Выполнено":"ОШИБКА");
 		} else {
-			log.info("******* Task.id={}, {}, {}",
+			log.info("******* Task.id={}, {}, {}, {}",
 					task.getId(), task.getAct().getName(), task.getState(),
 					isStart?"Начало":"Окончание");
 		}

@@ -2,11 +2,11 @@
 <configuration>
     <timestamp key="myTimestamp" datePattern="yyyy-MM-dd"/>
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>C:\Progs\BillDirect\BillDirect_brief${myTimestamp}.log</file>
+        <file>C:\Progs\BillDirect\BillDirect_${myTimestamp}.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <cleanHistoryOnStart>true</cleanHistoryOnStart>
             <!-- архивировать ежедневно -->
-            <fileNamePattern>BillDirect_brief-%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <fileNamePattern>BillDirect_%d{yyyy-MM-dd}.gz</fileNamePattern>
             <!-- оставить 30 дней истории, не более 5 гигов -->
             <maxHistory>30</maxHistory>
             <totalSizeCap>5GB</totalSizeCap>
@@ -17,11 +17,11 @@
     </appender>
 
     <appender name="FILE_PAYMENT" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>C:\Progs\BillDirect\BillDirect_payment${myTimestamp}.log</file>
+        <file>C:\Progs\BillDirect\BillDirect_payment_${myTimestamp}.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <cleanHistoryOnStart>true</cleanHistoryOnStart>
             <!-- архивировать ежедневно -->
-            <fileNamePattern>BillDirect_payment-%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <fileNamePattern>BillDirect_payment_%d{yyyy-MM-dd}.gz</fileNamePattern>
             <!-- оставить 30 дней истории, не более 5 гигов -->
             <maxHistory>30</maxHistory>
             <totalSizeCap>5GB</totalSizeCap>
@@ -32,11 +32,11 @@
     </appender>
 
     <appender name="FILE_GIS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>C:\Progs\BillDirect\BillDirect_gis${myTimestamp}.log</file>
+        <file>C:\Progs\BillDirect\BillDirect_gis_${myTimestamp}.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <cleanHistoryOnStart>true</cleanHistoryOnStart>
             <!-- архивировать ежедневно -->
-            <fileNamePattern>BillDirect_gis-%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <fileNamePattern>BillDirect_gis_%d{yyyy-MM-dd}.gz</fileNamePattern>
             <!-- оставить 30 дней истории, не более 5 гигов -->
             <maxHistory>30</maxHistory>
             <totalSizeCap>5GB</totalSizeCap>
@@ -94,8 +94,6 @@
     <!-- Setting the root level of logging to INFO - Здесь менять уровни логгинга в Spring Boot-->
     <root level="INFO">
         <appender-ref ref="FILE"/>
-        <appender-ref ref="FILE_PAYMENT"/>
-        <appender-ref ref="FILE_GIS"/>
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>

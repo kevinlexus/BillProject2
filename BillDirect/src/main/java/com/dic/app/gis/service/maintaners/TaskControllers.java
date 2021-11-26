@@ -8,7 +8,7 @@ import com.ric.cmn.excp.CantSendSoap;
 
 public interface TaskControllers {
 
-	public void searchTask() throws WrongGetMethod, CantSendSoap, CantPrepSoap, WrongParam;
-	public RequestConfig getReqConfig();
+	void searchTask();
+	RequestConfig getReqConfig();
 
 }
