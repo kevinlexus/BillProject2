@@ -1,10 +1,11 @@
-package com.dic.bill.mm.impl;
+package com.dic.app.gis.service.maintaners.impl;
 
 import java.util.Date;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import com.dic.app.gis.service.maintaners.TaskEolinkParMng;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,6 @@ import com.dic.bill.dao.EolinkParDAO;
 import com.dic.bill.dao.TaskParDAO;
 import com.ric.cmn.excp.WrongGetMethod;
 import com.dic.bill.mm.ParMng;
-import com.dic.bill.mm.TaskEolinkParMng;
 import com.dic.bill.model.bs.Par;
 import com.dic.bill.model.exs.EolinkPar;
 import com.dic.bill.model.exs.Task;

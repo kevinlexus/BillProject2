@@ -1,6 +1,6 @@
-package com.dic.bill.mm;
+package com.dic.app.gis.service.maintaners;
 
-import com.dic.bill.mm.impl.EolinkMngImpl;
+import com.dic.app.gis.service.maintaners.impl.EolinkMngImpl;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.scott.Kart;
 
@@ -9,9 +9,9 @@ import java.util.Optional;
 
 public interface EolinkMng {
 
-	public Eolink getEolinkByReuKulNdTp(String reu, String kul, String nd,
+	Eolink getEolinkByReuKulNdTp(String reu, String kul, String nd,
 			String kw, String entry, String tp);
-	public void setChildActive(Eolink eolink, String tp, Integer status);
+	void setChildActive(Eolink eolink, String tp, Integer status);
 
 	List<Eolink> getLskEolByHouseEol(Integer eolHouseId, Integer eolUkId);
 

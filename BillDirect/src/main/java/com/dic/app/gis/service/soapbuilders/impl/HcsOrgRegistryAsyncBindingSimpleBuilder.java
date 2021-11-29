@@ -3,7 +3,7 @@ package com.dic.app.gis.service.soapbuilders.impl;
 import com.dic.app.gis.service.soapbuilders.HcsOrgRegistryAsyncBindingSimpleBuilders;
 import com.dic.app.gis.service.maintaners.ReqProps;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
-import com.dic.bill.mm.TaskMng;
+import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
 import com.ric.cmn.excp.CantPrepSoap;

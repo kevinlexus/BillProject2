@@ -1,7 +1,7 @@
 import com.dic.app.Config;
 import com.dic.bill.dao.EolinkDAO2;
 import com.dic.bill.dto.HouseUkTaskRec;
-import com.dic.bill.mm.EolinkMng;
+import com.dic.app.gis.service.maintaners.EolinkMng;
 import com.dic.bill.model.scott.Kart;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;

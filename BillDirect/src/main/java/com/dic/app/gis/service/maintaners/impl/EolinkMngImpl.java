@@ -1,8 +1,8 @@
-package com.dic.bill.mm.impl;
+package com.dic.app.gis.service.maintaners.impl;
 
 import com.dic.bill.dao.EolinkDAO;
 import com.dic.bill.dao.EolinkDAO2;
-import com.dic.bill.mm.EolinkMng;
+import com.dic.app.gis.service.maintaners.EolinkMng;
 import com.dic.bill.mm.KartMng;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.scott.Kart;

@@ -21,6 +21,17 @@ public class BillDirectApplication {
     public static void main(String[] args) {
         ConfigurableApplicationContext app = SpringApplication.run(BillDirectApplication.class, args);
 
+        log.info("");
+        log.info("****************************************************************");
+        log.info("*                                                              *");
+        log.info("*                                                              *");
+        log.info("*                    Версия модуля - 1.3.1                     *");
+        log.info("*                                                              *");
+        log.info("*                                                              *");
+        log.info("****************************************************************");
+        log.info("");
+
+
         SoapConfig soapConfig = app.getBean(SoapConfig.class);
         //Создать первый объект подписывания XML
         try {

@@ -3,7 +3,7 @@ package com.dic.app.gis.service.maintaners.impl;
 import com.dic.app.gis.service.maintaners.TaskControllers;
 import com.dic.bill.RequestConfig;
 import com.dic.bill.dao.TaskDAO;
-import com.dic.bill.mm.TaskMng;
+import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.bill.model.exs.Task;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.*;
@@ -51,15 +51,15 @@ public class TaskController implements TaskControllers {
     @Override
     @Transactional
     public void searchTask() {
-        log.info("******* searching for Tasks:");
+        log.info("******* Поиск заданий ГИС:");
         // перебрать все необработанные задания
         List<Task> unprocessedTasks = taskDao.getAllUnprocessed()
                 .stream().limit(10).collect(Collectors.toList());
         if (log.isTraceEnabled()) {
-            log.trace("*** Unprocessed tasks");
+            log.trace("Необработанные задания");
             unprocessedTasks.forEach(t -> log.trace("id={}, cd={}, atCd={}, dtCr={}, dtUpd={}",
                     t.getId(), t.getCd(), t.getAct().getCd(), t.getDtCrt(), t.getDtUpd()));
-            log.trace("*** Unprocessed tasks");
+            log.trace("Необработанные задания");
         }
         for (Task task : unprocessedTasks) {
             try {

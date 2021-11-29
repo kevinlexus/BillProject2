@@ -80,19 +80,10 @@ public class ConfigAppImpl implements ConfigApp {
 
     @PostConstruct
     private void setUp() {
-        log.info("");
-        log.info("-----------------------------------------------------------------");
-        log.info("Версия модуля - {}", "1.2.0");
-
         reloadSprPen();
         reloadParam();
         loadUslCodes();
 
-        log.info("-----------------------------------------------------------------");
-        log.info("");
-
-        //TimeZone.setDefault(TimeZone.getTimeZone("GMT+7"));
-        //log.info("************** Установлена TIMEZONE");
         // блокировщик процессов
         setLock(new Lock());
     }
@@ -223,15 +214,22 @@ public class ConfigAppImpl implements ConfigApp {
         File tempFile = new File("stop");
         boolean exists = tempFile.exists();
         if (exists) {
-            log.info("ВНИМАНИЕ! ЗАПРОШЕНА ОСТАНОВКА ПРИЛОЖЕНИЯ! - БЫЛ СОЗДАН ФАЙЛ c:\\Progs\\BillDirect\\stop");
+            log.warn("ВНИМАНИЕ! ЗАПРОШЕНА ОСТАНОВКА ПРИЛОЖЕНИЯ! - БЫЛ СОЗДАН ФАЙЛ c:\\Progs\\BillDirect\\stop");
             SpringApplication.exit(ctx, () -> 0);
         }
     }
 
+    // Остановить выполнение загрузки ГИС (для отладки в другом jar)
     @Scheduled(fixedDelay = 5000)
     @Override
     public void searchGisTasks() {
-        taskController.searchTask();
+        File tempFile = new File("stopGis");
+        boolean exists = tempFile.exists();
+        if (!exists) {
+            taskController.searchTask();
+        } else {
+           // log.warn("ВНИМАНИЕ! Обмен с ГИС выполняется в другом приложении - БЫЛ СОЗДАН ФАЙЛ c:\\Progs\\BillDirect\\stopGis");
+        }
     }
 
 

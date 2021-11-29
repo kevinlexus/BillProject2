@@ -1,4 +1,4 @@
-package com.dic.bill.mm.impl;
+package com.dic.app.gis.service.maintaners.impl;
 
 import java.util.Date;
 
@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.dic.bill.dao.EolinkParDAO;
 import com.ric.cmn.excp.WrongGetMethod;
-import com.dic.bill.mm.EolinkParMng;
+import com.dic.app.gis.service.maintaners.EolinkParMng;
 import com.dic.bill.mm.ParMng;
 import com.dic.bill.model.bs.Par;
 import com.dic.bill.model.exs.Eolink;

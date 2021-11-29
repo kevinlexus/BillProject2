@@ -1,4 +1,4 @@
-package com.dic.bill.mm;
+package com.dic.app.gis.service.maintaners;
 
 import com.dic.bill.model.exs.Eolink;
 

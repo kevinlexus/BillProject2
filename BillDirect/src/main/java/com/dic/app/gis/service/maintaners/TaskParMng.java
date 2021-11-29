@@ -1,4 +1,4 @@
-package com.dic.bill.mm;
+package com.dic.app.gis.service.maintaners;
 
 import java.util.Date;
 

@@ -2,7 +2,7 @@ package com.dic.app.gis.service.maintaners.impl;
 
 import com.dic.app.gis.service.maintaners.UlistMng;
 import com.dic.app.gis.service.soapbuilders.*;
-import com.dic.bill.mm.TaskMng;
+import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.TaskPar;
 import com.ric.cmn.Utl;

@@ -1,4 +1,4 @@
-package com.dic.bill.mm.impl;
+package com.dic.app.gis.service.maintaners.impl;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.dic.bill.dao.EolinkToEolinkDAO;
-import com.dic.bill.mm.EolinkToEolinkMng;
+import com.dic.app.gis.service.maintaners.EolinkToEolinkMng;
 import com.dic.bill.mm.LstMng;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.EolinkToEolink;

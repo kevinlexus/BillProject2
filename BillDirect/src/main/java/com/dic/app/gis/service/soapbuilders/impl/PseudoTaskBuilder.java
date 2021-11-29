@@ -1,10 +1,10 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
+import com.dic.app.gis.service.maintaners.TaskEolinkParMng;
 import com.dic.app.gis.service.soapbuilders.PseudoTaskBuilders;
 import com.dic.bill.dao.ParDAO;
 import com.dic.bill.dao.TaskDAO;
 import com.dic.bill.mm.LstMng;
-import com.dic.bill.mm.TaskEolinkParMng;
 import com.dic.bill.model.bs.Lst2;
 import com.dic.bill.model.bs.Par;
 import com.dic.bill.model.exs.Eolink;

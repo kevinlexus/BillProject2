@@ -1,12 +1,13 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
 
-import com.dic.app.gis.service.soapbuilders.HouseManagementAsyncBindingBuilders;
-import com.dic.app.gis.service.soapbuilders.PseudoTaskBuilders;
-import com.dic.app.gis.service.maintaners.ReqProps;
+import com.dic.app.gis.service.maintaners.*;
+import com.dic.app.gis.service.soap.SoapConfigs;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.gis.service.soap.impl.SoapConfig;
-import com.dic.app.gis.service.soap.SoapConfigs;
+import com.dic.app.gis.service.soapbuilders.HouseManagementAsyncBindingBuilders;
+import com.dic.app.gis.service.soapbuilders.PseudoTaskBuilders;
+import com.dic.bill.UlistDAO;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.HouseUkTaskRec;
 import com.dic.bill.mm.*;
@@ -19,10 +20,6 @@ import com.diffplug.common.base.Errors;
 import com.ric.cmn.CommonErrs;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.*;
-import com.dic.bill.UlistDAO;
-import com.ric.cmn.excp.CantPrepSoap;
-import com.ric.cmn.excp.CantSendSoap;
-import com.dic.app.gis.service.maintaners.UlistMng;
 import com.sun.xml.ws.developer.WSBindingProvider;
 import lombok.Getter;
 import lombok.Setter;
@@ -564,6 +561,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         }
 
     }
+
     /**
      * Экспорт сокращенного состава информации о договоре ресурсоснабжения
      * (для последующей загрузки по ним лиц.счетов)
@@ -848,7 +846,6 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         Date curDate = new Date();
         if (retState == null) {
             // не обработано
-            return;
         } else if (!reqProp.getFoundTask().getState().equals("ERR")) {
             // Ошибок нет, обработка
             // Сохранить уникальный номер дома
@@ -969,7 +966,6 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                                     r.getLivingRoomUniqueNumber(), r.getLivingRoomGUID());
                             em.persist(roomEol);
                         }
-
                     }
 
                     // погасить ошибки
@@ -1267,7 +1263,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                 // Найти лицевой счет в Kart
                 Kart kart = em.find(Kart.class, num);
                 // установить ЕЛС в Kart, для упрощения выборок и быстрой визуализации ЕЛС в карточке, так же для формирования долгов для Сбера
-                if (kart!=null && kart.getElsk()==null) {
+                if (kart != null && kart.getElsk() == null) {
                     kart.setElsk(t.getUnifiedAccountNumber());
                 }
                 if (lskEol == null) {
@@ -1276,29 +1272,29 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                     // Найти объект на который ссылаться
                     Eolink parentEol = eolinkDao.getEolinkByGuid(guid);
                     if (parentEol == null) {
-                        throw new ErrorProcessAnswer("Не найдено помещение c GUID=" + guid + ", для прикрепления лицевого счета, " +
+                        log.warn("Не найдено помещение c GUID=" + guid + ", для прикрепления лицевого счета, " +
                                 "попробуйте выполнить экспорт объектов дома!");
-                    }
-
-                    if (kart == null) {
-                        log.error("ОШИБКА! Не найден лиц.счет в SCOTT.KART c lsk=" + num);
                     } else {
-                        AddrTp addrTp = lstMng.getAddrTpByCD("ЛС");
+                        if (kart == null) {
+                            log.error("ОШИБКА! Не найден лиц.счет в SCOTT.KART c lsk=" + num);
+                        } else {
+                            AddrTp addrTp = lstMng.getAddrTpByCD("ЛС");
 
-                        lskEol = Eolink.builder()
-                                .withGuid(t.getAccountGUID())
-                                .withUn(t.getUnifiedAccountNumber()) // ЕЛС
-                                .withServiceId(t.getServiceID()) // идентификатор ЖКУ
-                                .withKart(kart)
-                                .withObjTp(addrTp)
-                                .withParent(parentEol)
-                                .withUk(task.getProcUk())
-                                .withOrg(task.getProcUk().getOrg())
-                                .withUser(config.getCurUser())
-                                .withStatus(1).build();
-                        log.info("Попытка создать запись лицевого счета в Eolink: GUID={}, AccountNumber={}, ServiceId={}",
-                                t.getAccountGUID(), num, t.getServiceID());
-                        em.persist(lskEol);
+                            lskEol = Eolink.builder()
+                                    .withGuid(t.getAccountGUID())
+                                    .withUn(t.getUnifiedAccountNumber()) // ЕЛС
+                                    .withServiceId(t.getServiceID()) // идентификатор ЖКУ
+                                    .withKart(kart)
+                                    .withObjTp(addrTp)
+                                    .withParent(parentEol)
+                                    .withUk(task.getProcUk())
+                                    .withOrg(task.getProcUk().getOrg())
+                                    .withUser(config.getCurUser())
+                                    .withStatus(1).build();
+                            log.info("Попытка создать запись лицевого счета в Eolink: GUID={}, AccountNumber={}, ServiceId={}",
+                                    t.getAccountGUID(), num, t.getServiceID());
+                            em.persist(lskEol);
+                        }
                     }
                 } else {
                     // Лиц.счет уже существует, обновить его параметры
@@ -1895,7 +1891,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
         // Добавить подъезды
         taskDao.getByTaskAddrTp(reqProp.getFoundTask(), "Подъезд", null,
-                1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_ENTRY"))
+                        1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_ENTRY"))
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Добавление подъезда, Task.id={}", t.getId());
                     EntranceToCreate ec = new EntranceToCreate();

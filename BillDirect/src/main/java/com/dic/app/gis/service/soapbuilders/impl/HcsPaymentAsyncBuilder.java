@@ -26,7 +26,7 @@ import com.dic.bill.dao.NotifDAO;
 import com.ric.cmn.excp.WrongGetMethod;
 import com.ric.cmn.excp.WrongParam;
 import com.dic.bill.mm.NotifMng;
-import com.dic.bill.mm.TaskMng;
+import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Notif;
 import com.dic.bill.model.exs.Pdoc;

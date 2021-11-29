@@ -1,15 +1,14 @@
-package com.dic.bill.mm.impl;
+package com.dic.app.gis.service.maintaners.impl;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.dic.bill.dao.TaskDAO;
-import com.dic.bill.mm.TaskMng;
+import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
 
@@ -98,11 +97,11 @@ public class TaskMngImpl implements TaskMng {
 	@Override
 	public void logTask(Task task, boolean isStart, Boolean isSucc) {
 		if (isSucc!=null) {
-			log.info("******* Task.id={}, {}, {}, {}, {}",
+			log.info("Task.id={}, {}, {}, {}, {}",
 					task.getId(), task.getAct().getName(), task.getState(),
 					isStart?"Начало":"Окончание", isSucc?"Выполнено":"ОШИБКА");
 		} else {
-			log.info("******* Task.id={}, {}, {}, {}",
+			log.info("Task.id={}, {}, {}, {}",
 					task.getId(), task.getAct().getName(), task.getState(),
 					isStart?"Начало":"Окончание");
 		}

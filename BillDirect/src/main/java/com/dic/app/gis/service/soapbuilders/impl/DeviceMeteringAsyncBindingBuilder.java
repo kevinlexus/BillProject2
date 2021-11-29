@@ -1,9 +1,7 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
 
-import com.dic.app.gis.service.maintaners.ReqProps;
-import com.dic.app.gis.service.maintaners.TaskControllers;
-import com.dic.app.gis.service.maintaners.UlistMng;
+import com.dic.app.gis.service.maintaners.*;
 import com.dic.app.gis.service.soap.SoapConfigs;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.gis.service.soapbuilders.DeviceMeteringAsyncBindingBuilders;
