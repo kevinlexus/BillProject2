@@ -1,25 +1,22 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
 
-import java.math.BigInteger;
-
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.xml.ws.BindingProvider;
-
-import com.dic.app.gis.service.soapbuilders.NsiCommonAsyncBindingBuilders;
-import com.dic.app.gis.service.maintaners.ReqProps;
+import com.dic.app.gis.service.maintaners.EolinkMng;
+import com.dic.app.gis.service.maintaners.EolinkParMng;
+import com.dic.app.gis.service.maintaners.impl.ReqProp;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
-import com.dic.app.gis.service.soap.impl.SoapConfig;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Service;
-
+import com.dic.app.mm.ConfigApp;
+import com.ric.cmn.excp.CantPrepSoap;
 import com.ric.cmn.excp.CantSendSoap;
 import com.ric.cmn.excp.CantSignSoap;
 import com.sun.xml.ws.developer.WSBindingProvider;
-
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import ru.gosuslugi.dom.schema.integration.base.AckRequest;
 import ru.gosuslugi.dom.schema.integration.base.GetStateRequest;
 import ru.gosuslugi.dom.schema.integration.nsi_base.NsiItemType;
@@ -30,70 +27,69 @@ import ru.gosuslugi.dom.schema.integration.nsi_common.GetStateResult;
 import ru.gosuslugi.dom.schema.integration.nsi_common_service_async.NsiPortsTypeAsync;
 import ru.gosuslugi.dom.schema.integration.nsi_common_service_async.NsiServiceAsync;
 
+import javax.xml.ws.BindingProvider;
+import java.math.BigInteger;
+
 @Service
 @Slf4j
-public class NsiCommonAsyncBindingBuilder implements NsiCommonAsyncBindingBuilders {
+@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+@RequiredArgsConstructor
+public class NsiCommonAsyncBindingBuilder {
 
-    @Autowired
-    private ApplicationContext ctx;
-    @PersistenceContext
-    private EntityManager em;
-    @Autowired
-    private SoapConfig config;
-    @Autowired
-    private ReqProps reqProp;
+    private final ApplicationContext ctx;
+    private final ConfigApp config;
+    private final EolinkParMng eolParMng;
+    private final EolinkMng eolinkMng;
 
-    private NsiServiceAsync service;
-    private NsiPortsTypeAsync port;
-    private SoapBuilder sb;
 
-    public void setUp() throws CantSendSoap {
+    @AllArgsConstructor
+    static class SoapPar {
+        private NsiPortsTypeAsync port;
+        private SoapBuilder sb;
+        private ReqProp reqProp;
+    }
+
+    private SoapPar setUp() throws CantSendSoap, CantPrepSoap {
         // создать сервис и порт
-        service = new NsiServiceAsync();
-        port = service.getNsiPortAsync();
+        NsiServiceAsync service = new NsiServiceAsync();
+        NsiPortsTypeAsync port = service.getNsiPortAsync();
 
         // подоготовительный объект для SOAP
-        sb = ctx.getBean(SoapBuilder.class);
-        String orgPPGuid = config.getOrgPPGuid();
-        String hostIp = config.getHostIp();
+        SoapBuilder sb = new SoapBuilder();
+        ReqProp reqProp = new ReqProp(config, eolinkMng, eolParMng);
+        sb.setUp((BindingProvider) port, (WSBindingProvider) port, true, reqProp.getPpGuid(),
+                reqProp.getHostIp());
 
-        // workaround для ТСЖ (иначе валится всё, не приспособлено, для работы с двумя хостами ред.16.01.2020)
-        if (hostIp==null || hostIp.length()==0) {
-            hostIp="127.0.0.1:8081";
-            orgPPGuid = "4faa2072-fd4b-4dc6-a3ca-2e9e9c8b5924";
-        }
-
-        sb.setUp((BindingProvider) port, (WSBindingProvider) port, false, orgPPGuid,  hostIp);
         // Id XML подписчика
         sb.setSignerId(reqProp.getSignerId());
-
+        return new SoapPar(port, sb, reqProp);
     }
+
 
     /**
      * Получить список справочников
      *
-     * @param grp - вид справочника (NSI, NISRAO)У
+     * @param grp - вид справочника (NSI, NISRAO)
      */
-    @Override
-    public NsiListType getNsiList(String grp) throws CantSendSoap, ru.gosuslugi.dom.schema.integration.nsi_common_service_async.Fault {
-        // выполнить инициализацию
-        setUp();
+    public NsiListType getNsiList(String grp) throws CantSendSoap, ru.gosuslugi.dom.schema.integration.nsi_common_service_async.Fault, CantPrepSoap {
+        // Установить параметры SOAP
+        SoapPar par = setUp();
 
         ExportNsiListRequest req = new ExportNsiListRequest();
         req.setListGroup(grp);
         req.setId("foo");
-        sb.setSign(true);
+        par.sb.setSign(true);
 
-        req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
+        req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
         GetStateRequest gs = new GetStateRequest();
-        AckRequest ack = port.exportNsiList(req);
+        AckRequest ack = par.port.exportNsiList(req);
         gs.setMessageGUID(ack.getAck().getMessageGUID());
         GetStateResult state = null;
 
-        sb.setSign(false);
+        par.sb.setSign(false);
         while (state == null || state.getRequestState() != 3) {
 
-            state = port.getState(gs);
+            state = par.port.getState(gs);
             log.info("Состояние запроса state = {}", state.getRequestState());
             // задержка 1 сек
             try {
@@ -114,27 +110,28 @@ public class NsiCommonAsyncBindingBuilder implements NsiCommonAsyncBindingBuilde
      *
      * @param grp - вид справочника (NSI, NISRAO)
      */
-    @Override
-    public NsiItemType getNsiItem(String grp, BigInteger id) throws CantSignSoap, CantSendSoap, ru.gosuslugi.dom.schema.integration.nsi_common_service_async.Fault {
+
+    public NsiItemType getNsiItem(String grp, BigInteger id) throws CantSignSoap, CantSendSoap, ru.gosuslugi.dom.schema.integration.nsi_common_service_async.Fault, CantPrepSoap {
         // выполнить инициализацию
-        setUp();
+        // Установить параметры SOAP
+        SoapPar par = setUp();
 
         ExportNsiItemRequest req = new ExportNsiItemRequest();
         req.setListGroup(grp);
         req.setRegistryNumber(id);
         req.setId("foo");
-        sb.setSign(true);
-        req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
-        AckRequest ack = port.exportNsiItem(req);
+        par.sb.setSign(true);
+        req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
+        AckRequest ack = par.port.exportNsiItem(req);
         GetStateRequest gs = new GetStateRequest();
         gs.setMessageGUID(ack.getAck().getMessageGUID());
         GetStateResult state = null;
 
-        sb.setSign(false);
-        sb.setTrace(false);
+        par.sb.setSign(false);
+        par.sb.setTrace(false);
         while (state == null || state.getRequestState() != 3) {
 
-            state = port.getState(gs);
+            state = par.port.getState(gs);
             log.info("Состояние запроса state = {}", state.getRequestState());
             // задержка 1 сек
             try {
@@ -155,9 +152,6 @@ public class NsiCommonAsyncBindingBuilder implements NsiCommonAsyncBindingBuilde
             }
         }
         return state.getNsiItem();
-        // освободить ресурсы
-        //sb.closeResource();
-        //return ex;
     }
 
 

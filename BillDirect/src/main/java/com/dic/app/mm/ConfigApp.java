@@ -2,16 +2,14 @@ package com.dic.app.mm;
 
 import com.dic.bill.Lock;
 import com.dic.bill.dto.SprPenKey;
+import com.dic.bill.model.scott.Org;
 import com.dic.bill.model.scott.SprPen;
 import com.dic.bill.model.scott.Stavr;
 import com.dic.bill.model.scott.Tuser;
-import org.springframework.scheduling.annotation.Scheduled;
+import com.dic.bill.model.sec.User;
 
 import java.text.ParseException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public interface ConfigApp {
 
@@ -20,6 +18,8 @@ public interface ConfigApp {
     String getPeriod();
 
     Tuser getCurUser();
+
+    Optional<User> getCurUserGis();
 
     String getPeriodNext();
 
@@ -59,8 +59,11 @@ public interface ConfigApp {
 
     Map<String, Set<String>> getMapUslRound();
 
-    public void checkTerminate();
+    Map<String, Org> getMapReuOrg();
 
-    @Scheduled(fixedDelay = 5000)
-    void searchGisTasks();
+    String getGisVersion();
+
+    String getHostIp();
+
+
 }

@@ -12,7 +12,6 @@ import java.util.List;
  * @author Lev
  * @version 1.01
  */
-//@Repository("OrgDAO_DWC")
 public interface OrgDAO extends JpaRepository<Org, Integer> {
 
 
@@ -24,6 +23,9 @@ public interface OrgDAO extends JpaRepository<Org, Integer> {
      */
     @Query("select t from com.dic.bill.model.scott.Org t where t.reu = ?1")
     Org getByReu(String reu);
+
+    @Query("select t from com.dic.bill.model.scott.Org t where t.reu is not null")
+    List<Org> getAllUk();
 
     /**
      * Получить организацию по CD

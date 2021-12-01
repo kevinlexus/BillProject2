@@ -2,15 +2,16 @@ package com.dic.app.gis.service.soapbuilders.impl;
 
 
 import com.dic.app.gis.service.maintaners.*;
+import com.dic.app.gis.service.maintaners.impl.ReqProp;
 import com.dic.app.gis.service.soap.SoapConfigs;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
-import com.dic.app.gis.service.soap.impl.SoapConfig;
-import com.dic.app.gis.service.soapbuilders.HouseManagementAsyncBindingBuilders;
-import com.dic.app.gis.service.soapbuilders.PseudoTaskBuilders;
+import com.dic.app.mm.ConfigApp;
 import com.dic.bill.UlistDAO;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.HouseUkTaskRec;
-import com.dic.bill.mm.*;
+import com.dic.bill.mm.KartMng;
+import com.dic.bill.mm.LstMng;
+import com.dic.bill.mm.MeterMng;
 import com.dic.bill.model.bs.AddrTp;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
@@ -21,10 +22,11 @@ import com.ric.cmn.CommonErrs;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.*;
 import com.sun.xml.ws.developer.WSBindingProvider;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -60,19 +62,19 @@ import static com.ric.cmn.Utl.getXMLGregorianCalendarFromDate;
 
 /**
  * Сервис обмена информацией с ГИС ЖКХ по Дому
- *
- * @author Leo
- * @version 1.04
  */
 @Slf4j
 @Service
-public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncBindingBuilders {
+@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+@RequiredArgsConstructor
+public class HouseManagementAsyncBindingBuilder {
 
     private final ApplicationContext ctx;
     @PersistenceContext
     private EntityManager em;
     private final UlistMng ulistMng;
-    private final SoapConfig config;
+    //private final SoapConfig config;
+    private final ConfigApp config;
     private final TaskParMng taskParMng;
     private final EolinkDAO eolinkDao;
     private final EolinkDAO2 eolinkDao2;
@@ -86,46 +88,14 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
     private final EolinkMng eolinkMng;
     private final TaskMng taskMng;
     private final LstMng lstMng;
-    private final ReqProps reqProp;
     private final SoapConfigs soapConfig;
     private final MeterMng meterMng;
-    private final PseudoTaskBuilders ptb;
-
-    private HouseManagementPortsTypeAsync port;
-    private SoapBuilder sb;
-
-    @Autowired
-    public HouseManagementAsyncBindingBuilder(UlistMng ulistMng, ApplicationContext ctx, SoapConfig config,
-                                              TaskParMng taskParMng, EolinkDAO eolinkDao, EolinkDAO2 eolinkDao2, AddrTpDAO addrTpDAO, OrgDAO orgDAO, UlistDAO ulistDAO, EolinkParMng eolinkParMng,
-                                              TaskEolinkParMng teParMng, TaskMng taskMng, PseudoTaskBuilders ptb,
-                                              ReqProps reqProp, MeterMng meterMng, TaskDAO taskDao,
-                                              SoapConfigs soapConfig, KartMng kartMng,
-                                              EolinkMng eolinkMng, LstMng lstMng) {
-        this.ulistMng = ulistMng;
-        this.ctx = ctx;
-        this.config = config;
-        this.taskParMng = taskParMng;
-        this.eolinkDao = eolinkDao;
-        this.eolinkDao2 = eolinkDao2;
-        this.addrTpDAO = addrTpDAO;
-        this.orgDAO = orgDAO;
-        this.ulistDAO = ulistDAO;
-        this.eolinkParMng = eolinkParMng;
-        this.teParMng = teParMng;
-        this.taskMng = taskMng;
-        this.ptb = ptb;
-        this.reqProp = reqProp;
-        this.meterMng = meterMng;
-        this.taskDao = taskDao;
-        this.soapConfig = soapConfig;
-        this.kartMng = kartMng;
-        this.eolinkMng = eolinkMng;
-        this.lstMng = lstMng;
-    }
+    private final PseudoTaskBuilder ptb;
+    private final EolinkParMng eolParMng;
 
     @Getter
     @Setter
-    class LskEolParam {
+    static class LskEolParam {
         String accountGUID;
         String accountNumber;
         String unifiedAccountNumber;
@@ -134,24 +104,31 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         Boolean isClosed;
     }
 
+    @AllArgsConstructor
+    static class SoapPar {
+        private HouseManagementPortsTypeAsync port;
+        private SoapBuilder sb;
+        private ReqProp reqProp;
+    }
+
     /**
      * Инициализация - создать сервис и порт
      */
-    @Override
-    public void setUp(Task task) throws CantSendSoap, CantPrepSoap {
-        HouseManagementServiceAsync service;
-        service = new HouseManagementServiceAsync();
-        port = service.getHouseManagementPortAsync();
+    private SoapPar setUp(Task task) throws CantSendSoap, CantPrepSoap {
+        HouseManagementServiceAsync service = new HouseManagementServiceAsync();
+        HouseManagementPortsTypeAsync port = service.getHouseManagementPortAsync();
 
         // подоготовительный объект для SOAP
-        sb = ctx.getBean(SoapBuilder.class);
-        reqProp.setPropBefore(task);
-        sb.setUp((BindingProvider) port, (WSBindingProvider) port, true, reqProp.getPpGuid(), reqProp.getHostIp());
+        SoapBuilder sb = new SoapBuilder();
+        ReqProp reqProp = new ReqProp(config, task, eolParMng);
+        sb.setUp((BindingProvider) port, (WSBindingProvider) port, true, reqProp.getPpGuid(),
+                reqProp.getHostIp());
 
-        // логгинг запросов, по умолчанию
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
+        // логгинг запросов
+        sb.setTrace(task.getTrace().equals(1));
         // Id XML подписчика
         sb.setSignerId(reqProp.getSignerId());
+        return new SoapPar(port, sb, reqProp);
     }
 
 
@@ -160,8 +137,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
      *
      * @param task - задание
      */
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public GetStateResult getState2(Task task) {
+    public GetStateResult getState2(Task task) throws CantPrepSoap, CantSendSoap {
         // Признак ошибки
         boolean err = false;
         // Признак ошибки в CommonResult
@@ -170,12 +146,12 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
         GetStateRequest gs = new GetStateRequest();
         gs.setMessageGUID(task.getMsgGuid());
-        sb.setSign(false); // не подписывать запрос состояния!
+        SoapPar par = setUp(task);
+        par.sb.setSign(false); // не подписывать запрос состояния!
 
-        sb.makeRndMsgGuid();
         String errMsg = null;
         try {
-            state = port.getState(gs);
+            state = par.port.getState(gs);
         } catch (ru.gosuslugi.dom.schema.integration.house_management_service_async.Fault e) {
             errMsg = e.getFaultInfo().getErrorCode();
             e.printStackTrace();
@@ -200,7 +176,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
             log.info(errStr);
             task.setState("ERR");
             task.setResult(errStr);
-            reqProp.getFoundTask().setResult(errMsg);
+            task.setResult(errMsg);
             log.error("Task.id={}, ОШИБКА выполнения запроса = {}", task.getId(), errStr);
         } else {
             if (state == null) {
@@ -221,19 +197,13 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
     /**
      * Экспортировать данные счетчиков
-     *
-     * @param task - задание
-     * @throws CantPrepSoap                   - не может приготовить SOAP сообщение
-     * @throws WrongGetMethod                 - некорректное получение параметра
-     * @throws DatatypeConfigurationException - ошибка типа
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportDeviceData(Task task) throws CantPrepSoap, WrongGetMethod, DatatypeConfigurationException {
+
+    public void exportDeviceData(Integer taskId) throws CantPrepSoap, WrongGetMethod, DatatypeConfigurationException, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
+        SoapPar par = setUp(task);
 
         AckRequest ack = null;
 
@@ -245,7 +215,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
         req.setId("foo");
         //sb.setSign(true);
-        req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
+        req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
         if (task.getGuid() != null) {
             // По GUID еще не созданного счетчика
             req.setMeteringDeviceRootGUID(task.getGuid());
@@ -266,7 +236,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         req.setArchiveDateTo(getXMLGregorianCalendarFromDate(new Date()));
 
         try {
-            ack = port.exportMeteringDeviceData(req);
+            ack = par.port.exportMeteringDeviceData(req);
         } catch (ru.gosuslugi.dom.schema.integration.house_management_service_async.Fault e1) {
             e1.printStackTrace();
             err = true;
@@ -274,13 +244,13 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         }
 
         if (err) {
-            reqProp.getFoundTask().setState("ERR");
-            reqProp.getFoundTask().setResult("Ошибка при отправке XML: " + errMainStr);
+            task.setState("ERR");
+            task.setResult("Ошибка при отправке XML: " + errMainStr);
             taskMng.logTask(task, false, false);
         } else {
             // Установить статус "Запрос статуса"
-            reqProp.getFoundTask().setState("ACK");
-            reqProp.getFoundTask().setMsgGuid(ack.getAck().getMessageGUID());
+            task.setState("ACK");
+            task.setMsgGuid(ack.getAck().getMessageGUID());
             taskMng.logTask(task, false, true);
         }
 
@@ -293,24 +263,23 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
      * @throws ErrorProcessAnswer - ошибка процессинга ответа
      * @throws WrongGetMethod     - ошибка получения параметра
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+
     @CacheEvict(value = {"EolinkDAOImpl.getEolinkByGuid"}, allEntries = true) // здесь Evict потому что
     // пользователь может обновить Ko объекта счетчика мз Директа(осуществить привязку)
     // и тогда должен быть получен обновленный объект! ред.07.12.18
-    public void exportDeviceDataAsk(Task task) throws ErrorProcessAnswer, WrongGetMethod, UnusableCode {
+    public void exportDeviceDataAsk(Integer taskId) throws ErrorProcessAnswer, WrongGetMethod, UnusableCode, CantPrepSoap, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
+        setUp(task);
 
-        Eolink houseEol = reqProp.getFoundTask().getEolink();
+        Eolink houseEol = task.getEolink();
 
         // получить состояние
-        GetStateResult retState = getState2(reqProp.getFoundTask());
+        GetStateResult retState = getState2(task);
         if (retState == null) {
             // не обработано
-        } else if (!reqProp.getFoundTask().getState().equals("ERR")) {
+        } else if (!task.getState().equals("ERR")) {
 
             // автоматическое связывание счетчика с SCOTT.METER в Директ
             Boolean autoBind = taskParMng.getBool(task, "ГИС ЖКХ.AUTO_CONNECT_DIRECT");
@@ -381,7 +350,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                                 .withUn(t.getMeteringDeviceGISGKHNumber())
                                 .withObjTp(addrTp)
                                 .withParent(premiseEol)
-                                .withUser(config.getCurUser())
+                                .withUser(config.getCurUserGis().get())
                                 .withStatus(1).build();
                     } else {
                         // счетчик общедомовой
@@ -390,7 +359,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                                 .withUn(t.getMeteringDeviceGISGKHNumber())
                                 .withObjTp(addrTp)
                                 .withParent(premiseEol)
-                                .withUser(config.getCurUser())
+                                .withUser(config.getCurUserGis().get())
                                 .withStatus(1).build();
                     }
 
@@ -546,7 +515,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                             .withGuid(t.getMeteringDeviceVersionGUID())
                             .withObjTp(addrTp)
                             .withParent(rootEol)
-                            .withUser(config.getCurUser())
+                            .withUser(config.getCurUserGis().get())
                             .withStatus(1).build();
 
                     // пометить прочие записи неактивными
@@ -555,242 +524,23 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                     em.persist(versionEol);
                 }
             }
-            reqProp.getFoundTask().setState("ACP");
-            taskMng.logTask(task, false, true);
-
-        }
-
-    }
-
-    /**
-     * Экспорт сокращенного состава информации о договоре ресурсоснабжения
-     * (для последующей загрузки по ним лиц.счетов)
-     *
-     * @param task - задание
-     */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportBriefSupplyResourceContract(Task task) {
-        taskMng.logTask(task, true, null);
-
-        // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
-        String houseGuid = reqProp.getFoundTask().getEolink().getGuid();
-
-        // для обработки ошибок
-        boolean err = false;
-        String errMainStr = null;
-
-        ExportBriefSupplyResourceContractRequest req = new ExportBriefSupplyResourceContractRequest();
-        AckRequest ack = null;
-        req.setId("foo");
-        sb.setSign(true);
-        req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
-
-        ExportBriefSupplyResourceContractRequest.Criteria criteria =
-                new ExportBriefSupplyResourceContractRequest.Criteria();
-        criteria.setFIASHouseGuid(houseGuid);
-
-        req.getCriteria().add(criteria);
-
-        try {
-            ack = port.exportBriefSupplyResourceContract(req);
-        } catch (ru.gosuslugi.dom.schema.integration.house_management_service_async.Fault e1) {
-            e1.printStackTrace();
-            err = true;
-            errMainStr = e1.getFaultInfo().getErrorMessage();
-        }
-        // Показать ошибки, если есть
-        if (err) {
-            reqProp.getFoundTask().setState("ERR");
-            reqProp.getFoundTask().setResult("Ошибка при отправке XML: " + errMainStr);
-            taskMng.logTask(task, false, false);
-        } else {
-            // Установить статус "Запрос статуса"
-            reqProp.getFoundTask().setState("ACK");
-            reqProp.getFoundTask().setMsgGuid(ack.getAck().getMessageGUID());
-            taskMng.logTask(task, false, true);
-        }
-
-    }
-
-
-    /**
-     * Получить результат экспорта сокращенного состава информации о договоре ресурсоснабжения
-     *
-     * @param task - задание
-     */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportBriefSupplyResourceContractAsk(Task task) {
-        taskMng.logTask(task, true, null);
-
-        // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
-
-        // получить состояние
-        GetStateResult retState = getState2(reqProp.getFoundTask());
-
-        if (retState == null) {
-            // не обработано
-            return;
-        } else if (!reqProp.getFoundTask().getState().equals("ERR")) {
-            // ошибок не найдено
-            for (GetStateResult.ExportBriefSupplyResourceContractResult t :
-                    retState.getExportBriefSupplyResourceContractResult()) {
-                for (ExportBriefSupplyResourceContractResultType contract : t.getContract()) {
-                    if (contract.getTerminateContract() == null) {
-                        log.info("contract.getContractRootGUID()={}", contract.getContractRootGUID());
-                        log.info("contract.getContractGUID()={}", contract.getContractGUID());
-                        for (ObjectAddressBriefType adr : contract.getObjectAddress()) {
-                            if (adr.getFIASHouseGuid() != null) {
-                                log.info("FIAS_HOUSE_GUID={}", adr.getFIASHouseGuid());
-                            }
-                            if (adr.getPremisesGUID() != null) {
-                                log.info("FIAS_PREMISES_GUID={}", adr.getPremisesGUID());
-                            }
-                            for (ObjectAddressBriefType.Pair pair : adr.getPair()) {
-                                log.info("Municipal_Resource_GUID={}", pair.getMunicipalResource().getGUID());
-                                Ulist elem = ulistDAO.getListElemByGUID(pair.getMunicipalResource().getGUID());
-                                for (Ulist chld : elem.getChild()) {
-                                    log.info("Municipal_Resource_Child_S1={}", chld.getS1());
-                                }
-                            }
-                        }
-                        for (ExportBriefSupplyResourceContractResultType.ContractSubject subj :
-                                contract.getContractSubject()) {
-                            log.info("Contract: Municipal_Resource_GUID={}", subj.getMunicipalResource().getGUID());
-                            log.info("ServiceTypeGUID={}, ServiceTypeName={}",
-                                    subj.getServiceType().getGUID(), subj.getServiceType().getName());
-                        }
-                    }
-                }
-            }
-
-            reqProp.getFoundTask().setState("ACP");
-            taskMng.logTask(task, false, true);
-        }
-    }
-
-
-    /**
-     * Экспортировать договора по УК - метод был создан, для попытки выгрузки GUID домов определенной УК
-     * - не взлетело, так как требуется GUID дома. ГИС еще не сделал метод по выгрузке всех домов УК ред. 25.07.2018
-     *
-     * @param task - задание (если есть)
-     */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportCaChData(Task task) {
-        taskMng.logTask(task, true, null);
-
-        // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
-        sb.setSign(true);
-
-        Eolink house = reqProp.getFoundTask().getEolink();
-
-        ExportCAChAsyncRequest req = new ExportCAChAsyncRequest();
-        req.setId("foo");
-        req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
-
-        ExportCAChRequestCriteriaType criteria = new ExportCAChRequestCriteriaType();
-        criteria.setContractGUID("3ec632db-8b83-4b9c-bce5-b1defe2e0637");
-        // GUID УК
-        //criteria.setUOGUID(uk.getGuid());
-        // GUID Дома
-        //criteria.setFIASHouseGuid(house.getGuid());
-        // только последние версии договоров
-        // criteria.setLastVersionOnly(true);
-        req.getCriteria().add(criteria);
-
-        // для обработки ошибок
-        boolean err = false;
-        String errMainStr = null;
-
-        AckRequest ack = null;
-        try {
-            ack = port.exportCAChData(req);
-        } catch (ru.gosuslugi.dom.schema.integration.house_management_service_async.Fault e1) {
-            e1.printStackTrace();
-            err = true;
-            errMainStr = e1.getFaultInfo().getErrorMessage();
-        }
-
-        // Показать ошибки, если есть
-        if (err) {
-            reqProp.getFoundTask().setState("ERR");
-            reqProp.getFoundTask().setResult("Ошибка при отправке XML: " + errMainStr);
-            taskMng.logTask(task, false, false);
-        } else {
-            // Установить статус "Запрос статуса"
-            reqProp.getFoundTask().setState("ACK");
-            reqProp.getFoundTask().setMsgGuid(ack.getAck().getMessageGUID());
-            taskMng.logTask(task, false, true);
-        }
-
-    }
-
-
-    /**
-     * Получить результат экспорта договоров по УК
-     */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportCaChDataAsk(Task task) {
-        taskMng.logTask(task, true, null);
-
-        // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask().getTrace().equals(1));
-
-        // получить состояние
-        GetStateResult retState = getState2(reqProp.getFoundTask());
-        if (retState == null) {
-            // не обработано
-            return;
-        } else if (!reqProp.getFoundTask().getState().equals("ERR")) {
-            log.info("Получены договора и уставы:");
-            List<ExportCAChResultType> res = retState.getExportCAChResult();
-            res.forEach(t -> {
-                // договора
-                if (t.getContract() != null) {
-                    t.getContract().getContractObject().forEach(d -> log.info("По договору GUID={}, найден дом GUID={}",
-                            t.getContract().getContractGUID(), d.getFIASHouseGuid()));
-                }
-                // уставы
-                if (t.getCharter() != null) {
-                    t.getCharter().getContractObject().forEach(d -> {
-                        d.getFIASHouseGuid();
-                        log.info("По уставу GUID={}, найден дом GUID={}",
-                                t.getCharter().getCharterGUID(), d.getFIASHouseGuid());
-                    });
-                }
-            });
-
-            // Установить статус выполнения задания
-            reqProp.getFoundTask().setState("ACP");
+            task.setState("ACP");
             taskMng.logTask(task, false, true);
         }
     }
 
     /**
      * Экспортировать данные дома
-     *
-     * @param task - задание (если есть)
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportHouseData(Task task) {
+
+    public void exportHouseData(Integer taskId) throws CantPrepSoap, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
 
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
-        Eolink houseEol = reqProp.getFoundTask().getEolink();
+        SoapPar par = setUp(task);
+
+        Eolink houseEol = task.getEolink();
         String houseGuid = houseEol.getGuid();
 
         // для обработки ошибок
@@ -799,14 +549,14 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
         ExportHouseRequest req = new ExportHouseRequest();
         req.setId("foo");
-        sb.setSign(true);
+        par.sb.setSign(true);
         req.setVersion("12.2.0.1");  // здесь просит именно эту версию
         req.setFIASHouseGuid(houseGuid);
 
         AckRequest ack = null;
 
         try {
-            ack = port.exportHouseData(req);
+            ack = par.port.exportHouseData(req);
         } catch (ru.gosuslugi.dom.schema.integration.house_management_service_async.Fault e) {
             e.printStackTrace();
             err = true;
@@ -815,13 +565,13 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
         // Показать ошибки, если есть
         if (err) {
-            reqProp.getFoundTask().setState("ERR");
-            reqProp.getFoundTask().setResult("Ошибка при отправке XML: " + errMainStr);
+            task.setState("ERR");
+            task.setResult("Ошибка при отправке XML: " + errMainStr);
             taskMng.logTask(task, false, false);
         } else {
             // Установить статус "Запрос статуса"
-            reqProp.getFoundTask().setState("ACK");
-            reqProp.getFoundTask().setMsgGuid(ack.getAck().getMessageGUID());
+            task.setState("ACK");
+            task.setMsgGuid(ack.getAck().getMessageGUID());
             taskMng.logTask(task, false, true);
         }
     }
@@ -830,23 +580,22 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
     /**
      * Получить результат экспорта объектов дома
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportHouseDataAsk(Task task) throws UnusableCode {
+
+    public void exportHouseDataAsk(Integer taskId) throws UnusableCode, CantPrepSoap, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
 
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask().getTrace().equals(1));
+        SoapPar par = setUp(task);
 
         // дом
-        Eolink houseEol = reqProp.getFoundTask().getEolink();
+        Eolink houseEol = task.getEolink();
         // получить состояние
-        GetStateResult retState = getState2(reqProp.getFoundTask());
+        GetStateResult retState = getState2(task);
         Date curDate = new Date();
         if (retState == null) {
             // не обработано
-        } else if (!reqProp.getFoundTask().getState().equals("ERR")) {
+        } else if (!task.getState().equals("ERR")) {
             // Ошибок нет, обработка
             // Сохранить уникальный номер дома
             houseEol.setUn(retState.getExportHouseResult().getHouseUniqueNumber());
@@ -872,14 +621,14 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                         AddrTp addrTp = lstMng.getAddrTpByCD("Подъезд");
 
                         entryEol = Eolink.builder()
-                                .withOrg(reqProp.getUk())
-                                .withKul(reqProp.getKul())
-                                .withNd(reqProp.getNd())
+                                .withOrg(par.reqProp.getUk())
+                                .withKul(par.reqProp.getKul())
+                                .withNd(par.reqProp.getNd())
                                 .withEntry(Integer.valueOf(t.getEntranceNum()))
                                 .withGuid(t.getEntranceGUID())
                                 .withObjTp(addrTp)
                                 .withParent(houseEol)
-                                .withUser(config.getCurUser())
+                                .withUser(config.getCurUserGis().get())
                                 .withStatus(1).build();
                         // сохранить, для иерархии
                         entryMap.put(Integer.valueOf(t.getEntranceNum()), entryEol);
@@ -924,9 +673,9 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                         AddrTp addrTp = lstMng.getAddrTpByCD("Квартира");
                         Ko premisKo = null;
                         premisEol = Eolink.builder()
-                                .withOrg(reqProp.getUk())
-                                .withKul(reqProp.getKul())
-                                .withNd(reqProp.getNd())
+                                .withOrg(par.reqProp.getUk())
+                                .withKul(par.reqProp.getKul())
+                                .withNd(par.reqProp.getNd())
                                 .withKw(num)
                                 .withEntry(t.getEntranceNum() != null ? Integer.valueOf(t.getEntranceNum()) : null)
                                 .withGuid(t.getPremisesGUID())
@@ -936,7 +685,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                                 .withParent(t.getEntranceNum() != null ?
                                         entryMap.get(Integer.valueOf(t.getEntranceNum())) : houseEol)   // присоединить к родителю:
                                 // подъезд, или дом, если не найден подъезд
-                                .withUser(config.getCurUser())
+                                .withUser(config.getCurUserGis().get())
                                 .withStatus(1)
                                 .build();
                         log.info("Попытка создать запись жилого помещения в Eolink: № подъезда:{}, № помещения={}, un={}, GUID={}",
@@ -959,7 +708,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                                     .withObjTp(addrTp)
                                     .withKoObj(null) // TODO сделать ko! ред.21.08.2018
                                     .withParent(premisEol) // присоединить к квартире
-                                    .withUser(config.getCurUser())
+                                    .withUser(config.getCurUserGis().get())
                                     .withStatus(1)
                                     .build();
                             log.info("Попытка создать запись комнаты в Eolink:un={}, GUID={}",
@@ -986,7 +735,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                         // найти соответствующий объект Ko помещения
                         Ko ko = null;
                         try {
-                            ko = kartMng.getKoPremiseByKulNdKw(reqProp.getKul(), reqProp.getNd(), num);
+                            ko = kartMng.getKoPremiseByKulNdKw(par.reqProp.getKul(), par.reqProp.getNd(), num);
                         } catch (DifferentKlskBySingleAdress differentKlskBySingleAdress) {
                             // в KART разные KLSK на один адрес!
                             soapConfig.saveError(premisEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR, true);
@@ -1042,14 +791,14 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                         AddrTp addrTp = lstMng.getAddrTpByCD("Помещение нежилое");
 
                         premisEol = Eolink.builder()
-                                .withOrg(reqProp.getUk())
-                                .withKul(reqProp.getKul())
-                                .withNd(reqProp.getNd())
+                                .withOrg(par.reqProp.getUk())
+                                .withKul(par.reqProp.getKul())
+                                .withNd(par.reqProp.getNd())
                                 .withKw(num)
                                 .withGuid(t.getPremisesGUID())
                                 .withObjTp(addrTp)
                                 .withParent(houseEol)
-                                .withUser(config.getCurUser())
+                                .withUser(config.getCurUserGis().get())
                                 .withStatus(1).build();
 
                         log.info("Попытка создать запись Нежилого помещения в Eolink: № помещения={}, un={}, GUID={}",
@@ -1075,7 +824,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                     if (premisEol.getKoObj() == null && premisEol.getStatus().equals(1)) {
                         Ko ko = null;
                         try {
-                            ko = kartMng.getKoPremiseByKulNdKw(reqProp.getKul(), reqProp.getNd(), num);
+                            ko = kartMng.getKoPremiseByKulNdKw(par.reqProp.getKul(), par.reqProp.getNd(), num);
                         } catch (DifferentKlskBySingleAdress differentKlskBySingleAdress) {
                             // разные KLSK на один адрес!";
                             soapConfig.saveError(premisEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR, true);
@@ -1104,7 +853,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                 }
             }
             // Установить статус выполнения задания
-            reqProp.getFoundTask().setState("ACP");
+            task.setState("ACP");
             //log.info("******* Task.id={}, экспорт объектов дома выполнен", task.getId());
             taskMng.logTask(task, false, true);
         }
@@ -1151,11 +900,10 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
     /**
      * Экспортировать лицевые счета
      *
-     * @param task - задание
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportAccountData(Task task) throws CantPrepSoap, CantSendSoap, WrongParam {
+
+    public void exportAccountData(Integer taskId) throws CantPrepSoap, CantSendSoap, WrongParam {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
         if (task.getProcUk() == null)
             throw new WrongParam("По заданию task.id=" + task.getId() + " не заполнен TASK.FK_PROC_UK");
@@ -1163,12 +911,11 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         setUp(task);
 
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
+        SoapPar par = setUp(task);
 
         ExportAccountRequest req = new ExportAccountRequest();
         req.setId("foo");
-        req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
+        req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
         // GUID дома
         req.setFIASHouseGuid(task.getEolink().getGuid());
@@ -1178,7 +925,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         boolean err = false;
         String errMainStr = null;
         try {
-            ack = port.exportAccountData(req);
+            ack = par.port.exportAccountData(req);
         } catch (ru.gosuslugi.dom.schema.integration.house_management_service_async.Fault e1) {
             err = true;
             e1.printStackTrace();
@@ -1186,25 +933,23 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         }
 
         if (err) {
-            reqProp.getFoundTask().setState("ERR");
-            reqProp.getFoundTask().setResult("Ошибка при отправке XML: " + errMainStr);
+            task.setState("ERR");
+            task.setResult("Ошибка при отправке XML: " + errMainStr);
             taskMng.logTask(task, false, false);
         } else {
             // Установить статус "Запрос статуса"
-            reqProp.getFoundTask().setState("ACK");
-            reqProp.getFoundTask().setMsgGuid(ack.getAck().getMessageGUID());
+            task.setState("ACK");
+            task.setMsgGuid(ack.getAck().getMessageGUID());
             taskMng.logTask(task, false, true);
         }
     }
 
     /**
      * Получить результат экспорта лицевых счетов
-     *
-     * @param task - задание
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportAccountDataAsk(Task task) throws CantPrepSoap, WrongParam, ErrorProcessAnswer, CantSendSoap {
+
+    public void exportAccountDataAsk(Integer taskId) throws CantPrepSoap, WrongParam, ErrorProcessAnswer, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
         if (task.getProcUk() == null)
             throw new WrongParam("По заданию task.id=" + task.getId() + " не заполнен TASK.FK_PROC_UK");
@@ -1212,16 +957,15 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         setUp(task);
 
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
+        setUp(task);
 
         // получить состояние
-        GetStateResult retState = getState2(reqProp.getFoundTask());
+        GetStateResult retState = getState2(task);
 
         if (retState == null) {
             // не обработано
             return;
-        } else if (!reqProp.getFoundTask().getState().equals("ERR")) {
+        } else if (!task.getState().equals("ERR")) {
             // ошибок не найдено
             for (ExportAccountResultType t : retState.getExportAccountResult()) {
 
@@ -1289,7 +1033,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                                     .withParent(parentEol)
                                     .withUk(task.getProcUk())
                                     .withOrg(task.getProcUk().getOrg())
-                                    .withUser(config.getCurUser())
+                                    .withUser(config.getCurUserGis().get())
                                     .withStatus(1).build();
                             log.info("Попытка создать запись лицевого счета в Eolink: GUID={}, AccountNumber={}, ServiceId={}",
                                     t.getAccountGUID(), num, t.getServiceID());
@@ -1309,7 +1053,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                 }
 
             }
-            reqProp.getFoundTask().setState("ACP");
+            task.setState("ACP");
             taskMng.logTask(task, false, true);
         }
     }
@@ -1358,24 +1102,21 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
     /**
      * Импортировать лицевые счета
      *
-     * @param task - задание
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void importAccountData(Task task) throws CantPrepSoap, CantSendSoap, WrongParam, UnusableCode {
+
+    public void importAccountData(Integer taskId) throws CantPrepSoap, CantSendSoap, WrongParam, UnusableCode {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
         if (task.getProcUk() == null)
             throw new WrongParam("По заданию task.id=" + task.getId() + " не заполнен TASK.FK_PROC_UK");
         // индивидуально выполнить setUp - так как может выполняться от имени РСО
-        setUp(task);
+        SoapPar par = setUp(task);
 
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
 
         ImportAccountRequest req = new ImportAccountRequest();
         req.setId("foo");
-        req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
+        req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
         // использовать ли фильтр, для проверки XML
         boolean isUseFilter = task.getIdFrom() != null && task.getIdTo() != null;
@@ -1444,7 +1185,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                 i++;
                 if (i > 100) {
                     // сохранить последний обработанный лиц.счет Eolink, выйти из цикла
-                    reqProp.getFoundTask().setEolinkLast(lastLskEol);
+                    task.setEolinkLast(lastLskEol);
                     break;
                 } else {
                     lastLskEol = lskEol;
@@ -1576,7 +1317,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
         if (i > 0 && i <= 100) {
             // было обработано <= 100 лиц.счетов, убрать последний объект, для исключения повторного вызова в методе Ask
-            reqProp.getFoundTask().setEolinkLast(null);
+            task.setEolinkLast(null);
         }
 
         if (i > 0) {
@@ -1586,7 +1327,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
             boolean err = false;
             String errMainStr = null;
             try {
-                ack = port.importAccountData(req);
+                ack = par.port.importAccountData(req);
             } catch (ru.gosuslugi.dom.schema.integration.house_management_service_async.Fault e1) {
                 e1.printStackTrace();
                 err = true;
@@ -1594,20 +1335,20 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
             }
 
             if (err) {
-                reqProp.getFoundTask().setState("ERR");
-                reqProp.getFoundTask().setResult("Ошибка при отправке XML: " + errMainStr);
+                task.setState("ERR");
+                task.setResult("Ошибка при отправке XML: " + errMainStr);
                 taskMng.logTask(task, false, false);
             } else {
                 // Установить статус "Запрос статуса"
-                reqProp.getFoundTask().setState("ACK");
-                reqProp.getFoundTask().setMsgGuid(ack.getAck().getMessageGUID());
+                task.setState("ACK");
+                task.setMsgGuid(ack.getAck().getMessageGUID());
                 taskMng.logTask(task, false, true);
             }
         } else {
             // Установить статус "Выполнено", так как нечего загружать
             log.info("Task.id={}, Нет лиц.счетов для загрузки!", task.getId());
-            reqProp.getFoundTask().setEolinkLast(null);
-            reqProp.getFoundTask().setState("ACP");
+            task.setEolinkLast(null);
+            task.setState("ACP");
         }
     }
 
@@ -1666,12 +1407,10 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
     /**
      * Получить результат импорта лицевых счетов
-     *
-     * @param task - задание
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void importAccountDataAsk(Task task) throws CantPrepSoap, WrongParam, CantSendSoap, UnusableCode {
+
+    public void importAccountDataAsk(Integer taskId) throws CantPrepSoap, WrongParam, CantSendSoap, UnusableCode {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
         if (task.getProcUk() == null)
             throw new WrongParam("По заданию task.id=" + task.getId() + " не заполнен TASK.FK_PROC_UK");
@@ -1679,16 +1418,14 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         setUp(task);
 
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
+        setUp(task);
 
         // получить состояние
-        GetStateResult retState = getState2(reqProp.getFoundTask());
+        GetStateResult retState = getState2(task);
 
         if (retState == null) {
             // не обработано
-            return;
-        } else if (!reqProp.getFoundTask().getState().equals("ERR")) {
+        } else if (!task.getState().equals("ERR")) {
             // ошибок не найдено
             for (GetStateResult.ImportResult t : retState.getImportResult()) {
                 log.trace("После импорта объектов получены следующие параметры:");
@@ -1724,13 +1461,13 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                     }
                 }
             }
-            if (reqProp.getFoundTask().getEolinkLast() != null) {
+            if (task.getEolinkLast() != null) {
                 log.info("******* Task.id={}, Импорт части лиц.счетов дома выполнен, " +
                         "будет произведён повтор задания, state='INS'", task.getId());
-                reqProp.getFoundTask().setState("INS");
+                task.setState("INS");
                 taskMng.logTask(task, false, true);
             } else {
-                reqProp.getFoundTask().setState("ACP");
+                task.setState("ACP");
                 taskMng.logTask(task, false, true);
             }
         }
@@ -1741,63 +1478,62 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
      * Обновление объектов дома
      *
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void importHouseUOData(Task task) throws WrongGetMethod, CantPrepSoap {
+
+    public void importHouseUOData(Integer taskId) throws WrongGetMethod, CantPrepSoap, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         //log.info("******* Task.id={}, Импорт объектов дома, вызов", task.getId());
         taskMng.logTask(task, true, null);
 
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask().getTrace().equals(1));
+        SoapPar par = setUp(task);
         ImportHouseUORequest req = new ImportHouseUORequest();
         req.setId("foo");
-        req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
+        req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
         //sb.setSign(true);
 
         ApartmentHouse ah = new ApartmentHouse();
 
         // установить базовые параметры
-        if (reqProp.getFoundTask().getAct().getCd().equals("GIS_ADD_HOUSE")) {
+        if (task.getAct().getCd().equals("GIS_ADD_HOUSE")) {
             // Добавить дом
-            log.trace("Добавление дома, Task.id={}", reqProp.getFoundTask().getId());
+            log.trace("Добавление дома, Task.id={}", task.getId());
             BasicCharacteristicts bc = new BasicCharacteristicts();
-            bc.setFIASHouseGuid(reqProp.getFoundTask().getEolink().getGuid());
-            Double totSqr = teParMng.getDbl(reqProp.getFoundTask(), "ГИС ЖКХ.Общая площадь жилых помещений по паспорту помещения");
+            bc.setFIASHouseGuid(task.getEolink().getGuid());
+            Double totSqr = teParMng.getDbl(task, "ГИС ЖКХ.Общая площадь жилых помещений по паспорту помещения");
             bc.setTotalSquare(BigDecimal.valueOf(totSqr));
 
-            Date dtBuild = teParMng.getDate(reqProp.getFoundTask(), "ГИС ЖКХ.Дата постройки");
+            Date dtBuild = teParMng.getDate(task, "ГИС ЖКХ.Дата постройки");
             String dtBuiltStr = Utl.getStrFromDate(dtBuild);
             dtBuiltStr = dtBuiltStr.substring(dtBuiltStr.length() - 4);
             Integer usedYear = Integer.valueOf(dtBuiltStr);
             bc.setUsedYear(BigDecimal.valueOf(usedYear).shortValue());
 
-            Double cult = teParMng.getDbl(reqProp.getFoundTask(), "ГИС ЖКХ.Наличие статуса объекта культурного наследия");
+            Double cult = teParMng.getDbl(task, "ГИС ЖКХ.Наличие статуса объекта культурного наследия");
             bc.setCulturalHeritage(cult == 1d);
 
             // установить часовую зону
             bc.setOlsonTZ(ulistMng.getNsiElem("NSI", 32/*30*/, "Часовая зона", "Asia/Novokuznetsk")); // ред.28.12.17 странно было 31 поменял на 32
 
-            Double et = teParMng.getDbl(reqProp.getFoundTask(), "Количество этажей, наибольшее(1-11)");
+            Double et = teParMng.getDbl(task, "Количество этажей, наибольшее(1-11)");
             bc.setFloorCount(et.byteValue());
 
-            Boolean isGkn = teParMng.getBool(reqProp.getFoundTask(), "ГИС ЖКХ.Признак.ОтсутствияСвязи.ГКН");
+            Boolean isGkn = teParMng.getBool(task, "ГИС ЖКХ.Признак.ОтсутствияСвязи.ГКН");
             if (isGkn != null && isGkn) {
                 // Ключ связи с ГКН/ЕГРП отсутствует.
                 bc.setNoRSOGKNEGRPRegistered(true);
             } else {
                 // Ключ связи с ГКН/ЕГРП присутствует, поставить номер ГКН
-                String gknKey = teParMng.getStr(reqProp.getFoundTask(),
+                String gknKey = teParMng.getStr(task,
                         "ГИС ЖКХ.Кадастровый номер (для связывания сведений с ГКН и ЕГРП)");
                 if (gknKey == null) {
-                    throw new CantPrepSoap("Отсутствует Кадастровый номер, для связывания сведений с ГКН и ЕГРП! Task.Id=" + reqProp.getFoundTask().getId());
+                    throw new CantPrepSoap("Отсутствует Кадастровый номер, для связывания сведений с ГКН и ЕГРП! Task.Id=" + task.getId());
                 }
                 bc.setCadastralNumber(gknKey);
             }
 
             // установить ОКТМО
             OKTMORefType oktmo = new OKTMORefType();
-            String oktmo2 = teParMng.getStr(reqProp.getFoundTask(), "ГИС ЖКХ.ОКТМО");
+            String oktmo2 = teParMng.getStr(task, "ГИС ЖКХ.ОКТМО");
 
             oktmo.setCode(oktmo2);
             oktmo.setName(oktmo2);
@@ -1805,83 +1541,83 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
             // установить состояние объекта
             ApartmentHouseToCreate ac = new ApartmentHouseToCreate();
-            String state = teParMng.getStr(reqProp.getFoundTask(), "ГИС ЖКХ.Состояние");
+            String state = teParMng.getStr(task, "ГИС ЖКХ.Состояние");
             bc.setState(ulistMng.getNsiElem("NSI", 24, "Состояние дома", state));
 
-            Double underEt = teParMng.getDbl(reqProp.getFoundTask(), "ГИС ЖКХ.Количество подземных этажей");
+            Double underEt = teParMng.getDbl(task, "ГИС ЖКХ.Количество подземных этажей");
             ac.setUndergroundFloorCount(underEt.byteValue());
 
-            Double etMin = teParMng.getDbl(reqProp.getFoundTask(), "Количество этажей, наименьшее(1-10)");
+            Double etMin = teParMng.getDbl(task, "Количество этажей, наименьшее(1-10)");
             log.trace("etMin={}", etMin);
             Integer etMin2 = etMin.intValue();
             ac.setMinFloorCount(etMin2.byteValue());
 
             String tguid = Utl.getRndUuid().toString();
-            reqProp.getFoundTask().setTguid(tguid);
+            task.setTguid(tguid);
             ac.setTransportGUID(tguid);
 
             ac.setBasicCharacteristicts(bc);
             ah.setApartmentHouseToCreate(ac);
 
-        } else if (reqProp.getFoundTask().getAct().getCd().equals("GIS_UPD_HOUSE")) {
+        } else if (task.getAct().getCd().equals("GIS_UPD_HOUSE")) {
             // Обновить дом
-            log.trace("Обновление дома, Task.id={}", reqProp.getFoundTask().getId());
+            log.trace("Обновление дома, Task.id={}", task.getId());
             HouseBasicUpdateUOType bc = new HouseBasicUpdateUOType();
-            bc.setFIASHouseGuid(reqProp.getFoundTask().getEolink().getGuid());
-            Double totSqr = teParMng.getDbl(reqProp.getFoundTask(), "ГИС ЖКХ.Общая площадь жилых помещений по паспорту помещения");
+            bc.setFIASHouseGuid(task.getEolink().getGuid());
+            Double totSqr = teParMng.getDbl(task, "ГИС ЖКХ.Общая площадь жилых помещений по паспорту помещения");
             bc.setTotalSquare(BigDecimal.valueOf(totSqr));
 
-            Date dtBuild = teParMng.getDate(reqProp.getFoundTask(), "ГИС ЖКХ.Дата постройки");
+            Date dtBuild = teParMng.getDate(task, "ГИС ЖКХ.Дата постройки");
             String dtBuiltStr = Utl.getStrFromDate(dtBuild);
             dtBuiltStr = dtBuiltStr.substring(dtBuiltStr.length() - 4);
             int usedYear = Integer.parseInt(dtBuiltStr);
             bc.setUsedYear(BigDecimal.valueOf(usedYear).shortValue());
 
-            Double cult = teParMng.getDbl(reqProp.getFoundTask(), "ГИС ЖКХ.Наличие статуса объекта культурного наследия");
+            Double cult = teParMng.getDbl(task, "ГИС ЖКХ.Наличие статуса объекта культурного наследия");
             bc.setCulturalHeritage(cult == 1d);
 
             // установить часовую зону
             bc.setOlsonTZ(ulistMng.getNsiElem("NSI", 32/*30*/, "Часовая зона", "Asia/Novokuznetsk")); //TODO проверить почему стояло 30, когда часовая зона по OLSON это 31
 
-            Double et = teParMng.getDbl(reqProp.getFoundTask(), "Количество этажей, наибольшее(1-11)");
+            Double et = teParMng.getDbl(task, "Количество этажей, наибольшее(1-11)");
             bc.setFloorCount(et.byteValue());
 
-            Boolean isGkn = teParMng.getBool(reqProp.getFoundTask(), "ГИС ЖКХ.Признак.ОтсутствияСвязи.ГКН");
+            Boolean isGkn = teParMng.getBool(task, "ГИС ЖКХ.Признак.ОтсутствияСвязи.ГКН");
             if (isGkn != null && isGkn) {
                 // Ключ связи с ГКН/ЕГРП отсутствует.
                 bc.setNoRSOGKNEGRPRegistered(true);
             } else {
-                String gknKey = teParMng.getStr(reqProp.getFoundTask(),
+                String gknKey = teParMng.getStr(task,
                         "ГИС ЖКХ.Кадастровый номер (для связывания сведений с ГКН и ЕГРП)");
                 if (gknKey == null) {
-                    throw new CantPrepSoap("Отсутствует Кадастровый номер, для связывания сведений с ГКН и ЕГРП! Task.Id=" + reqProp.getFoundTask().getId());
+                    throw new CantPrepSoap("Отсутствует Кадастровый номер, для связывания сведений с ГКН и ЕГРП! Task.Id=" + task.getId());
                 }
                 bc.setCadastralNumber(gknKey);
             }
 
             // установить ОКТМО
             OKTMORefType oktmo = new OKTMORefType();
-            String oktmo2 = teParMng.getStr(reqProp.getFoundTask(), "ГИС ЖКХ.ОКТМО");
+            String oktmo2 = teParMng.getStr(task, "ГИС ЖКХ.ОКТМО");
 
             oktmo.setCode(oktmo2);
             oktmo.setName(oktmo2);
             bc.setOKTMO(oktmo);
 
             // установить состояние объекта
-            String state = teParMng.getStr(reqProp.getFoundTask(), "ГИС ЖКХ.Состояние");
+            String state = teParMng.getStr(task, "ГИС ЖКХ.Состояние");
             bc.setState(ulistMng.getNsiElem("NSI", 24, "Состояние дома", state));
 
             ApartmentHouseToUpdate ac = new ApartmentHouseToUpdate();
 
-            Double underEt = teParMng.getDbl(reqProp.getFoundTask(), "ГИС ЖКХ.Количество подземных этажей");
+            Double underEt = teParMng.getDbl(task, "ГИС ЖКХ.Количество подземных этажей");
             ac.setUndergroundFloorCount(underEt.byteValue());
 
-            Double etMin = teParMng.getDbl(reqProp.getFoundTask(), "Количество этажей, наименьшее(1-10)");
+            Double etMin = teParMng.getDbl(task, "Количество этажей, наименьшее(1-10)");
             int etMin2 = etMin.intValue();
             ac.setMinFloorCount((byte) etMin2);
 
             String tguid = Utl.getRndUuid().toString();
-            reqProp.getFoundTask().setTguid(tguid);
+            task.setTguid(tguid);
             log.trace("Установлен house TGUID={}", tguid);
             ac.setTransportGUID(tguid);
 
@@ -1890,7 +1626,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         }
 
         // Добавить подъезды
-        taskDao.getByTaskAddrTp(reqProp.getFoundTask(), "Подъезд", null,
+        taskDao.getByTaskAddrTp(task, "Подъезд", null,
                         1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_ENTRY"))
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Добавление подъезда, Task.id={}", t.getId());
@@ -1916,7 +1652,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                     ah.getEntranceToCreate().add(ec);
                 }));
         // Обновить подъезды
-        taskDao.getByTaskAddrTp(reqProp.getFoundTask(), "Подъезд", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_ENTRY"))
+        taskDao.getByTaskAddrTp(task, "Подъезд", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_ENTRY"))
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Обновление подъезда, Task.id={}, Guid={}", t.getId(), t.getEolink().getGuid());
                     EntranceToUpdate eu = new EntranceToUpdate();
@@ -1943,7 +1679,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                 }));
 
         // Добавить жилое помещение(ия)
-        taskDao.getByTaskAddrTp(reqProp.getFoundTask(), "Квартира", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_PRMS"))
+        taskDao.getByTaskAddrTp(task, "Квартира", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_PRMS"))
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Добавление жилого помещения, Task.id={}", t.getId());
                     ResidentialPremises rp = new ResidentialPremises();
@@ -2005,7 +1741,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                 }));
 
         // Добавить НЕжилое помещение(ия)
-        taskDao.getByTaskAddrTp(reqProp.getFoundTask(), "Помещение нежилое", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_PRMS"))
+        taskDao.getByTaskAddrTp(task, "Помещение нежилое", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_PRMS"))
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Добавление НЕжилого помещения, Task.id={}", t.getId());
                     NonResidentialPremiseToCreate rc =
@@ -2043,7 +1779,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                 }));
 
         // Обновить жилое помещение(ия)
-        taskDao.getByTaskAddrTp(reqProp.getFoundTask(), "Квартира", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_PRMS"))
+        taskDao.getByTaskAddrTp(task, "Квартира", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_PRMS"))
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Обновление жилого помещения, Task.id={}, Guid={}", t.getId(), t.getEolink().getGuid());
                     ResidentialPremises rp = new ResidentialPremises();
@@ -2112,7 +1848,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                 }));
 
         // Обновить НЕжилое помещение(ия)
-        taskDao.getByTaskAddrTp(reqProp.getFoundTask(), "Помещение нежилое", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_PRMS"))
+        taskDao.getByTaskAddrTp(task, "Помещение нежилое", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_PRMS"))
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Обновление НЕжилого помещения, Task.id={}, Guid={}", t.getId(), t.getEolink().getGuid());
                     NonResidentialPremiseToUpdate rc =
@@ -2156,7 +1892,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                     ah.getNonResidentialPremiseToUpdate().add(rc);
                 }));
 
-        req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
+        req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
         req.setId("foo");
         req.setApartmentHouse(ah);
         AckRequest ack = null;
@@ -2166,7 +1902,7 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         String errMainStr = null;
 
         try {
-            ack = port.importHouseUOData(req);
+            ack = par.port.importHouseUOData(req);
         } catch (ru.gosuslugi.dom.schema.integration.house_management_service_async.Fault e1) {
             e1.printStackTrace();
             err = true;
@@ -2174,14 +1910,14 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
         }
 
         if (err) {
-            reqProp.getFoundTask().setState("ERR");
-            reqProp.getFoundTask().setResult("Ошибка при отправке XML: " + errMainStr);
+            task.setState("ERR");
+            task.setResult("Ошибка при отправке XML: " + errMainStr);
             taskMng.logTask(task, false, false);
 
         } else {
             // Установить статус "Запрос статуса"
-            reqProp.getFoundTask().setState("ACK");
-            reqProp.getFoundTask().setMsgGuid(ack.getAck().getMessageGUID());
+            task.setState("ACK");
+            task.setMsgGuid(ack.getAck().getMessageGUID());
             taskMng.logTask(task, false, true);
 
         }
@@ -2190,25 +1926,23 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
     /**
      * Получить результат отправки обновления объектов дома
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void importHouseUODataAsk(Task task) {
-        //log.info("******* Task.id={}, Импорт объектов дома, запрос ответа", task.getId());
+
+    public void importHouseUODataAsk(Integer taskId) throws CantPrepSoap, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
 
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        sb.setTrace(reqProp.getFoundTask().getTrace().equals(1));
+        SoapPar par = setUp(task);
 
         // получить состояние
-        GetStateResult retState = getState2(reqProp.getFoundTask());
+        GetStateResult retState = getState2(task);
 
         if (retState == null) {
             // не обработано
             return;
-        } else if (!reqProp.getFoundTask().getState().equals("ERR") && !reqProp.getFoundTask().getState().equals("ERS")) {
+        } else if (!task.getState().equals("ERR") && !task.getState().equals("ERS")) {
             //log.trace("Проверка1");
-            Task foundTask2 = reqProp.getFoundTask();
+            Task foundTask2 = task;
             retState.getImportResult().forEach(t -> {
                 //log.trace("Проверка2");
                 t.getCommonResult().forEach(d -> {
@@ -2231,22 +1965,22 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
                         // Записать идентификаторы объекта, полученного от внешней системы (если уже не установлены)
                         taskMng.setEolinkIdf(task2.getEolink(), d.getGUID(), d.getUniqueNumber(), 1);
                         log.trace("После импорта объектов по Task.id={} и TGUID={}, получены следующие параметры:",
-                                reqProp.getFoundTask().getId(), d.getTransportGUID());
+                                task.getId(), d.getTransportGUID());
                         log.trace("GUID={}, UniqueNumber={}", d.getGUID(), d.getUniqueNumber());
                     }
                 });
             });
 
-            if (taskDao.getChildAnyErr(reqProp.getFoundTask())) {
+            if (taskDao.getChildAnyErr(task)) {
                 log.error("Найдены ошибки / Невыполнение в дочерних заданиях! Task.id={}", task.getId());
                 // Установить статус
-                reqProp.getFoundTask().setResult("Найдены ошибки / Невыполнение в дочерних заданиях!");
-                reqProp.getFoundTask().setState("ERR");
+                task.setResult("Найдены ошибки / Невыполнение в дочерних заданиях!");
+                task.setState("ERR");
                 taskMng.logTask(task, false, false);
 
             } else {
                 log.info("******* Task.id={}, Импорт объектов дома выполнен", task.getId());
-                reqProp.getFoundTask().setState("ACP");
+                task.setState("ACP");
                 taskMng.logTask(task, false, true);
 
             }
@@ -2259,30 +1993,27 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
      * Проверить наличие заданий
      * и если их нет, - создать
      *
-     * @param task
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void checkPeriodicHouseExp(Task task) throws WrongParam {
-        Task foundTask = em.find(Task.class, task.getId());
+
+    public void checkPeriodicHouseExp(Integer taskId) throws WrongParam {
+        Task task = em.find(Task.class, taskId);
         // создать по всем домам задания на экспорт объектов дома, если их нет
         // создавать по 10 штук, иначе - блокировка Task (нужен коммит)
         int a = 1;
         for (Eolink e : eolinkDao.getEolinkByTpWoTaskTp("Дом", "GIS_EXP_HOUSE", "SYSTEM_RPT_HOUSE_EXP")) {
             // статус - INS
-            ptb.setUp(e, null, "GIS_EXP_HOUSE", "INS", soapConfig.getCurUser().getId());
+            Task parent = ptb.setUp(e, null, "GIS_EXP_HOUSE", "INS", config.getCurUserGis().get().getId());
             // добавить как зависимое задание к системному повторяемому заданию
-            ptb.addAsChild("SYSTEM_RPT_HOUSE_EXP");
-            ptb.save();
+            ptb.addAsChild(parent, "SYSTEM_RPT_HOUSE_EXP");
+            ptb.save(parent);
             // сохранить ведущее задание
-            Task parent = ptb.getTask();
 
             // создать зависимое задание, выгрузки счетчиков ИПУ. оно не должно запуститься до выполнения ведущего
-            ptb.setUp(e, null, parent, "GIS_EXP_METERS", "INS", soapConfig.getCurUser().getId(), null);
+            Task newTask2 = ptb.setUp(e, null, parent, "GIS_EXP_METERS", "INS", config.getCurUserGis().get().getId(), null);
             // добавить как зависимое задание к системному повторяемому заданию
-            ptb.addTaskPar("ГИС ЖКХ.Включая архивные", null, null, false, null);
-            ptb.addAsChild("SYSTEM_RPT_HOUSE_EXP");
-            ptb.save();
+            ptb.addTaskPar(newTask2, "ГИС ЖКХ.Включая архивные", null, null, false, null);
+            ptb.addAsChild(newTask2, "SYSTEM_RPT_HOUSE_EXP");
+            ptb.save(newTask2);
             log.info("Добавлено задание на экспорт счетчиков ИПУ по Дому Eolink.id={}", e.getId());
 
             a++;
@@ -2298,14 +2029,14 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
             Eolink procUk = em.find(Eolink.class, t.getEolUkId());
             Task masterTask = em.find(Task.class, t.getMasterTaskId());
-            ptb.setUp(eolHouse, null, masterTask, "GIS_EXP_ACCS", "INS",
-                    soapConfig.getCurUser().getId(), procUk);
-            ptb.save();
+            Task newTask3 = ptb.setUp(eolHouse, null, masterTask, "GIS_EXP_ACCS", "INS",
+                    config.getCurUserGis().get().getId(), procUk);
+            ptb.save(newTask3);
             log.info("Добавлено задание на экспорт лиц.счетов по Дому Eolink.id={}, Task.procUk.id={}",
                     eolHouse.getId(), procUk.getId());
             // добавить зависимое задание к системному повторяемому заданию
             // (будет запускаться системным заданием)
-            ptb.addAsChild("SYSTEM_RPT_HOUSE_EXP");
+            ptb.addAsChild(newTask3, "SYSTEM_RPT_HOUSE_EXP");
 
         }
 
@@ -2315,18 +2046,18 @@ public class HouseManagementAsyncBindingBuilder implements HouseManagementAsyncB
 
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
             Eolink procUk = em.find(Eolink.class, t.getEolUkId());
-            ptb.setUp(eolHouse, null, null, "GIS_IMP_ACCS", "INS",
-                    soapConfig.getCurUser().getId(), procUk);
-            ptb.save();
+            Task newTask4 = ptb.setUp(eolHouse, null, null, "GIS_IMP_ACCS", "INS",
+                    config.getCurUserGis().get().getId(), procUk);
+            ptb.save(newTask4);
             log.info("Добавлено задание на импорт лиц.счетов по Дому Eolink.id={}, Task.procUk.id={}",
                     eolHouse.getId(), procUk.getId());
             // добавить зависимое задание к системному повторяемому заданию
             // (будет запускаться системным заданием)
-            ptb.addAsChild("SYSTEM_RPT_HOUSE_IMP");
+            ptb.addAsChild(newTask4, "SYSTEM_RPT_HOUSE_IMP");
 
         }
         // Установить статус выполнения задания
-        foundTask.setState("ACP");
+        task.setState("ACP");
     }
 
 }

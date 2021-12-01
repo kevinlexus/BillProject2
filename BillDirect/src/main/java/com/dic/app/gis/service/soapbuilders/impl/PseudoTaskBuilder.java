@@ -1,7 +1,6 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
 import com.dic.app.gis.service.maintaners.TaskEolinkParMng;
-import com.dic.app.gis.service.soapbuilders.PseudoTaskBuilders;
 import com.dic.bill.dao.ParDAO;
 import com.dic.bill.dao.TaskDAO;
 import com.dic.bill.mm.LstMng;
@@ -12,12 +11,11 @@ import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.TaskPar;
 import com.dic.bill.model.exs.TaskToTask;
 import com.ric.cmn.excp.WrongParam;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import java.util.Date;
 
 
@@ -29,19 +27,13 @@ import java.util.Date;
  */
 @Slf4j
 @Service
-public class PseudoTaskBuilder implements PseudoTaskBuilders {
-    @Autowired
-    private LstMng lstMng;
-    @Autowired
-    private ParDAO parDao;
-    @Autowired
-    private TaskEolinkParMng teParMng;
-    @PersistenceContext
-    private EntityManager em;
-    @Autowired
-    private TaskDAO taskDao;
-
-    private Task task;
+@RequiredArgsConstructor
+public class PseudoTaskBuilder {
+    private final LstMng lstMng;
+    private final ParDAO parDao;
+    private final TaskEolinkParMng teParMng;
+    private final EntityManager em;
+    private final TaskDAO taskDao;
 
     /* инициализация
      * @param eolink - объект к которому привязано задание
@@ -49,9 +41,9 @@ public class PseudoTaskBuilder implements PseudoTaskBuilders {
      * @param actCd - тип задания
      * @param state - статус состояния
      */
-    @Override
-    public void setUp(Eolink eolink, Task parent, String actCd, String state, Integer userId) {
-        setUp(eolink, parent, null, actCd, state, userId, null);
+
+    public Task setUp(Eolink eolink, Task parent, String actCd, String state, Integer userId) {
+        return setUp(eolink, parent, null, actCd, state, userId, null);
     }
 
     /* инициализация
@@ -61,11 +53,11 @@ public class PseudoTaskBuilder implements PseudoTaskBuilders {
      * @param actCd - тип задания
      * @param state - статус состояния
      */
-    @Override
-    public void setUp(Eolink eolink, Task parent, Task master, String actCd, String state,
+
+    public Task setUp(Eolink eolink, Task parent, Task master, String actCd, String state,
                       Integer userId, Eolink procUk) {
         Lst2 actVal = lstMng.getByCD(actCd);
-        task = Task.builder()
+        return Task.builder()
                 .withEolink(eolink)
                 .withParent(parent)
                 .withMaster(master)
@@ -85,10 +77,9 @@ public class PseudoTaskBuilder implements PseudoTaskBuilders {
      * @param s1    - значение String
      * @param b1    - значение Boolean
      * @param d1    - значение Date
-     * @throws WrongParam
      */
-    @Override
-    public void addTaskPar(String parCd, Double n1, String s1, Boolean b1, Date d1) throws WrongParam {
+
+    public void addTaskPar(Task task, String parCd, Double n1, String s1, Boolean b1, Date d1) throws WrongParam {
         Par par = parDao.getByCd(-1, parCd);
         if (!par.getDataTp().equals("SI")) {
             throw new WrongParam("Некорректное использоваение параметра =" + parCd + " тип - не SI");
@@ -130,14 +121,14 @@ public class PseudoTaskBuilder implements PseudoTaskBuilders {
     }
 
     // переписать параметры в объект Eolink
-    @Override
-    public void saveToEolink() {
+
+    public void saveToEolink(Task task) {
         em.persist(task);
         teParMng.acceptPar(task);
     }
 
-    @Override
-    public void save() {
+
+    public void save(Task task) {
         em.persist(task);
     }
 
@@ -146,13 +137,12 @@ public class PseudoTaskBuilder implements PseudoTaskBuilders {
      *
      * @param cd - CD ведущее задания
      */
-    @Override
-    public void addAsChild(String cd) {
+
+    public void addAsChild(Task task, String cd) {
         Task parent = taskDao.getByCd(cd);
         log.info("******* Прикреплено дочернее задание к родительскому Parent Task.id={}", parent.getId());
         Lst2 lst = lstMng.getByCD("Связь повторяемого задания");
         TaskToTask t = new TaskToTask(parent, task, lst);
-        //parent.getInside().add(t);
         task.getOutside().add(t);
         log.info("******* parent.id={}, getInside().size()={}", parent.getId(), parent.getInside().size());
     }
@@ -162,16 +152,11 @@ public class PseudoTaskBuilder implements PseudoTaskBuilders {
      *
      * @param parent - ведущее задание
      */
-    @Override
-    public void addAsChild(Task parent) {
+
+    public void addAsChild(Task task, Task parent) {
         Lst2 lst = lstMng.getByCD("Связь повторяемого задания");
         TaskToTask t = new TaskToTask(parent, task, lst);
         task.getOutside().add(t);
-    }
-
-    @Override
-    public Task getTask() {
-        return task;
     }
 
 }

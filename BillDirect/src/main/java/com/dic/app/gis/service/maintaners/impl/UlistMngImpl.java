@@ -1,17 +1,14 @@
 package com.dic.app.gis.service.maintaners.impl;
 
 import com.dic.app.gis.service.soap.impl.SoapConfig;
+import com.dic.app.gis.service.soapbuilders.impl.NsiCommonAsyncBindingBuilder;
 import com.dic.bill.model.exs.Ulist;
 import com.dic.bill.model.exs.UlistTp;
 import com.ric.cmn.Utl;
-import com.ric.cmn.excp.WrongParam;
-import com.dic.app.gis.service.soapbuilders.NsiCommonAsyncBindingBuilders;
+import com.ric.cmn.excp.*;
 import com.dic.bill.UlistDAO;
-import com.ric.cmn.excp.CantGetNSI;
-import com.ric.cmn.excp.CantSendSoap;
-import com.ric.cmn.excp.CantSignSoap;
-import com.ric.cmn.excp.CantUpdNSI;
 import com.dic.app.gis.service.maintaners.UlistMng;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -37,16 +34,14 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
+@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+@RequiredArgsConstructor
 public class UlistMngImpl implements UlistMng {
 
-	@Autowired
-	private UlistDAO ulistDao;
-	@Autowired
-	private NsiCommonAsyncBindingBuilders nsiCommonBuilder;
-	@Autowired
-	private SoapConfig config;
-	@PersistenceContext
-    private EntityManager em;
+	private final UlistDAO ulistDao;
+	private final NsiCommonAsyncBindingBuilder nsiCommonBuilder;
+	private final SoapConfig config;
+    private final EntityManager em;
 
 	// Хранилище справочников ГИС ЖКХ
 	private RefStore rStore;
@@ -81,11 +76,6 @@ public class UlistMngImpl implements UlistMng {
 
 	/**
 	 * Создать или обновить справочник NSI или NSIRAO
-	 * @param lst
-	 * @param nsiItem
-	 * @param grp
-	 * @throws CantUpdNSI
-	 * @throws Exception
 	 */
 	private void updNsiList(List<UlistTp> lst, NsiItemInfoType nsiItem, String grp) throws CantUpdNSI {
 		String prefix = getPrefixedCD(nsiItem.getRegistryNumber().toString(), grp);
@@ -131,24 +121,17 @@ public class UlistMngImpl implements UlistMng {
 	 * @param ulistTp - тип
 	 * @param grp - группа
 	 * @param id - Id справочника
-	 * @throws CantUpdNSI
 	 */
 	private void updNsiItem(UlistTp ulistTp, String grp, BigInteger id) throws CantUpdNSI {
 		// получить из ГИС справочник
-		NsiItemType res = null;
+		NsiItemType res;
 		try {
 			res = nsiCommonBuilder.getNsiItem(grp, id);
-		} catch (Fault e) {
-			log.error(Utl.getStackTraceString(e));
-			throw new CantUpdNSI("Ошибка при обновлении справочника NSI grp="+ grp+", id="+ id);
-		} catch (CantSignSoap e) {
-			log.error(Utl.getStackTraceString(e));
-			throw new CantUpdNSI("Ошибка при обновлении справочника NSI grp="+ grp+", id="+ id);
-		} catch (CantSendSoap e) {
+		} catch (Fault | CantSignSoap | CantSendSoap | CantPrepSoap e) {
 			log.error(Utl.getStackTraceString(e));
 			throw new CantUpdNSI("Ошибка при обновлении справочника NSI grp="+ grp+", id="+ id);
 		}
-        String org = "###";
+		String org = "###";
 
 		if (res != null) {
 			Integer idx = 0;
@@ -162,10 +145,7 @@ public class UlistMngImpl implements UlistMng {
 
 	@Override
 	public Integer mergeElement(UlistTp ulistTp, String grp, Integer id, NsiElementType t, Integer idx, String org) {
-		// получить cd новой записи
-	    String log_place = "UlistMngImpl.mergeElement: ";
-
-	    // CD в данном справочнике нужно практически только для того, чтобы искать дочерние записи полей (fields),
+		// CD в данном справочнике нужно практически только для того, чтобы искать дочерние записи полей (fields),
         // не обеспечивается уникальность. Главная запись ищется по GUID
 		String cd = getPrefixedCD(id.toString(), grp, t.getCode(), org, null).concat("_ROOT");
 		// создать новый элемент
@@ -173,7 +153,7 @@ public class UlistMngImpl implements UlistMng {
 
 		// создать запись главного элемента с CD в Ulist
 		log.info("Check1={}", Utl.nvl(t.getCode(), "-------"));
-		String code = null;
+		String code;
 		if (t.getCode()==null || t.getCode().length()==0) {
 			code = "------";
 		} else {
@@ -229,7 +209,7 @@ public class UlistMngImpl implements UlistMng {
 			if (d.getClass().equals(NsiElementStringFieldType.class)) {
 				NsiElementStringFieldType fld = (NsiElementStringFieldType) d;
 				// создать запись в Ulist
-				String name = null;
+				String name;
 				if (fld.getName()==null || fld.getName().length()==0) {
 					name = "------";
 				} else {
@@ -269,7 +249,7 @@ public class UlistMngImpl implements UlistMng {
 			} else if (d.getClass().equals(NsiElementNsiRefFieldType.class)) {
 				NsiElementNsiRefFieldType fld = (NsiElementNsiRefFieldType) d;
 				// создать запись в Ulist
-				String name = null;
+				String name;
 				if (fld.getName()==null || fld.getName().length()==0) {
 					name = "------";
 				} else {
@@ -341,10 +321,8 @@ public class UlistMngImpl implements UlistMng {
 
 	/**
 	 * Получить справочник Nsi
-	 * @param grp - группа, например NSI, NSIRAO
-	 * @param id - идентификатор справочника
-	 * @return
-	 * @throws CantGetNSI
+	 * @param grp группа, например NSI, NSIRAO
+	 * @param id идентификатор справочника
 	 */
 	@Override
 	public NsiItemType getNsi(String grp, BigInteger id) throws CantGetNSI {
@@ -353,7 +331,7 @@ public class UlistMngImpl implements UlistMng {
 		try {
 			log.info("Запрос справочника из ГИС: grp={}, id={}", grp, id);
 			res = nsiCommonBuilder.getNsiItem(grp, id);
-		} catch (CantSignSoap | CantSendSoap | ru.gosuslugi.dom.schema.integration.nsi_common_service_async.Fault e1) {
+		} catch (CantSignSoap | CantSendSoap | Fault | CantPrepSoap e1) {
 			log.error(Utl.getStackTraceString(e1));
 			throw new CantGetNSI("Ошибка получения справочника NSI по группе grp="+grp);
 		}
@@ -384,23 +362,18 @@ public class UlistMngImpl implements UlistMng {
 
 	/**
 	 * Загрузить NSI справочники из ГИС
-	 * @return
-	 * @throws CantSendSoap
-	 * @throws CantSignSoap
-	 * @throws Fault
 	 */
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void loadNsi(String grp) throws CantUpdNSI {
 		// Обновить виды справочников
 		// получить из нашей базы
 		List<UlistTp> lst =  ulistDao.getListTp(grp);
 		// получить из ГИС
-		NsiListType res = null;
+		NsiListType res;
 		try {
 			log.info("Запрос справочников группы grp={}", grp);
 			res = nsiCommonBuilder.getNsiList(grp);
-		} catch (Fault | CantSignSoap | CantSendSoap e1) {
+		} catch (Fault | CantSendSoap | CantPrepSoap e1) {
 			log.error(Utl.getStackTraceString(e1));
 			throw new CantUpdNSI("Ошибка обновления группы справочников grp="+grp);
 		}

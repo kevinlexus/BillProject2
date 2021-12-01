@@ -1,14 +1,11 @@
 package com.dic.app.gis.service.soap.impl;
 
-import com.dic.app.gis.service.soap.SoapBuilders;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.CantSendSoap;
 import com.sun.xml.ws.developer.WSBindingProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.xml.security.utils.Base64;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import ru.gosuslugi.dom.schema.integration.base.ISRequestHeader;
 import ru.gosuslugi.dom.schema.integration.base.RequestHeader;
 
@@ -28,21 +25,19 @@ import java.util.*;
  *
  * @author lev
  */
-@Service
-@Scope("prototype")
 @Slf4j
-public class SoapBuilder implements SoapBuilders {
-    @Autowired
-    private SoapConfig config;
-
+public class SoapBuilder {
     private BindingProvider bp;
+    @Value("${basicPass}")
+    private String basicPass;
+    @Value("${basicLogin}")
+    private String basicLogin;
+    @Value("${fingerPrint}")
+    private String fingerPrint;
 
-    @Override
-    public void makeRndMsgGuid() {
-    }
 
     // подписывать ли XML
-    @Override
+
     public void setSign(boolean sign) {
         // подписывать ли XML?
         if (sign) {
@@ -54,13 +49,13 @@ public class SoapBuilder implements SoapBuilders {
     }
 
     // выбрать объект подписывания XML
-    @Override
+
     public void setSignerId(int signerId) {
         bp.getRequestContext().put("signerId", String.valueOf(signerId));
     }
 
     // логгировать ли обмен
-    @Override
+
     public void setTrace(boolean trace) {
         if (trace) {
             bp.getRequestContext().put("trace", "");
@@ -75,7 +70,7 @@ public class SoapBuilder implements SoapBuilders {
      * @param sign   - подписать XML?
      * @param hostIp - Ip адрес хоста
      */
-    @Override
+
     public void setUp(BindingProvider port, WSBindingProvider port2, boolean sign,
                       String ppGuid, String hostIp) throws CantSendSoap {
         RequestHeader rh = new RequestHeader();
@@ -91,7 +86,7 @@ public class SoapBuilder implements SoapBuilders {
      * @param sign   - подписать XML?
      * @param hostIp - Ip адрес хоста
      */
-    @Override
+
     public void setUpSimple(BindingProvider port, WSBindingProvider port2, boolean sign,
                             String ppGuid, String hostIp) throws CantSendSoap {
         ISRequestHeader rhSimple = new ISRequestHeader();
@@ -103,8 +98,8 @@ public class SoapBuilder implements SoapBuilders {
     /**
      * Инициализация
      *
-     * @param sign   - подписать XML?
-     * @param hostIp - Ip адрес хоста
+     * @param sign   подписать XML?
+     * @param hostIp Ip адрес хоста
      */
     private void setUp(BindingProvider port, ISRequestHeader rhSimple,
                        RequestHeader rh, boolean sign,
@@ -155,11 +150,9 @@ public class SoapBuilder implements SoapBuilders {
         }
 
         Map<String, List<String>> requestHeaders = new HashMap<>();
-        @SuppressWarnings("restriction")
-        //String authorization = new sun.misc.BASE64Encoder().encode((config.getBscLogin() + ":" + config.getBscPass()).getBytes());
-        String authorization = Base64.encode((config.getBscLogin() + ":" + config.getBscPass()).getBytes());
+        String authorization = Base64.encode((basicLogin + ":" + basicPass).getBytes());
         requestHeaders.put("Authorization", Collections.singletonList("Basic " + authorization));
-        requestHeaders.put("X-Client-Cert-Fingerprint", Collections.singletonList(config.getFingerPrint()));
+        requestHeaders.put("X-Client-Cert-Fingerprint", Collections.singletonList(fingerPrint));
 
         log.trace("************* SoapBuilder: endpoint: hostIp={}{}", hostIp, path);
         bp.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY,

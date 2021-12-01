@@ -9,6 +9,5 @@ import com.ric.cmn.excp.CantSendSoap;
 public interface TaskControllers {
 
 	void searchTask();
-	RequestConfig getReqConfig();
 
 }

@@ -13,15 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 public interface SprGenItmDAO extends JpaRepository<SprGenItm, Integer> {
 
 
-	@Transactional
 	@Query("select t from SprGenItm t where t.v = true order by t.npp2")
 	List<SprGenItm> getAllOrdered();
 
-	@Transactional
 	@Query("select t from SprGenItm t where t.v = true and t.sel = true order by t.npp2")
 	List<SprGenItm> getAllCheckedOrdered();
 
-	@Transactional
 	@Query("select t from SprGenItm t where t.cd=:cd ")
 	SprGenItm getByCd(@Param("cd") String cd);
 

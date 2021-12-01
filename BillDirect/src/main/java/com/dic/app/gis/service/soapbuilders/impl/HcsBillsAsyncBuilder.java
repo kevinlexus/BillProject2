@@ -1,20 +1,18 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
 
-import com.dic.app.gis.service.soapbuilders.HcsBillsAsyncBuilders;
-import com.dic.app.gis.service.soapbuilders.PseudoTaskBuilders;
-import com.dic.app.gis.service.maintaners.ReqProps;
+import com.dic.app.gis.service.maintaners.*;
+import com.dic.app.gis.service.maintaners.impl.ReqProp;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.gis.service.soap.impl.SoapConfig;
+import com.dic.app.mm.ConfigApp;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.HouseUkTaskRec;
 import com.dic.bill.dto.OrgDTO;
 import com.dic.bill.dto.SumChrgRec;
 import com.dic.bill.dto.SumChrgRecAlter;
-import com.dic.app.gis.service.maintaners.EolinkParMng;
 import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.PdocMng;
-import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Pdoc;
 import com.dic.bill.model.exs.Task;
@@ -24,20 +22,12 @@ import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.Kwtp;
 import com.dic.bill.model.scott.KwtpMg;
 import com.ric.cmn.Utl;
-import com.ric.cmn.excp.ErrorWhileDist;
-import com.ric.cmn.excp.WrongGetMethod;
-import com.ric.cmn.excp.WrongParam;
+import com.ric.cmn.excp.*;
 import com.ric.dto.SumSaldoRecDTO;
-import com.ric.cmn.excp.CantPrepSoap;
-import com.ric.cmn.excp.CantSendSoap;
-import com.dic.app.gis.service.maintaners.ChrgMng;
-import com.dic.app.gis.service.maintaners.DebMng;
-import com.dic.app.gis.service.maintaners.OrgMng;
-import com.dic.app.gis.service.maintaners.UlistMng;
 import com.sun.xml.ws.developer.WSBindingProvider;
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +53,6 @@ import ru.gosuslugi.dom.schema.integration.payments_base.NotificationOfOrderExec
 
 import javax.persistence.EntityManager;
 import javax.persistence.ParameterMode;
-import javax.persistence.PersistenceContext;
 import javax.persistence.StoredProcedureQuery;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.ws.BindingProvider;
@@ -79,74 +68,62 @@ import java.util.stream.Collectors;
 /**
  * Сервис выставления счетов в ГИС ЖКХ
  *
- * @author lev
- * @version 1.17
  */
 @Slf4j
 @Service
-public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
+@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+@RequiredArgsConstructor
+public class HcsBillsAsyncBuilder {
 
-    @Autowired
-    private ApplicationContext ctx;
-    @PersistenceContext
-    private EntityManager em;
-    @Autowired
-    UlistMng ulistMng;
-    @Autowired
-    private OrgMng orgMng;
-    @Autowired
-    private ChrgMng chrgMng;
-    @Autowired
-    private EolinkParMng eolParMng;
-    @Autowired
-    private ReqProps reqProp;
-    @Autowired
-    private DebMng debMng;
-    @Autowired
-    private SoapConfig soapConfig;
-    @Autowired
-    private PdocMng pdocMng;
-    @Autowired
-    private PdocDAO pdocDao;
-    @Autowired
-    private EolinkDAO eolinkDao;
-    @Autowired
-    private EolinkDAO2 eolinkDao2;
-    @Autowired
-    private KartMng kartMng;
-    @Autowired
-    private KartDAO kartDao;
-    @Autowired
-    private KwtpDAO kwtpDao;
-    @Autowired
-    private AkwtpDAO akwtpDao;
-    @Autowired
-    private PseudoTaskBuilders ptb;
-    @Autowired
-    private TaskMng taskMng;
-    @Autowired
-    private MeterDAO meterDAO;
 
-    private BillsPortsTypeAsync port;
-    private SoapBuilder sb;
+    private final EntityManager em;
+    private final UlistMng ulistMng;
+    private final OrgMng orgMng;
+    private final ChrgMng chrgMng;
+    private final EolinkParMng eolParMng;
+    private final DebMng debMng;
+    private final SoapConfig soapConfig;
+    private final PdocMng pdocMng;
+    private final PdocDAO pdocDao;
+    private final EolinkDAO eolinkDao;
+    private final EolinkDAO2 eolinkDao2;
+    private final KartMng kartMng;
+    private final KartDAO kartDao;
+    private final KwtpDAO kwtpDao;
+    private final AkwtpDAO akwtpDao;
+    private final PseudoTaskBuilder ptb;
+    private final TaskMng taskMng;
+    private final MeterDAO meterDAO;
+    private final ConfigApp config;
+
+
+    @AllArgsConstructor
+    static class SoapPar {
+        private BillsPortsTypeAsync port;
+        private SoapBuilder sb;
+        private ReqProp reqProp;
+    }
 
     /**
      * Инициализация
+     *
+     * @return
      */
-    private void setUp(Task task) throws CantSendSoap, CantPrepSoap {
+    private SoapPar setUp(Task task) throws CantSendSoap, CantPrepSoap {
         BillsServiceAsync service = new BillsServiceAsync();
-        port = service.getBillsPortAsync();
+        BillsPortsTypeAsync port = service.getBillsPortAsync();
 
         // подоготовительный объект для SOAP
-        sb = ctx.getBean(SoapBuilder.class);
-        reqProp.setPropBefore(task);
-        sb.setUp((BindingProvider) port, (WSBindingProvider) port, true, reqProp.getPpGuid(), reqProp.getHostIp());
+        SoapBuilder sb = new SoapBuilder();
+        ReqProp reqProp = new ReqProp(config, task, eolParMng);
+        sb.setUp((BindingProvider) port, (WSBindingProvider) port, true, reqProp.getPpGuid(),
+                reqProp.getHostIp());
 
         // логгинг запросов
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
+        sb.setTrace(task.getTrace().equals(1));
         // Id XML подписчика
         sb.setSignerId(reqProp.getSignerId());
-
+        return new SoapPar(port, sb, reqProp);
     }
 
 
@@ -155,9 +132,8 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
      *
      * @param task - задание
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public ru.gosuslugi.dom.schema.integration.bills.GetStateResult getState2(Task task) {
+
+    public ru.gosuslugi.dom.schema.integration.bills.GetStateResult getState2(Task task) throws CantPrepSoap, CantSendSoap {
 
         // Признак ошибки
         boolean err = false;
@@ -167,11 +143,11 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
 
         GetStateRequest gs = new GetStateRequest();
         gs.setMessageGUID(task.getMsgGuid());
-        sb.setSign(false); // не подписывать запрос состояния!
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
-        sb.makeRndMsgGuid();
+        SoapPar par = setUp(task);
+        par.sb.setSign(false); // не подписывать запрос состояния!
+
         try {
-            state = port.getState(gs);
+            state = par.port.getState(gs);
         } catch (ru.gosuslugi.dom.schema.integration.bills_service_async.Fault e) {
             errMsg = e.getFaultInfo().getErrorCode();
             e.printStackTrace();
@@ -193,16 +169,16 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
         // Показать ошибки, если есть
         if (err) {
             // Ошибки во время выполнения
-            reqProp.getFoundTask().setState("ERR");
-            reqProp.getFoundTask().setResult(errMsg);
+            task.setState("ERR");
+            task.setResult(errMsg);
             log.error("Task.id={}, ОШИБКА выполнения запроса = {}", task.getId(), errStr);
         } else {
             assert state != null;
             if (state.getErrorMessage() != null && state.getErrorMessage().getErrorCode() != null) {
                 // Ошибки контролей или бизнес-процесса
                 errStr = state.getErrorMessage().getDescription();
-                reqProp.getFoundTask().setResult(errStr);
-                reqProp.getFoundTask().setState("ERR");
+                task.setResult(errStr);
+                task.setState("ERR");
                 log.error("Task.id={}, ОШИБКА контроля или бизнес-процесса = {}", task.getId(), errStr);
             }
         }
@@ -213,18 +189,15 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
     /**
      * Экспорт извещений о принятии к исполнению распоряжений с результатами квитирования по Организации
      *
-     * @param task - задание
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportNotificationsOfOrderExecution(Task task) throws WrongGetMethod, DatatypeConfigurationException, CantPrepSoap, WrongParam, CantSendSoap {
-        setUp(task);
-        taskMng.logTask(task, true, null);
+
+    public void exportNotificationsOfOrderExecution(Integer taskId) throws WrongGetMethod, DatatypeConfigurationException, CantPrepSoap, WrongParam, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
 
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        // Трассировка XML
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
+        SoapPar par = setUp(task);
+        taskMng.logTask(task, true, null);
+
         AckRequest ack = null;
         // для обработки ошибок
         Boolean err = false;
@@ -233,10 +206,10 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
         ExportNotificationsOfOrderExecutionRequest req = new ExportNotificationsOfOrderExecutionRequest();
 
         req.setId("foo");
-        req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
+        req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
         // УК
-        Eolink uk = reqProp.getFoundTask().getEolink();
+        Eolink uk = task.getEolink();
         // РКЦ (с параметрами)
         Eolink rkc = uk.getParent();
 
@@ -251,7 +224,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
         // получить начальную дату выгрузки
         Date dt = null;
         try {
-            dt = getExportDate(period);
+            dt = getExportDate(period, task);
         } catch (ParseException e) {
             log.error(Utl.getStackTraceString(e));
             throw new WrongParam("ERROR! Некорректный период");
@@ -274,7 +247,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
         req.setNotifications(notif);
 
         try {
-            ack = port.exportNotificationsOfOrderExecution(req);
+            ack = par.port.exportNotificationsOfOrderExecution(req);
         } catch (ru.gosuslugi.dom.schema.integration.bills_service_async.Fault e) {
             e.printStackTrace();
             err = true;
@@ -282,14 +255,14 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
         }
 
         if (err) {
-            reqProp.getFoundTask().setState("ERR");
-            reqProp.getFoundTask().setResult("Ошибка при отправке XML: " + errMainStr);
+            task.setState("ERR");
+            task.setResult("Ошибка при отправке XML: " + errMainStr);
             taskMng.logTask(task, false, false);
 
         } else {
             // Установить статус "Запрос статуса"
-            reqProp.getFoundTask().setState("ACK");
-            reqProp.getFoundTask().setMsgGuid(ack.getAck().getMessageGUID());
+            task.setState("ACK");
+            task.setMsgGuid(ack.getAck().getMessageGUID());
             taskMng.logTask(task, false, true);
 
         }
@@ -297,11 +270,8 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
 
     /**
      * получить начальную дату выгрузки
-     *
-     * @param period - период
-     * @return
      */
-    private Date getExportDate(String period) throws ParseException {
+    private Date getExportDate(String period, Task task) throws ParseException {
         // дата выгрузки
         Integer year = Integer.parseInt(Utl.getPeriodYear(period));
         String strYear = String.valueOf(year);
@@ -309,7 +279,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
         String strMonth = String.valueOf(month);
         // день месяца, начиная с которого произойдет выгрузка (всего таких четыре задания по УК, по дням: 1,8,16,24)
         String strDay = null;
-        switch (reqProp.getFoundTask().getAct().getCd()) {
+        switch (task.getAct().getCd()) {
             case ("GIS_EXP_NOTIF_1"): {
                 strDay = "01";
                 break;
@@ -333,22 +303,16 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
 
     /**
      * Получить результат экспорта извещений о принятии к исполнению распоряжений с результатами квитирования
-     *
-     * @param task - задание
-     * @throws CantPrepSoap - невозможно подготовить SOAP
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportNotificationsOfOrderExecutionAsk(Task task) throws WrongParam, WrongGetMethod, ErrorWhileDist, CantPrepSoap, CantSendSoap {
-        setUp(task);
+    public void exportNotificationsOfOrderExecutionAsk(Integer taskId) throws WrongParam, WrongGetMethod, ErrorWhileDist, CantPrepSoap, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
         // Трассировка XML
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
+        SoapPar par = setUp(task);
 
         // УК
-        Eolink uk = reqProp.getFoundTask().getEolink();
+        Eolink uk = task.getEolink();
         // РКЦ (с параметрами)
         Eolink rkc = uk.getParent();
         // период экспорта
@@ -369,11 +333,11 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
         final String oper = "88";
 
         // получить состояние
-        ru.gosuslugi.dom.schema.integration.bills.GetStateResult retState = getState2(reqProp.getFoundTask());
+        ru.gosuslugi.dom.schema.integration.bills.GetStateResult retState = getState2(task);
 
         if (retState == null) {
             // не обработано
-        } else if (!reqProp.getFoundTask().getState().equals("ERR") && !reqProp.getFoundTask().getState().equals("ERS")) {
+        } else if (!task.getState().equals("ERR") && !task.getState().equals("ERS")) {
             List<ExportNotificationsOfOrderExecutionResultType> result =
                     retState.getExportNotificationsOfOrderExecutionResult();
             for (ExportNotificationsOfOrderExecutionResultType t : result) {
@@ -483,7 +447,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
                 }
             }
             // Установить статус выполнения задания
-            reqProp.getFoundTask().setState("ACP");
+            task.setState("ACP");
             taskMng.logTask(task, false, true);
         }
     }
@@ -540,25 +504,20 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
 
     /**
      * Экспорт ПД, на случай их отсутствия в базе
-     *
-     * @param task - задание
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportPaymentDocumentData(Task task) throws CantPrepSoap, WrongGetMethod, CantSendSoap {
-        setUp(task);
+
+    public void exportPaymentDocumentData(Integer taskId) throws CantPrepSoap, WrongGetMethod, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
 
-        // установить параметры SOAP
-        reqProp.setPropAfter(task);
-        // трассировка XML
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
+        // Установить параметры SOAP
+        SoapPar par = setUp(task);
         AckRequest ack = null;
         // для обработки ошибок
         boolean err = false;
         String errMainStr = null;
         // дом
-        Eolink house = reqProp.getFoundTask().getEolink();
+        Eolink house = task.getEolink();
         // УК
         Eolink uk = house.getParent();
         // РКЦ (с параметрами)
@@ -599,7 +558,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
 
         if (isExistJob.get()) {
             try {
-                ack = port.exportPaymentDocumentData(req);
+                ack = par.port.exportPaymentDocumentData(req);
             } catch (ru.gosuslugi.dom.schema.integration.bills_service_async.Fault e) {
                 e.printStackTrace();
                 err = true;
@@ -607,48 +566,42 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
             }
 
             if (err) {
-                reqProp.getFoundTask().setState("ERR");
-                reqProp.getFoundTask().setResult("Ошибка при отправке XML: " + errMainStr);
+                task.setState("ERR");
+                task.setResult("Ошибка при отправке XML: " + errMainStr);
                 taskMng.logTask(task, false, false);
 
             } else {
                 // Установить статус "Запрос статуса"
-                reqProp.getFoundTask().setState("ACK");
-                reqProp.getFoundTask().setMsgGuid(ack.getAck().getMessageGUID());
+                task.setState("ACK");
+                task.setMsgGuid(ack.getAck().getMessageGUID());
                 taskMng.logTask(task, false, true);
 
             }
         } else {
             // Установить статус "Выполнено", так как нечего загружать
             log.info("Task.id={}, Нет лиц.счетов по которым возможно выгрузить ПД!", task.getId());
-            reqProp.getFoundTask().setState("ACP");
+            task.setState("ACP");
         }
         // сбросить кол-во ошибок запросов Ack
-        //reqProp.getFoundTask().setErrAckCnt(0);
+        //task.setErrAckCnt(0);
     }
 
     /**
      * Получить результат экспорта документов
-     *
-     * @param task - задание
-     * @throws CantPrepSoap - невозможно подготовить SOAP
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void exportPaymentDocumentDataAsk(Task task) throws CantPrepSoap, CantSendSoap {
-        setUp(task);
+
+    public void exportPaymentDocumentDataAsk(Integer taskId) throws CantPrepSoap, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
 
-        // Трассировка XML
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
+        SoapPar par = setUp(task);
         // получить состояние
-        ru.gosuslugi.dom.schema.integration.bills.GetStateResult retState = getState2(reqProp.getFoundTask());
+        ru.gosuslugi.dom.schema.integration.bills.GetStateResult retState = getState2(task);
 
         if (retState == null) {
             // не обработано
-        } else if (!reqProp.getFoundTask().getState().equals("ERR") && !reqProp.getFoundTask().getState().equals("ERS")) {
+        } else if (!task.getState().equals("ERR") && !task.getState().equals("ERS")) {
             retState.getExportPaymentDocResult().forEach(t -> {
                 ExportPaymentDocumentResultType.PaymentDocument paymentDocument = t.getPaymentDocument();
                 // найти ПД и обновить статусы
@@ -730,7 +683,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
             });
 
             // Установить статус выполнения задания
-            reqProp.getFoundTask().setState("ACP");
+            task.setState("ACP");
             taskMng.logTask(task, false, true);
         }
     }
@@ -741,16 +694,12 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
      * в т.ч. дополнительными!
      * Иначе будет SRV008076 -
      * Некорректный состав услуг или некорректное указание реквизитов по услугам
-     *
-     * @param task - задание
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void importPaymentDocumentData(Task task) throws WrongGetMethod, DatatypeConfigurationException, CantPrepSoap, WrongParam, ParseException, CantSendSoap {
+
+    public void importPaymentDocumentData(Integer taskId) throws WrongGetMethod, DatatypeConfigurationException, CantPrepSoap, WrongParam, ParseException, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         // индивидуально выполнить setUp - так как может выполняться от имени РСО
-        setUp(task);
-        // Установить параметры SOAP
-        reqProp.setPropAfter(task);
+        SoapPar par = setUp(task);
         // дом
         Eolink house = task.getEolink();
         // владеющая лиц.счетом УК
@@ -783,12 +732,10 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
 
         if (lstPdoc.size() != 0) {
             taskMng.logTask(task, true, null);
-            // Трассировка XML
-            sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
             // для обработки ошибок
 
             req.setId("foo");
-            req.setVersion(req.getVersion() == null ? reqProp.getGisVersion() : req.getVersion());
+            req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
             // Транспортный GUID платежных реквизитов
             String tguidPay = Utl.getRndUuid().toString();
@@ -853,7 +800,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
             log.info("******* Task.id={}, импорт платежных документов по дому, вызов", task.getId());
             AckRequest ack = null;
             try {
-                ack = port.importPaymentDocumentData(req);
+                ack = par.port.importPaymentDocumentData(req);
             } catch (ru.gosuslugi.dom.schema.integration.bills_service_async.Fault e) {
                 e.printStackTrace();
                 err = true;
@@ -861,37 +808,37 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
             }
 
             if (err) {
-                reqProp.getFoundTask().setState("ERR");
-                reqProp.getFoundTask().setResult("Ошибка при отправке XML: " + errMainStr);
+                task.setState("ERR");
+                task.setResult("Ошибка при отправке XML: " + errMainStr);
                 taskMng.logTask(task, false, false);
             } else {
                 // Установить статус "Запрос статуса"
-                reqProp.getFoundTask().setState("ACK");
-                reqProp.getFoundTask().setMsgGuid(ack.getAck().getMessageGUID());
+                task.setState("ACK");
+                task.setMsgGuid(ack.getAck().getMessageGUID());
                 taskMng.logTask(task, false, true);
             }
 
         } else {
             // Установить статус "Выполнено", так как нечего загружать
             log.info("Task.id={}, Нет документов для загрузки!", task.getId());
-            reqProp.getFoundTask().setState("ACP");
+            task.setState("ACP");
         }
 
         // сбросить кол-во ошибок запросов Ack
-        //reqProp.getFoundTask().setErrAckCnt(0);
+        //task.setErrAckCnt(0);
 
     }
 
     /**
      * Добавление платежного документа
      *
-     * @param uk       - организация
-     * @param pdoc     - ПД
-     * @param req      - запрос
-     * @param tguidPay - транспортный GUID платежных реквизитов
-     * @return - добавлен ли документ
-     * @throws CantPrepSoap   - невозможно создать SOAP
-     * @throws WrongGetMethod - некорректный параметр
+     * @param uk       организация
+     * @param pdoc     ПД
+     * @param req      запрос
+     * @param tguidPay транспортный GUID платежных реквизитов
+     * @return добавлен ли документ
+     * @throws CantPrepSoap   невозможно создать SOAP
+     * @throws WrongGetMethod некорректный параметр
      */
     private Boolean addPaymentDocument(Eolink uk, Pdoc pdoc, Eolink house,
                                        ImportPaymentDocumentRequest req,
@@ -1451,27 +1398,22 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
 
     /**
      * Получить результат импорта платежного документа
-     *
-     * @param task - задание
-     * @throws CantPrepSoap
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void importPaymentDocumentDataAsk(Task task) throws CantPrepSoap, CantSendSoap {
+
+    public void importPaymentDocumentDataAsk(Integer taskId) throws CantPrepSoap, CantSendSoap {
+        Task task = em.find(Task.class, taskId);
         setUp(task);
         taskMng.logTask(task, true, null);
 
         // Установить параметры SOAP
-        reqProp.setPropAfter(task);
-        // Трассировка XML
-        sb.setTrace(reqProp.getFoundTask() != null && reqProp.getFoundTask().getTrace().equals(1));
+        SoapPar par = setUp(task);
 
         // получить состояние
-        ru.gosuslugi.dom.schema.integration.bills.GetStateResult retState = getState2(reqProp.getFoundTask());
+        ru.gosuslugi.dom.schema.integration.bills.GetStateResult retState = getState2(task);
 
         if (retState == null) {
             // не обработано
-        } else if (!reqProp.getFoundTask().getState().equals("ERR")) {
+        } else if (!task.getState().equals("ERR")) {
 
             retState.getImportResult().forEach(t -> {
                 // Найти ПД по Транспортному GUID
@@ -1502,7 +1444,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
 
                 if (!isErr) {
                     log.info("После импорта платежного документа по Task.id={} и TGUID={}, получены следующие параметры:",
-                            reqProp.getFoundTask().getId(), t.getTransportGUID());
+                            task.getId(), t.getTransportGUID());
                     log.info("GUID={}, UniqueNumber={}", t.getGUID(), t.getUniqueNumber());
                     // записать идентификаторы объекта, полученного от внешней системы (если уже не установлены)
                     if (pdoc.getGuid() == null) {
@@ -1524,7 +1466,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
             });
 
             // Установить статус выполнения задания
-            reqProp.getFoundTask().setState("ACP");
+            task.setState("ACP");
             taskMng.logTask(task, false, true);
 
         }
@@ -1533,14 +1475,10 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
     /**
      * Проверить наличие заданий на импорт и экспорт ПД
      * и если их нет, - создать
-     *
-     * @param task - задание
-     * @throws WrongParam - некорректный параметр
      */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void checkPeriodicImpExpPd(Task task) throws WrongParam {
-        Task foundTask = em.find(Task.class, task.getId());
+
+    public void checkPeriodicImpExpPd(Integer taskId) {
+        Task task = em.find(Task.class, taskId);
         // создать по всем домам задания на импорт ПД, если их нет
         createTaskExpPayDoc("GIS_IMP_PAY_DOCS", "SYSTEM_RPT_IMP_PD", "STP",
                 "импорт ПД");
@@ -1557,7 +1495,7 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
         createTask("GIS_EXP_NOTIF_24", "SYSTEM_RPT_EXP_NOTIF", "STP", "Организация",
                 "экспорт Извещений");
         // Установить статус выполнения задания
-        foundTask.setState("ACP");
+        task.setState("ACP");
     }
 
     private void createTask(String actTp, String parentCD, String state, String eolTp, String purpose) {
@@ -1565,10 +1503,10 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
         a = 1;
         for (Eolink e : eolinkDao.getEolinkByTpWoTaskTp(eolTp, actTp, parentCD)) {
             // статус - STP, остановлено (будет запускаться другим заданием)
-            ptb.setUp(e, null, actTp, state, soapConfig.getCurUser().getId());
+            Task newTask = ptb.setUp(e, null, actTp, state, config.getCurUserGis().get().getId());
             // добавить как зависимое задание к системному повторяемому заданию
-            ptb.addAsChild(parentCD);
-            ptb.save();
+            ptb.addAsChild(newTask, parentCD);
+            ptb.save(newTask);
             log.info("Добавлено задание на {}, по объекту {}, Eolink.id={}", purpose, eolTp, e.getId());
             a++;
             if (a++ >= 100) {
@@ -1585,12 +1523,12 @@ public class HcsBillsAsyncBuilder implements HcsBillsAsyncBuilders {
             a = 1;
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
             Eolink procUk = em.find(Eolink.class, t.getEolUkId());
-            ptb.setUp(eolHouse, null, null, actTp, state,
-                    soapConfig.getCurUser().getId(), procUk);
-            ptb.save();
+            Task newTask = ptb.setUp(eolHouse, null, null, actTp, state,
+                    config.getCurUserGis().get().getId(), procUk);
+            ptb.save(newTask);
             // добавить зависимое задание к системному повторяемому заданию
             // (будет запускаться системным заданием)
-            ptb.addAsChild(parentCD);
+            ptb.addAsChild(newTask, parentCD);
             log.info("Добавлено задание на {}, по объекту {}, Eolink.id={} Task.procUk={}", purpose, "Дом",
                     eolHouse.getId(), procUk.getId());
             a++;

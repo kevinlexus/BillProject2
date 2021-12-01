@@ -1,31 +1,27 @@
 package com.dic.app.mm.impl;
 
-import com.dic.app.gis.service.maintaners.TaskControllers;
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.Lock;
-import com.dic.bill.dao.TuserDAO;
-import com.dic.bill.dao.UslDAO;
-import com.dic.bill.dao.UslRoundDAO;
+import com.dic.bill.dao.*;
 import com.dic.bill.dto.SprPenKey;
 import com.dic.bill.mm.ParMng;
 import com.dic.bill.mm.SprParamMng;
 import com.dic.bill.mm.impl.SprParamMngImpl;
 import com.dic.bill.model.scott.*;
+import com.dic.bill.model.sec.User;
 import com.ric.cmn.Utl;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.SpringApplication;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
-import java.io.File;
 import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -50,7 +46,8 @@ public class ConfigAppImpl implements ConfigApp {
     private final UslDAO uslDAO;
     private final UslRoundDAO uslRoundDAO;
     private final TuserDAO tuserDAO;
-    private final TaskControllers taskController;
+    private final UserDAO userDAO;
+    private final OrgDAO orgDAO;
 
     // номер текущего запроса
     private int reqNum = 0;
@@ -77,6 +74,13 @@ public class ConfigAppImpl implements ConfigApp {
     private Set<String> wasteOdnUslCodes;
     // справочник кодов услуг, для округления начисления, для ГИС ЖКХ
     private Map<String, Set<String>> mapUslRound = new HashMap<>();
+    private Map<String, Org> mapReuOrg = new HashMap<>();
+
+    @Value("${gisVersion}")
+    private String gisVersion;
+    @Value("${hostIp}")
+    private String hostIp;
+
 
     @PostConstruct
     private void setUp() {
@@ -97,6 +101,12 @@ public class ConfigAppImpl implements ConfigApp {
     @Transactional(propagation = Propagation.REQUIRED)
     public Tuser getCurUser() {
         return tuserDAO.findByCd("GEN");
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public Optional<User> getCurUserGis() {
+        return userDAO.findById(1);
     }
 
     @Override
@@ -200,37 +210,8 @@ public class ConfigAppImpl implements ConfigApp {
         mapUslRound =
                 uslRoundDAO.findAll().stream().collect(Collectors.groupingBy(UslRound::getReu,
                         Collectors.mapping(t -> t.getUsl().getId(), Collectors.toSet())));
+        mapReuOrg = orgDAO.getAllUk().stream().collect(Collectors.toMap(Org::getReu, t->t));
 
     }
-
-
-    /**
-     * Проверка необходимости выйти из приложения
-     */
-    @Scheduled(fixedDelay = 5000)
-    @Override
-    public void checkTerminate() {
-        // проверка файла "stop" на завершение приложения (для обновления)
-        File tempFile = new File("stop");
-        boolean exists = tempFile.exists();
-        if (exists) {
-            log.warn("ВНИМАНИЕ! ЗАПРОШЕНА ОСТАНОВКА ПРИЛОЖЕНИЯ! - БЫЛ СОЗДАН ФАЙЛ c:\\Progs\\BillDirect\\stop");
-            SpringApplication.exit(ctx, () -> 0);
-        }
-    }
-
-    // Остановить выполнение загрузки ГИС (для отладки в другом jar)
-    @Scheduled(fixedDelay = 5000)
-    @Override
-    public void searchGisTasks() {
-        File tempFile = new File("stopGis");
-        boolean exists = tempFile.exists();
-        if (!exists) {
-            taskController.searchTask();
-        } else {
-           // log.warn("ВНИМАНИЕ! Обмен с ГИС выполняется в другом приложении - БЫЛ СОЗДАН ФАЙЛ c:\\Progs\\BillDirect\\stopGis");
-        }
-    }
-
 
 }

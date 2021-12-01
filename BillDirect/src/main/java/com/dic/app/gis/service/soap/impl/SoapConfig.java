@@ -18,12 +18,6 @@ public class SoapConfig implements SoapConfigs {
     private final UserDAO userDao;
     @Value("${baseOrgGUID}")
     private String baseOrgGUID;
-    @Value("${fingerPrint}")
-    private String fingerPrint;
-    @Value("${basicPass}")
-    private String basicPass;
-    @Value("${basicLogin}")
-    private String basicLogin;
 
     @Value("${signPass}")
     private String signPass;
@@ -44,19 +38,9 @@ public class SoapConfig implements SoapConfigs {
     @Value("${hostIp}")
     private String hostIp;
 
-    // Пользователь, от имени которого выполняются процессы
-    private User user;
-
     public SoapConfig(UserDAO userDao) {
         this.userDao = userDao;
     }
-
-    // среда выполнения
-/*
-    public int getEnv() {
-        return 0; // HOTORA
-    }
-*/
 
     /**
      * Получить OrgPPGUID организации
@@ -76,30 +60,6 @@ public class SoapConfig implements SoapConfigs {
     }
 
     /**
-     * Получить fingerprint
-     */
-    @Override
-    public String getFingerPrint() {
-        return fingerPrint;
-    }
-
-    /**
-     * Получить логин basic-авторизации
-     */
-    @Override
-    public String getBscLogin() {
-        return basicLogin;
-    }
-
-    /**
-     * Получить пароль basic-авторизации
-     */
-    @Override
-    public String getBscPass() {
-        return basicPass;
-    }
-
-    /**
      * Вернуть префикс CD элементов в справочниках локальной системы
      */
     @Override
@@ -107,13 +67,17 @@ public class SoapConfig implements SoapConfigs {
         return "GIS";
     }
 
-    /**
+/*
+    */
+/**
      * Вернуть пользователя, от имени которого выполняются процессы
-     */
+     *//*
+
     @Override
     public User getCurUser() {
         return this.user;
     }
+*/
 
     /**
      * Получить объект уровня РКЦ - по объекту типа Дом

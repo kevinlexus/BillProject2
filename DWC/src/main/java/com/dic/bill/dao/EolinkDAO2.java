@@ -151,4 +151,10 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
     @Query("select t from Eolink t where t.tguid=:tguid")
     Eolink getEolinkByTGUID(@Param("tguid") String tguid);
 
+    /**
+     * Получить Eolink УК
+     */
+    @Query("select t from Eolink t where t.parent.id=1 and t.objTp.id=1")
+    List<Eolink> getEolinkUk();
+
 }

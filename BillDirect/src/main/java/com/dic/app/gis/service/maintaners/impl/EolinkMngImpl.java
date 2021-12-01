@@ -175,4 +175,20 @@ public class EolinkMngImpl implements EolinkMng {
         return eolinkParams;
     }
 
+
+    /**
+     * Получить Eolink РКЦ... пока ничего лучше не придумал 30.11.21
+     */
+    @Override
+    public Eolink getEolinkRKC() {
+        return em.find(Eolink.class, 1);
+    }
+
+    /**
+     * Получить Eolink УК... пока ничего лучше не придумал 30.11.21
+     */
+    @Override
+    public List<Eolink> getEolinkUk() {
+        return eolinkDAO2.getEolinkUk();
+    }
 }

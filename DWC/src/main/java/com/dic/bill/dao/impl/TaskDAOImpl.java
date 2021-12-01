@@ -1,12 +1,13 @@
 package com.dic.bill.dao.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.dic.bill.dao.TaskDAO;
@@ -32,21 +33,6 @@ public class TaskDAOImpl implements TaskDAO {
     public TaskDAOImpl() {
 
     }
-
-    /**
-     * Вернуть список необработанных заданий, отсортированных по приоритету
-	 * по разрешенным к обмену УК
-     */
-    @Override
-	public List<Task> getAllUnprocessed() {
-			Query query =em.createQuery("select t from Task t left join t.master d "
-					+ "left join t.procUk uk "
-					+ "left join uk.org o "
-					+ "where t.state in ('INS','ACK','RPT') and t.parent is null "
-					+ "and (uk = null or o.isExchangeGis = true) " // либо пусто в УК, либо разрешен обмен с ГИС
-					+ "and (t.master is null or t.master.state in ('ACP')) order by nvl(t.priority,0) desc, t.id");
-			return query.getResultList();
-	}
 
     /**
      * Вернуть список заданий определенного типа

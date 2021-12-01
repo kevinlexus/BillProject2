@@ -10,15 +10,17 @@ public interface SoapConfigs {
 
     String getHostIp();
 
+/*
     String getFingerPrint();
 
     String getBscLogin();
 
     String getBscPass();
+*/
 
     String getPrefixGis();
 
-    User getCurUser();
+    //User getCurUser();
 
     Eolink getRkcByHouse(Eolink eolink);
 

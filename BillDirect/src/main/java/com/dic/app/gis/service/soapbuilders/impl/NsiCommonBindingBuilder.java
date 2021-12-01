@@ -4,10 +4,9 @@ package com.dic.app.gis.service.soapbuilders.impl;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
-import com.dic.app.gis.service.soapbuilders.NsiCommonBindingBuilders;
-import com.dic.app.gis.service.maintaners.ReqProps;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.gis.service.soap.impl.SoapConfig;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,19 +15,19 @@ import org.springframework.stereotype.Service;
 
 import com.ric.cmn.excp.CantSendSoap;
 import com.ric.cmn.excp.CantSignSoap;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
-@Service
 @Slf4j
-public class NsiCommonBindingBuilder implements NsiCommonBindingBuilders {
+@Service
+@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+@RequiredArgsConstructor
+public class NsiCommonBindingBuilder  {
 
-	@Autowired
 	private ApplicationContext ctx;
-    @PersistenceContext
     private EntityManager em;
-	@Autowired
 	private SoapConfig config;
-	@Autowired
-	private ReqProps reqProp;
+//	private ReqProps reqProp;
 
 //	private NsiService service;
 	//private NsiPortsType port;

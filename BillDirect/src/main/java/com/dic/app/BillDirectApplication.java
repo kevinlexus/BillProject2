@@ -1,7 +1,6 @@
 package com.dic.app;
 
 import com.dic.app.gis.service.soap.impl.SoapConfig;
-import com.dic.app.gis.service.maintaners.impl.TaskController;
 import com.dic.app.gis.sign.commands.SignCommand;
 import com.dic.app.gis.sign.commands.SignCommands;
 import com.ric.cmn.Utl;
@@ -25,12 +24,11 @@ public class BillDirectApplication {
         log.info("****************************************************************");
         log.info("*                                                              *");
         log.info("*                                                              *");
-        log.info("*                    Версия модуля - 1.3.1                     *");
+        log.info("*                    Версия модуля - 1.3.10                     *");
         log.info("*                                                              *");
         log.info("*                                                              *");
         log.info("****************************************************************");
         log.info("");
-
 
         SoapConfig soapConfig = app.getBean(SoapConfig.class);
         //Создать первый объект подписывания XML
