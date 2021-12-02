@@ -1,0 +1,51 @@
+<config
+        xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+        xmlns='http://www.ehcache.org/v3'
+        xmlns:jsr107='http://www.ehcache.org/v3/jsr107'
+        xsi:schemaLocation="
+        http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.0.xsd
+        http://www.ehcache.org/v3/jsr107 http://www.ehcache.org/schema/ehcache-107-ext-3.0.xsd">
+
+    <service>
+        <jsr107:defaults default-template="defaultCache">
+            <!--entities readonly in db Lev.02.12.21-->
+            <jsr107:cache name="BillDirectNeverClearCache" template="neverClearCache"/>
+            <!--other readonly entities with update triggers in db Lev.02.12.21-->
+            <jsr107:cache name="BillDirectEntitiesCache" template="entityCache"/>
+            <!--writable entities but without update triggers in db in db Lev.02.12.21-->
+            <jsr107:cache name="BillDirectEntitiesCacheReadWrite" template="entityCache"/>
+            <!--separated entities with update triggers in db Lev.02.12.21-->
+            <jsr107:cache name="BillDirectEntitiesCacheEolink" template="entityCache"/>
+            <jsr107:cache name="BillDirectEntitiesCacheTask" template="entityCache"/>
+            <jsr107:cache name="BillDirectEntitiesCacheTaskPar" template="entityCache"/>
+            <jsr107:cache name="BillDirectEntitiesCacheEolinkPar" template="entityCache"/>
+            <jsr107:cache name="BillDirectEntitiesCacheKart" template="entityCache"/>
+            <jsr107:cache name="BillDirectEntitiesCacheKartPr" template="entityCache"/>
+            <jsr107:cache name="BillDirectEntitiesCacheNabor" template="entityCache"/>
+            <jsr107:cache name="BillDirectEntitiesCacheObjPar" template="entityCache"/>
+            <jsr107:cache name="BillDirectEntitiesCacheMeter" template="entityCache"/>
+        </jsr107:defaults>
+    </service>
+
+    <cache-template name="neverClearCache">
+        <expiry>
+            <ttl unit="minutes">1000</ttl>
+        </expiry>
+        <heap unit="entries">5000</heap>
+    </cache-template>
+
+    <cache-template name="defaultCache">
+        <expiry>
+            <ttl unit="minutes">10</ttl>
+        </expiry>
+        <heap unit="entries">1000</heap>
+    </cache-template>
+
+    <cache-template name="entityCache">
+        <expiry>
+            <ttl unit="minutes">30</ttl>
+        </expiry>
+        <heap unit="entries">2000</heap>
+    </cache-template>
+
+</config>

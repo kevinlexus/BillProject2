@@ -1,4 +1,4 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.app.RequestConfigDirect;
 import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.GenPenProcessMng;

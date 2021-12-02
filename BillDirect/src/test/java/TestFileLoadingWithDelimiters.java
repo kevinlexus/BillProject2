@@ -1,4 +1,4 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.app.mm.RegistryMng;
 import com.dic.bill.dao.OrgDAO;
 import com.dic.bill.dto.UnloadPaymentParameter;

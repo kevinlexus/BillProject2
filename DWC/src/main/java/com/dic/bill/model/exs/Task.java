@@ -4,6 +4,7 @@ import com.dic.bill.model.bs.Lst2;
 import com.ric.cmn.Utl;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.DynamicUpdate;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,8 @@ import java.util.*;
 @Table(name = "TASK", schema="EXS")
 @DynamicUpdate
 @Getter @Setter
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheTask", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Task implements java.io.Serializable  {
 
 	public Task() {

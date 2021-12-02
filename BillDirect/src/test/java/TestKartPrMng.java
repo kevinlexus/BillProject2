@@ -1,31 +1,19 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.app.mm.ProcessMng;
 import com.dic.bill.dao.StatesPrDAO;
-import com.dic.bill.dto.CalcStore;
-import com.dic.bill.dto.CountPers;
-import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.KartPrMng;
 import com.dic.bill.mm.TestDataBuilder;
-import com.dic.bill.model.scott.Kart;
-import com.dic.bill.model.scott.StatePr;
-import com.dic.bill.model.scott.Usl;
-import com.ric.cmn.Utl;
-import com.ric.cmn.excp.WrongParam;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import java.util.List;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes=Config.class)

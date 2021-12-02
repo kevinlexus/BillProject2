@@ -1,4 +1,4 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.app.mm.CorrectsMng;
 import com.dic.bill.mm.TestDataBuilder;
 import com.dic.bill.model.scott.House;

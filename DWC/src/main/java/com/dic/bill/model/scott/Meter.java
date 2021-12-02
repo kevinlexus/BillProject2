@@ -3,6 +3,7 @@ package com.dic.bill.model.scott;
 import com.ric.cmn.Utl;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -20,6 +21,8 @@ import java.util.List;
 @Entity
 @Table(name = "METER", schema="SCOTT")
 @Getter @Setter
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheMeter", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Meter implements java.io.Serializable {
 
 	public Meter() {

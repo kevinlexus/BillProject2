@@ -116,7 +116,7 @@
         <dependency>
             <groupId>org.ehcache</groupId>
             <artifactId>ehcache</artifactId>
-            <version>3.7.1</version>
+            <version>3.9.7</version>
         </dependency>
 
         <dependency>
@@ -200,16 +200,6 @@
 
     <build>
         <finalName>BillDirect</finalName>
-        <!-- 			исключить ресурсы webapp   -->
-        <resources>
-            <resource>
-                <directory>src/resources/webapp</directory>
-                <excludes>
-                    <exclude>**/*</exclude>
-                </excludes>
-            </resource>
-        </resources>
-
         <plugins>
 <!--            <plugin>
                 <groupId>org.springframework.boot</groupId>

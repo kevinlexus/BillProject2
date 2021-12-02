@@ -85,9 +85,10 @@
 
 
     <logger name="org.apache.xml.security.Init" level="INFO"/> <!-- не работает почему то -->
-    <logger name="org.ehcache" level="ERROR"/>
     <logger name="org.hibernate.stat" level="ERROR"/>
     <logger name="org.thymeleaf" level="ERROR"/>
+    <logger name="org.ehcache" level="ERROR"/>
+    <logger name="org.hibernate.cache" level="ERROR"/>
 
     <!--   <logger name="org.apache.catalina.core" level="DEBUG"/>
       <logger name="org.apache.catalina.session.level" level="DEBUG"/>

@@ -1,4 +1,4 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.bill.dao.NotifDAO;
 import com.dic.bill.dao.PdocDAO;
 import com.dic.bill.mm.PdocMng;

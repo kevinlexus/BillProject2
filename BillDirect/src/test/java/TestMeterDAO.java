@@ -1,4 +1,4 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dto.MeterData;
 import com.ric.dto.SumMeterVol;

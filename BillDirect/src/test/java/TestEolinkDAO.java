@@ -1,4 +1,4 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.bill.dao.EolinkDAO2;
 import com.dic.bill.dto.HouseUkTaskRec;
 import com.dic.app.gis.service.maintaners.EolinkMng;

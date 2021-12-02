@@ -2,6 +2,7 @@ package com.dic.bill.model.scott;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.DynamicUpdate;
 
 import javax.persistence.*;
@@ -20,6 +21,8 @@ import java.util.Date;
 @DynamicUpdate
 @Getter
 @Setter
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheNabor", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Nabor extends BaseNabor implements java.io.Serializable {
 
     public Nabor() {

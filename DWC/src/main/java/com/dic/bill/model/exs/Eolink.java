@@ -8,6 +8,7 @@ import com.dic.bill.model.scott.Org;
 import com.dic.bill.model.sec.User;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.DynamicUpdate;
 
 import javax.annotation.Generated;
@@ -30,6 +31,8 @@ import java.util.List;
 @Table(name = "EOLINK", schema="EXS")
 @DynamicUpdate
 @Getter @Setter
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheEolink", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Eolink implements java.io.Serializable  {
 
 	public Eolink() {

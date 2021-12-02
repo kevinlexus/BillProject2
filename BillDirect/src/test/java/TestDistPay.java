@@ -1,4 +1,4 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.app.mm.DistPayMng;
 import com.dic.bill.dao.AchargeDAO;
 import com.dic.bill.dao.SaldoUslDAO;

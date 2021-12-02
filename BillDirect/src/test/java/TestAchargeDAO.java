@@ -1,17 +1,9 @@
-import com.dic.app.Config;
-import com.dic.app.RequestConfigDirect;
-import com.dic.app.mm.ConfigApp;
+import com.dic.app.config.Config;
 import com.dic.app.mm.ProcessMng;
 import com.dic.bill.dao.AchargeDAO;
-import com.dic.bill.dao.KartDAO;
 import com.dic.bill.dto.ChangesParam;
-import com.dic.bill.dto.LskChargeUsl;
-import com.dic.bill.dto.Selobj;
-import com.dic.bill.enums.SelObjTypes;
-import com.dic.bill.model.scott.Ko;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileGen;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.cmn.excp.WrongParamPeriod;
@@ -28,9 +20,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 /**
  * Исправный модуль, для тестирования Spring beans

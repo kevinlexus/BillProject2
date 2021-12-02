@@ -1,5 +1,6 @@
-package com.dic.app;
+package com.dic.app.config;
 
+import com.dic.app.RejectedExecutionHandlerImpl;
 import com.google.common.cache.CacheBuilder;
 import org.springframework.beans.BeansException;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -44,7 +45,6 @@ public class Config implements ApplicationContextAware, AsyncConfigurer {
 
     @Bean
     public CacheManager cacheManager() {
-        // fixme отдельно разбораться, как здесь работает кэш 24.11.21
         SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(Arrays.asList(
                 new ConcurrentMapCache("NaborMng.getCached"),
@@ -52,20 +52,19 @@ public class Config implements ApplicationContextAware, AsyncConfigurer {
                 new ConcurrentMapCache("PriceMng.multiplyPrice"),
                 new ConcurrentMapCache("HouseMng.findByGuid"),
                 new ConcurrentMapCache("ReferenceMng.getUslOrgRedirect"),
-                new ConcurrentMapCache("ParDAOImpl.getByKlskCd",CacheBuilder
+                new ConcurrentMapCache("ParDAOImpl.getByKlskCd", CacheBuilder
                         .newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).build().asMap(), false),
-                new ConcurrentMapCache("MeterLogMngImpl.getKart",CacheBuilder
+                new ConcurrentMapCache("MeterLogMngImpl.getKart", CacheBuilder
                         .newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).build().asMap(), false),
-                new ConcurrentMapCache("ParMngImpl.isExByCd",CacheBuilder
+                new ConcurrentMapCache("ParMngImpl.isExByCd", CacheBuilder
                         .newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).build().asMap(), false),
-                new ConcurrentMapCache("LstMngImpl.getByCD",CacheBuilder
+                new ConcurrentMapCache("LstMngImpl.getByCD", CacheBuilder
                         .newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).build().asMap(), false),
                 new ConcurrentMapCache("EolinkDAOImpl.getEolinkByGuid"),
                 new ConcurrentMapCache("UlistMngImpl.getUslByResource"),
                 new ConcurrentMapCache("UlistMngImpl.getServCdByResource"),
                 new ConcurrentMapCache("UlistMngImpl.getResourceByUsl"),
-                new ConcurrentMapCache("TaskDAOImpl.getByKlskCd")
-				));
+                new ConcurrentMapCache("TaskDAOImpl.getByKlskCd")));
         return cacheManager;
     }
 

@@ -11,6 +11,7 @@ import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.NaborMng;
 import com.dic.bill.mm.ObjParMng;
+import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.scott.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ric.cmn.CommonConstants;
@@ -441,12 +442,34 @@ public class WebController implements CommonConstants {
      */
     @RequestMapping("/evictL2C")
     @ResponseBody
-    @Transactional
     public String evictL2C() {
         SessionFactory sessionFactory = em.getEntityManagerFactory().unwrap(SessionFactory.class);
-        sessionFactory.getCache().evictEntityData();
-        sessionFactory.getCache().evictCollectionData();
+        sessionFactory.getCache().evictRegion("BillDirectEntitiesCache");
         log.info("Hbernate L2 Кэш очищен!");
+        return "OK";
+    }
+
+    @RequestMapping("/evictL2CEntity/{fullEntityClassName}/{id}")
+    @ResponseBody
+    public String evictEolink(@PathVariable("fullEntityClassName") String fullEntityClassName, @PathVariable("id")String id) {
+        Class<?> foundClass;
+        try {
+            foundClass = Class.forName(fullEntityClassName);
+            em.getEntityManagerFactory().getCache().evict(foundClass, id);
+            log.info("Hbernate L2 Кэш по {}, id={} очищен!", fullEntityClassName, id);
+            return "OK";
+        } catch (ClassNotFoundException e) {
+            log.error("Не найден класс по имени {}", fullEntityClassName, e);
+            return "ERROR";
+        }
+    }
+
+    @RequestMapping("/evictL2CRegion/{regionName}")
+    @ResponseBody
+    public String evictRegion(@PathVariable("regionName") String regionName) {
+        SessionFactory sessionFactory = em.getEntityManagerFactory().unwrap(SessionFactory.class);
+        sessionFactory.getCache().evictRegion(regionName);
+        log.info("Hbernate L2 Кэш очищен по региону {}", regionName);
         return "OK";
     }
 

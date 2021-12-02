@@ -1,20 +1,17 @@
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.MigrateMng;
-import com.ric.cmn.excp.ErrorWhileDistDeb;
 
 import lombok.extern.slf4j.Slf4j;
 

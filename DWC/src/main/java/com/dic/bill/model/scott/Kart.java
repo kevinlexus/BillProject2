@@ -25,6 +25,8 @@ import java.util.regex.Pattern;
 @DynamicUpdate
 @Getter
 @Setter
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheKart", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Kart {
 
     public Kart() {

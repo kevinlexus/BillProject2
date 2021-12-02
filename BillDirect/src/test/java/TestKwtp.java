@@ -1,4 +1,4 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.bill.dao.KwtpDAO;
 import com.dic.bill.model.scott.Kwtp;
 import lombok.extern.slf4j.Slf4j;

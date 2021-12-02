@@ -1,17 +1,9 @@
 package com.dic.bill.model.exs;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 import com.dic.bill.model.bs.Lst2;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 
 /**
@@ -22,6 +14,8 @@ import com.dic.bill.model.bs.Lst2;
 @SuppressWarnings("serial")
 @Entity
 @Table(name = "TASKXTASK", schema="EXS")
+@Cacheable // данная сущность не содержит триггеров evict кэша, поэтому её нельзя обновлять в БД через SQL
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheReadWrite", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class TaskToTask implements java.io.Serializable  {
 
 	// Конструктор

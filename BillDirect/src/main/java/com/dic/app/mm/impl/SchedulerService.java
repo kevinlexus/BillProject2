@@ -1,6 +1,7 @@
 package com.dic.app.mm.impl;
 
 import com.dic.app.gis.service.maintaners.TaskControllers;
+import com.dic.bill.model.exs.Eolink;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
@@ -8,6 +9,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.EntityManager;
 import java.io.File;
 
 @Slf4j
@@ -17,6 +19,7 @@ public class SchedulerService {
 
     private final TaskControllers taskController;
     private final ApplicationContext ctx;
+    private final EntityManager em;
 
     /**
      * Проверка необходимости выйти из приложения
@@ -41,5 +44,17 @@ public class SchedulerService {
             taskController.searchTask();
         }
     }
+
+
+/*
+    @Scheduled(fixedDelay = 20000)
+    public void checkCache() {
+        Eolink eolink = em.find(Eolink.class,707508);
+        log.info("1. eolink.cd = {}", eolink.getCd());
+
+        eolink = em.find(Eolink.class,707509);
+        log.info("2. eolink.cd = {}", eolink.getCd());
+    }
+*/
 
 }

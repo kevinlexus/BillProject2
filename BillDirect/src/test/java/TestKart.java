@@ -1,8 +1,7 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.app.RequestConfigDirect;
 import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.GenChrgProcessMng;
-import com.dic.app.mm.ProcessMng;
 import com.dic.app.mm.impl.ProcessAllMng;
 import com.dic.bill.dao.KartDAO;
 import com.dic.bill.mm.KartMng;

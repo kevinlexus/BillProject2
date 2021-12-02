@@ -1,4 +1,4 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.bill.dao.*;
 import com.dic.bill.mm.ObjParMng;
 import com.ric.cmn.excp.WrongGetMethod;

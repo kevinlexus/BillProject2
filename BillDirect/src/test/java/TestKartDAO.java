@@ -1,4 +1,4 @@
-import com.dic.app.Config;
+import com.dic.app.config.Config;
 import com.dic.bill.dao.KartDAO;
 import com.dic.bill.model.scott.Kart;
 import lombok.extern.slf4j.Slf4j;
