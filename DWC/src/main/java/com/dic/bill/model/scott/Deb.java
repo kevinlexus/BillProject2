@@ -26,6 +26,7 @@ import lombok.Setter;
 @SuppressWarnings("serial")
 @Entity
 @Table(name = "DEB", schema="SCOTT")
+@Deprecated
 public class Deb implements java.io.Serializable{
 
 	public Deb() {

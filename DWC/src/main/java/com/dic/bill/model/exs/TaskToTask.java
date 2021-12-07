@@ -14,7 +14,7 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 @SuppressWarnings("serial")
 @Entity
 @Table(name = "TASKXTASK", schema="EXS")
-@Cacheable // данная сущность не содержит триггеров evict кэша, поэтому её нельзя обновлять в БД через SQL
+@Cacheable // данная сущность не содержит триггеров evict кэша, поэтому её нельзя обновлять в БД только через перезапуск инстанса
 @org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheReadWrite", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class TaskToTask implements java.io.Serializable  {
 

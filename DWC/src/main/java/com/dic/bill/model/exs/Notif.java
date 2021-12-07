@@ -26,6 +26,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "NOTIF", schema="EXS")
 @Getter @Setter
+@Deprecated
 public class Notif implements java.io.Serializable  {
 
 	public Notif() {

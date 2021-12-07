@@ -15,7 +15,6 @@ import com.dic.bill.model.bs.Par;
 @Repository
 public class ParDAOImpl implements ParDAO {
 
-	//EntityManager - EM нужен на каждый DAO или сервис свой!
     @PersistenceContext
     private EntityManager em;
 

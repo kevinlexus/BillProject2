@@ -1,22 +1,19 @@
 package com.dic.bill.model.bs;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 import com.dic.bill.Simple;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 /**
- * Тип адреса
+ * Тип адреса - используется в ГИС
  *
  *
  */
 @SuppressWarnings("serial")
 @Entity
-//@Cache(usage=CacheConcurrencyStrategy.READ_ONLY, region="rrr1")
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectNeverClearCache", usage = CacheConcurrencyStrategy.READ_ONLY)
 @Table(name = "ADDR_TP", schema="BS")
 public class AddrTp implements java.io.Serializable, Simple {
 

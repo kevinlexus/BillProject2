@@ -2,6 +2,7 @@ package com.dic.bill.model.exs;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
@@ -18,6 +19,8 @@ import java.util.List;
 @Entity
 @Table(name = "U_LIST", schema="EXS")
 @Getter@Setter
+@Cacheable // данная сущность не содержит триггеров evict кэша, поэтому её нельзя обновлять в БД через SQL (она может быть обновлена из Java, при загрузке справочников)
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheReadWrite", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Ulist implements java.io.Serializable  {
 
 	public Ulist() {

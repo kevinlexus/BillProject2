@@ -129,7 +129,7 @@ public class Kart {
     private Ko koPremise;
 
     // Ko лиц.счета (здесь OneToOne, cascade=CascadeType.ALL)
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "FK_KLSK_OBJ", referencedColumnName = "ID")
     @LazyToOne(LazyToOneOption.NO_PROXY)
     private Ko koLsk;

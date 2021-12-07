@@ -1,16 +1,12 @@
 package com.dic.bill.model.sec;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 import com.dic.bill.Simple;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 /**
  * Пользователь
@@ -21,6 +17,8 @@ import lombok.Setter;
 @Entity
 @Table(name = "T_USER", schema="SEC")
 @Getter @Setter
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectNeverClearCache", usage = CacheConcurrencyStrategy.READ_ONLY)
 public class User implements java.io.Serializable, Simple {
 
 	@Id

@@ -1,13 +1,9 @@
 package com.dic.bill.model.bs;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 import com.dic.bill.Simple;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 /**
  * Тип элемента списка
@@ -16,7 +12,8 @@ import com.dic.bill.Simple;
  */
 @SuppressWarnings("serial")
 @Entity
-//@Cache(usage=CacheConcurrencyStrategy.READ_ONLY, region="rrr1")
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectNeverClearCache", usage = CacheConcurrencyStrategy.READ_ONLY)
 @Table(name = "LISTTP", schema="BS")
 public class LstTp2 implements java.io.Serializable, Simple {
 

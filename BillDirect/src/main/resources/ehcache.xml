@@ -6,6 +6,7 @@
         http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.0.xsd
         http://www.ehcache.org/v3/jsr107 http://www.ehcache.org/schema/ehcache-107-ext-3.0.xsd">
 
+    <!--Полностью проверены библиотеки работы с L2 Cache hibernate. Pom.xml и конфиг кэша (ehcache.xml) настроены. ред.07.12.2021-->
     <service>
         <jsr107:defaults default-template="defaultCache">
             <!--entities readonly in db Lev.02.12.21-->
@@ -24,6 +25,7 @@
             <jsr107:cache name="BillDirectEntitiesCacheNabor" template="entityCache"/>
             <jsr107:cache name="BillDirectEntitiesCacheObjPar" template="entityCache"/>
             <jsr107:cache name="BillDirectEntitiesCacheMeter" template="entityCache"/>
+            <jsr107:cache name="BillDirectEntitiesCacheKo" template="entityCache"/>
         </jsr107:defaults>
     </service>
 

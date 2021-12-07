@@ -1,5 +1,6 @@
 package com.dic.bill.model.exs;
 
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.DynamicUpdate;
 
 import javax.persistence.*;
@@ -16,6 +17,8 @@ import java.util.List;
 @Entity
 @Table(name = "U_LISTTP", schema="EXS")
 @DynamicUpdate
+@Cacheable // данная сущность не содержит триггеров evict кэша, поэтому её нельзя обновлять в БД через SQL (она может быть обновлена из Java, при загрузке справочников)
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheReadWrite", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class UlistTp implements java.io.Serializable  {
 
 	public UlistTp() {

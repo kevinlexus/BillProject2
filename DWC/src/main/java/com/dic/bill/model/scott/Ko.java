@@ -23,9 +23,10 @@ import java.util.Set;
 @SuppressWarnings("serial")
 @Entity
 @Table(name = "K_LSK", schema = "SCOTT")
-@Immutable
 @Getter
 @Setter
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCache", usage = CacheConcurrencyStrategy.READ_ONLY)
 public class Ko implements java.io.Serializable {
 
     @Id
@@ -35,12 +36,12 @@ public class Ko implements java.io.Serializable {
     private Long id; //id
 
     // объект Eolink
-    @OneToOne(mappedBy = "koObj", fetch = FetchType.LAZY, optional = false) //optional = false - чтобы не вызывать запрос проверки наличия eolink
+    @OneToOne(mappedBy = "koObj", fetch = FetchType.LAZY)
     @LazyToOne(LazyToOneOption.NO_PROXY)
     private Eolink eolink;
 
     // счетчик
-    @OneToOne(mappedBy = "ko", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = false)
+    @OneToOne(mappedBy = "ko", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @LazyToOne(LazyToOneOption.NO_PROXY)
     private Meter meter;
 
@@ -72,6 +73,11 @@ public class Ko implements java.io.Serializable {
     // параметры
     @OneToMany(mappedBy = "ko", fetch = FetchType.LAZY, cascade=CascadeType.ALL, orphanRemoval = true)
     private List<ObjPar> objPar = new ArrayList<>(0);
+
+/*
+    @Column(name = "GUID")
+    private String guid;
+*/
 
     public Ko() {
         super();

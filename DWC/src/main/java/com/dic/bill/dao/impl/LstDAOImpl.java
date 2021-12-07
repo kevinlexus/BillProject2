@@ -19,7 +19,6 @@ import com.dic.bill.dao.LstDAO;
 @Repository
 public class LstDAOImpl implements LstDAO {
 
-	//EntityManager - EM нужен на каждый DAO или сервис свой!
     @PersistenceContext
     private EntityManager em;
 
