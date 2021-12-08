@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -29,11 +30,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TaskController implements TaskControllers {
 
-    public static final int COUNT_OF_THREADS = 5;
+    public static final int COUNT_OF_THREADS = 1;
     public static final int LIMIT_OF_TASKS = 10;
     private final TaskDAO2 taskDao2;
     private final ApplicationContext context;
     private final LinkedBlockingQueue<Integer> queueTask = new LinkedBlockingQueue<>();
+    private final List<Thread> threads;
 
 
     @PostConstruct
@@ -41,17 +43,33 @@ public class TaskController implements TaskControllers {
         log.info("Начало создания потоков обработки Task");
         for (int i = 1; i <= COUNT_OF_THREADS; i++) {
             Thread thread = new Thread(new TaskThreadProcessor(i, queueTask, context));
+            threads.add(thread);
             thread.start();
         }
         log.info("Окончание создания потоков обработки Task");
     }
 
-    /**
-     * Поиск новых действий для обработки
-     */
+    @PreDestroy
+    public void destroy() {
+        // если не закрывать таким образом потоки - приложение будет повисать, при попытке shutdown
+        log.info("Начало закрытия потоков обработки Task");
+        for (Thread thread : threads) {
+            try {
+                thread.stop(); //todo переделать
+            } catch (Exception e) {
+                log.error("Ошибка во время закрытия потоков обработки Task");
+            }
+        }
+        log.info("Окончание закрытия потоков обработки Task");
+    }
+
+        /**
+         * Поиск новых действий для обработки
+         */
     @Override
     @Transactional
     public void searchTask() {
+        log.info("queueTask.size={}", queueTask.size());
         if (queueTask.size() < COUNT_OF_THREADS) {
             // перебрать все необработанные задания
             List<Task> unprocessedTasks;
@@ -60,14 +78,16 @@ public class TaskController implements TaskControllers {
                         .stream().limit(LIMIT_OF_TASKS).collect(Collectors.toList());
             } else {
                 unprocessedTasks = taskDao2.getAllUnprocessed()
-                        .stream().limit(LIMIT_OF_TASKS).collect(Collectors.toList());
+                        .stream()
+                        //.filter(t->t.getId().equals(2112887)) //fixme
+                        .limit(LIMIT_OF_TASKS).collect(Collectors.toList());
             }
 
             try {
                 for (Task unprocessedTask : unprocessedTasks) {
                     if (!queueTask.contains(unprocessedTask.getId())) {
                         queueTask.put(unprocessedTask.getId());
-                        //log.info("Задача id={}, ушла в очередь", unprocessedTask.getId());
+                        log.info("Задача id={}, ушла в очередь", unprocessedTask.getId());
                     }
                 }
             } catch (Exception e) {

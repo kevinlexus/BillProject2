@@ -82,7 +82,7 @@ public class HcsBillsAsyncBuilder {
     private final ChrgMng chrgMng;
     private final EolinkParMng eolParMng;
     private final DebMng debMng;
-    private final SoapConfig soapConfig;
+    //private final SoapConfig soapConfig;
     private final PdocMng pdocMng;
     private final PdocDAO pdocDao;
     private final EolinkDAO eolinkDao;
