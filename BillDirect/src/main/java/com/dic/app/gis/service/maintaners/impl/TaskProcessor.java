@@ -4,6 +4,7 @@ import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.gis.service.maintaners.UlistMng;
 import com.dic.app.gis.service.soapbuilders.TaskServices;
 import com.dic.app.gis.service.soapbuilders.impl.*;
+import com.dic.app.gis.service.soapbuilders.impl.add.HcsBillsAsyncBuilder;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.TaskPar;
 import com.ric.cmn.Utl;
@@ -97,7 +98,7 @@ public class TaskProcessor {
                             break;
                         case "SYSTEM_CHECK_IMP_PD":
                             // Проверка наличия заданий по импорту ПД
-                            bill.checkPeriodicImpExpPd(task.getId());
+                            //bill.checkPeriodicImpExpPd(task.getId());
                             break;
                     }
                 }
@@ -204,10 +205,10 @@ public class TaskProcessor {
             case "GIS_EXP_PAY_DOCS":
                 if (state.equals("INS")) {
                     // экспорт платежных документов по дому
-                    bill.exportPaymentDocumentData(task.getId());
+                    //bill.exportPaymentDocumentData(task.getId());
                 } else if (state.equals("ACK")) {
                     // Запрос ответа
-                    bill.exportPaymentDocumentDataAsk(task.getId());
+                    //bill.exportPaymentDocumentDataAsk(task.getId());
                 }
                 break;
             case "GIS_EXP_ORG":
@@ -244,10 +245,10 @@ public class TaskProcessor {
                 //bill.setUp(task);
                 if (state.equals("INS")) {
                     // Экспорт извещений исполнения документа
-                    bill.exportNotificationsOfOrderExecution(task.getId());
+                    //bill.exportNotificationsOfOrderExecution(task.getId());
                 } else if (state.equals("ACK")) {
                     // Запрос ответа
-                    bill.exportNotificationsOfOrderExecutionAsk(task.getId());
+                    //bill.exportNotificationsOfOrderExecutionAsk(task.getId());
                 }
                 break;
             default:

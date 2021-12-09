@@ -37,8 +37,7 @@ public class SchedulerService {
         }
     }
 
-    // Остановить выполнение загрузки ГИС (для отладки в другом jar)
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 1000)
     public void searchGisTasks() {
         File tempFile = new File("stopGis");
         boolean exists = tempFile.exists();

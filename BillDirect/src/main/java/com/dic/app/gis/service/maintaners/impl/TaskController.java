@@ -3,6 +3,7 @@ package com.dic.app.gis.service.maintaners.impl;
 import com.dic.app.gis.service.maintaners.TaskControllers;
 import com.dic.bill.dao.TaskDAO2;
 import com.dic.bill.model.exs.Task;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
@@ -13,6 +14,8 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
@@ -35,6 +38,9 @@ public class TaskController implements TaskControllers {
     private final TaskDAO2 taskDao2;
     private final ApplicationContext context;
     private final LinkedBlockingQueue<Integer> queueTask = new LinkedBlockingQueue<>();
+    @Getter
+    private static final Map<Integer, Integer> taskInWork = new ConcurrentHashMap<>();
+
     private final List<Thread> threads;
 
 
@@ -69,7 +75,7 @@ public class TaskController implements TaskControllers {
     @Override
     @Transactional
     public void searchTask() {
-        log.info("queueTask.size={}", queueTask.size());
+        //log.info("queueTask.size={}", queueTask.size());
         if (queueTask.size() < COUNT_OF_THREADS) {
             // перебрать все необработанные задания
             List<Task> unprocessedTasks;
@@ -79,15 +85,17 @@ public class TaskController implements TaskControllers {
             } else {
                 unprocessedTasks = taskDao2.getAllUnprocessed()
                         .stream()
-                        //.filter(t->t.getId().equals(2112887)) //fixme
+                        .filter(t->t.getId().equals(2112887)) //fixme
                         .limit(LIMIT_OF_TASKS).collect(Collectors.toList());
             }
 
             try {
                 for (Task unprocessedTask : unprocessedTasks) {
-                    if (!queueTask.contains(unprocessedTask.getId())) {
-                        queueTask.put(unprocessedTask.getId());
-                        log.info("Задача id={}, ушла в очередь", unprocessedTask.getId());
+                    Integer taskId = unprocessedTask.getId();
+                    if (!queueTask.contains(taskId) && !taskInWork.containsKey(taskId)) {
+                        taskInWork.put(taskId, taskId);
+                        queueTask.put(taskId);
+                        log.info("Задача id={}, ушла в очередь", taskId);
                     }
                 }
             } catch (Exception e) {

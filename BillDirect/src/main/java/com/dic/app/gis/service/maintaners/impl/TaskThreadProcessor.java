@@ -24,12 +24,13 @@ public class TaskThreadProcessor implements Runnable {
         while (true) {
             try {
                 Integer taskId = queueTask.take();
-                taskProcessor.processTask(taskId);
                 //log.info("Поток {}, принял задачу id={}", num, taskId);
+                taskProcessor.processTask(taskId);
+                TaskController.getTaskInWork().remove(taskId);
             } catch (InterruptedException e) {
                 //log.info("Поток {}, ОСТАНОВЛЕН", num); // fixme исправить или убрать коммент
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(1000);
                 } catch (InterruptedException ex) {
                     log.error("Ошибка в потоке", e);
                 }
