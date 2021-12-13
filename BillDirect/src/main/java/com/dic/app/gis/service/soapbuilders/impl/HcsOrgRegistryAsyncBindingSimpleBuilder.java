@@ -70,7 +70,7 @@ public class HcsOrgRegistryAsyncBindingSimpleBuilder {
      *
      * @param task - задание
      */
-    public GetStateResult getState2(Task task) throws CantPrepSoap, CantSendSoap {
+    private GetStateResult getState2(Task task) throws CantPrepSoap, CantSendSoap {
         // Признак ошибки
         boolean err = false;
         // Признак ошибки в CommonResult
@@ -94,8 +94,8 @@ public class HcsOrgRegistryAsyncBindingSimpleBuilder {
             // вернуться, если задание всё еще не выполнено
             log.info("Статус запроса={}, Task.id={}", state.getRequestState(), task.getId());
             if (state.getRequestState() == 1) {
-                // статус запроса - ACK - увеличить время ожидания + 10 секунд
-                task.alterDtNextStart(10);
+                // статус запроса - ACK - увеличить время ожидания
+                taskMng.alterDtNextStart(task);
             }
             return null;
         }
@@ -165,6 +165,7 @@ public class HcsOrgRegistryAsyncBindingSimpleBuilder {
         ExportOrgRegistryRequest req = new ExportOrgRegistryRequest();
 
         req.setId("foo");
+        par.sb.setSign(true);
         req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
         if (eolOrg.getOgrn() != null) {

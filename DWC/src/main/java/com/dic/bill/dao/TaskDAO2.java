@@ -16,7 +16,7 @@ public interface TaskDAO2 extends JpaRepository<Task, Integer> {
     @Query("select t from Task t left join t.master d left join t.procUk uk left join uk.org o " +
             "where t.state in ('INS','ACK','RPT') and t.parent is null and t.id not in (:inWorkTaskId) " +
             "and (uk = null or o.isExchangeGis = true) " // либо пусто в УК, либо разрешен обмен с ГИС
-            + "and (t.master is null or t.master.state in ('ACP')) order by nvl(t.priority,0) desc, t.id")
+            + "and (t.master is null or t.master.state in ('ACP'))")
     List<Task> getAllUnprocessedAndNotActive(@Param("inWorkTaskId") List<Integer> inWorkTaskId);
 
     /**
@@ -26,7 +26,7 @@ public interface TaskDAO2 extends JpaRepository<Task, Integer> {
     @Query("select t from Task t left join t.master d left join t.procUk uk left join uk.org o " +
             "where t.state in ('INS','ACK','RPT') and t.parent is null " +
             "and (uk = null or o.isExchangeGis = true) " // либо пусто в УК, либо разрешен обмен с ГИС
-            + "and (t.master is null or t.master.state in ('ACP')) order by nvl(t.priority,0) desc, t.id")
+            + "and (t.master is null or t.master.state in ('ACP'))")
     List<Task> getAllUnprocessed();
 
 }

@@ -159,26 +159,6 @@ public class Task implements java.io.Serializable  {
 	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "FK_EOLINK_LAST", referencedColumnName = "ID")
 	private Eolink eolinkLast;
-
-	/**
-	 * Установить время следующего старта
-	 * @param lag - через lag секунд
-	 */
-	@Transient
-	@Transactional
-	public void alterDtNextStart(int lag) {
-		GregorianCalendar cal = new GregorianCalendar();
-		int lag2 = Utl.nvl(lagNextStart, 0) + lag;
-		// не более 5 минут
-		if (lag2 > 300) {
-			lag2 = 300;
-		}
-		cal.add(Calendar.SECOND, lag2);
-
-		setLagNextStart(lag2);
-		setDtNextStart(cal.getTime());
-	}
-
 	// активировать задание?
 	@Transient
 	public boolean isActivate() {

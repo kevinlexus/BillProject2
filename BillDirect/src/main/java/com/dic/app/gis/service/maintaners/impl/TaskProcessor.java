@@ -4,7 +4,6 @@ import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.gis.service.maintaners.UlistMng;
 import com.dic.app.gis.service.soapbuilders.TaskServices;
 import com.dic.app.gis.service.soapbuilders.impl.*;
-import com.dic.app.gis.service.soapbuilders.impl.add.HcsBillsAsyncBuilder;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.TaskPar;
 import com.ric.cmn.Utl;
@@ -42,9 +41,12 @@ public class TaskProcessor {
     public void processTask(Integer taskId) {
         // получить задание заново (могло измениться в базе) - WTF??? ред.05.09.2019
         Task task = em.find(Task.class, taskId);
-        log.trace("Обработка задания ID={}, CD={}, ActCD={}",
+        log.info("Обработка задания ID={}, CD={}, ActCD={}",
                 task.getId(), task.getCd(), task.getAct().getCd());
-        if (Utl.in(task.getState(), "INS", "ACK", "RPT") && task.isActivate()) {
+        if (Utl.in(task.getState(), "INS")) {
+            taskMng.clearLagAndNextStart(task);
+        }
+        if (Utl.in(task.getState(), "INS", "RPT") || Utl.in(task.getState(), "ACK") && task.isActivate()) {
             // Почистить результаты задания
             taskMng.clearAllResult(task);
             String actCd = task.getAct().getCd();
@@ -68,12 +70,13 @@ public class TaskProcessor {
                 }
                 taskMng.setResult(task, errMess);
             }
-
+        } else {
+            log.warn("Задание не было активировано");
         }
 
     }
 
-    private void process(Task task, String actCd, String state) throws WrongParam, WrongGetMethod, IOException, CantSendSoap, CantPrepSoap, UnusableCode, ErrorProcessAnswer, DatatypeConfigurationException, ParseException, CantUpdNSI, ErrorWhileDist {
+    private void process(Task task, String actCd, String state) throws WrongParam, WrongGetMethod, IOException, CantSendSoap, CantPrepSoap, UnusableCode, ErrorProcessAnswer, DatatypeConfigurationException, ParseException, CantUpdNSI {
         // Выполнить задание
         switch (actCd) {
             case "GIS_SYSTEM_CHECK":
@@ -98,7 +101,7 @@ public class TaskProcessor {
                             break;
                         case "SYSTEM_CHECK_IMP_PD":
                             // Проверка наличия заданий по импорту ПД
-                            //bill.checkPeriodicImpExpPd(task.getId());
+                            bill.checkPeriodicImpExpPd(task.getId());
                             break;
                     }
                 }
@@ -205,14 +208,14 @@ public class TaskProcessor {
             case "GIS_EXP_PAY_DOCS":
                 if (state.equals("INS")) {
                     // экспорт платежных документов по дому
-                    //bill.exportPaymentDocumentData(task.getId());
+                    bill.exportPaymentDocumentData(task.getId());
                 } else if (state.equals("ACK")) {
                     // Запрос ответа
-                    //bill.exportPaymentDocumentDataAsk(task.getId());
+                    bill.exportPaymentDocumentDataAsk(task.getId());
                 }
                 break;
             case "GIS_EXP_ORG":
-                // Экспорт данных организации
+                // Экспорт параметров организации
                 if (state.equals("INS")) {
                     osSimple.exportOrgRegistry(task.getId());
                 } else if (state.equals("ACK")) {
@@ -252,7 +255,8 @@ public class TaskProcessor {
                 }
                 break;
             default:
-                log.error("Ошибка! Нет обработчика по заданию с типом={}", actCd);
+                taskMng.setResult(task, "Ошибка! Нет обработчика по заданию");
+                taskMng.setState(task, "ERR");
                 break;
         }
     }

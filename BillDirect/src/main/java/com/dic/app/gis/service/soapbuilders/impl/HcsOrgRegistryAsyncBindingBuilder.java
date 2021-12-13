@@ -82,7 +82,7 @@ public class HcsOrgRegistryAsyncBindingBuilder {
      * @param task задание
      */
 
-    public GetStateResult getState2(Task task) throws CantPrepSoap, CantSendSoap {
+    private GetStateResult getState2(Task task) throws CantPrepSoap, CantSendSoap {
 
         // Признак ошибки
         boolean err = false;
@@ -109,8 +109,8 @@ public class HcsOrgRegistryAsyncBindingBuilder {
             log.info("Статус запроса={}, Task.id={}", state.getRequestState(), task.getId());
 
             if (state.getRequestState() == 1) {
-                // статус запроса - ACK - увеличить время ожидания + 10 секунд
-                task.alterDtNextStart(10);
+                // статус запроса - ACK - увеличить время ожидания
+                taskMng.alterDtNextStart(task);
             }
             return null;
         }

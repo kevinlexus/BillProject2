@@ -2,9 +2,12 @@ package com.dic.app.gis.service.maintaners.impl;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.Transient;
 
+import com.ric.cmn.Utl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.dic.bill.dao.TaskDAO;
@@ -13,6 +16,9 @@ import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
 
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 
 @Service
@@ -105,6 +111,31 @@ public class TaskMngImpl implements TaskMng {
 					task.getId(), task.getAct().getName(), task.getState(),
 					isStart?"Начало":"Окончание");
 		}
+	}
+
+
+	/**
+	 * Установить время следующего старта задания
+	 */
+	@Override
+	public void alterDtNextStart(Task task) {
+		GregorianCalendar cal = new GregorianCalendar();
+		int lag2 = Utl.nvl(task.getLagNextStart(), 0) + 600; // 10 минут
+		// не более 60 минут
+		if (lag2 > 3600) {
+			lag2 = 3600;
+		}
+		cal.add(Calendar.SECOND, lag2);
+
+		log.trace("задержка вызова задания taskId={}, увеличена до {}", task.getId(), lag2);
+		task.setLagNextStart(lag2);
+		task.setDtNextStart(cal.getTime());
+	}
+
+	@Override
+	public void clearLagAndNextStart(Task task) {
+		task.setLagNextStart(null);
+		task.setDtNextStart(null);
 	}
 
 

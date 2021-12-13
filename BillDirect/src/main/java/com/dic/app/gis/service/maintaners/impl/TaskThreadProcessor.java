@@ -9,12 +9,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class TaskThreadProcessor implements Runnable {
 
     private final LinkedBlockingQueue<Integer> queueTask;
-    private final int num;
     private final ApplicationContext context;
 
-    public TaskThreadProcessor(int num, LinkedBlockingQueue<Integer> queueTask, ApplicationContext context) {
+    public TaskThreadProcessor(LinkedBlockingQueue<Integer> queueTask, ApplicationContext context) {
         this.queueTask = queueTask;
-        this.num = num;
         this.context = context;
     }
 
@@ -24,7 +22,7 @@ public class TaskThreadProcessor implements Runnable {
         while (true) {
             try {
                 Integer taskId = queueTask.take();
-                //log.info("Поток {}, принял задачу id={}", num, taskId);
+                log.info("Поток принял задачу id={}", taskId);
                 taskProcessor.processTask(taskId);
                 TaskController.getTaskInWork().remove(taskId);
             } catch (InterruptedException e) {

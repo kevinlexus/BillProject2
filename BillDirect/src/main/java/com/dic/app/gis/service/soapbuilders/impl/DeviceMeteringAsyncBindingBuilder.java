@@ -136,7 +136,7 @@ public class DeviceMeteringAsyncBindingBuilder {
             log.trace("Статус запроса={}, Task.id={}", state.getRequestState(), task.getId());
             if (state.getRequestState() == 1) {
                 // статус запроса - ACK - увеличить время ожидания + 10 секунд
-                task.alterDtNextStart(10);
+                taskMng.alterDtNextStart(task);
             }
             return null;
         }
