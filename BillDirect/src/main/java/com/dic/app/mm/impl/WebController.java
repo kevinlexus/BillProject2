@@ -12,6 +12,7 @@ import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.NaborMng;
 import com.dic.bill.mm.ObjParMng;
 import com.dic.bill.model.exs.Eolink;
+import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.scott.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ric.cmn.CommonConstants;
@@ -455,7 +456,11 @@ public class WebController implements CommonConstants {
         Class<?> foundClass;
         try {
             foundClass = Class.forName(fullEntityClassName);
-            em.getEntityManagerFactory().getCache().evict(foundClass, id);
+            if (foundClass.equals(Kart.class)) {
+                em.getEntityManagerFactory().getCache().evict(foundClass, id);
+            } else {
+                em.getEntityManagerFactory().getCache().evict(foundClass, Integer.valueOf(id));
+            }
             log.info("Hbernate L2 Кэш по {}, id={} очищен!", fullEntityClassName, id);
             return "OK";
         } catch (ClassNotFoundException e) {
