@@ -90,6 +90,7 @@ public class ReqProp {
      * типа получения параметров организации
      *
      */
+/*
     public ReqProp(ConfigApp config, Task task, EolinkParMng eolParMng, int kmp) throws CantPrepSoap {
         // получить GUID организации с уровня РКЦ
         Eolink uk = task.getEolink();
@@ -119,6 +120,7 @@ public class ReqProp {
             throw new CantPrepSoap("Ошибка при получении параметра 'ГИС ЖКХ.SIGNER_ID' по организации Eolink.id=" + uk.getId());
         }
     }
+*/
 
     /*
      * Установить значения настроек до создания объекта SoapBuilder для еще более простых запросов

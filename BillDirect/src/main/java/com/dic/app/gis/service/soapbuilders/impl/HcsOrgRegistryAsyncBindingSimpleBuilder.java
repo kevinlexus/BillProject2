@@ -55,7 +55,7 @@ public class HcsOrgRegistryAsyncBindingSimpleBuilder {
         // подоготовительный объект для SOAP
         SoapBuilder sb = new SoapBuilder();
         ReqProp reqProp = new ReqProp(config, task, eolParMng);
-        sb.setUp((BindingProvider) port, (WSBindingProvider) port, true, reqProp.getPpGuid(),
+        sb.setUpSimple((BindingProvider) port, (WSBindingProvider) port, true, reqProp.getPpGuid(),
                 reqProp.getHostIp());
 
         // логгинг запросов

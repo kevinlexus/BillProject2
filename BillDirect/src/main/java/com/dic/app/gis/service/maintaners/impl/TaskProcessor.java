@@ -31,6 +31,7 @@ public class TaskProcessor {
     private final HouseManagementAsyncBindingBuilder hb;
     private final HcsOrgRegistryAsyncBindingBuilder os;
     private final HcsOrgRegistryAsyncBindingSimpleBuilder osSimple;
+//    private final HcsOrgRegistryAsyncBindingSimpleBuilder2 osSimple;
     private final DeviceMeteringAsyncBindingBuilder dm;
     private final HcsBillsAsyncBuilder bill;
     private final TaskServices tb;
@@ -216,6 +217,14 @@ public class TaskProcessor {
                 break;
             case "GIS_EXP_ORG":
                 // Экспорт параметров организации
+/* старая версия, пока не удалять
+                osSimple.setUp(task);
+                if (state.equals("INS")) {
+                    osSimple.exportOrgRegistry(task);
+                } else if (state.equals("ACK")) {
+                    osSimple.exportOrgRegistryAsk(task);
+                }
+*/
                 if (state.equals("INS")) {
                     osSimple.exportOrgRegistry(task.getId());
                 } else if (state.equals("ACK")) {

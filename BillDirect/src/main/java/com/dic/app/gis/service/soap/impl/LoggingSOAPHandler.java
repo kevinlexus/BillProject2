@@ -82,14 +82,14 @@ public class LoggingSOAPHandler implements SOAPHandler<SOAPMessageContext> {
                 try {
                     if (signerId == 1) {
                         log.info("************* Выбран signerId=1, класс подписи:{}",
-                                BillDirectApplication.sc.getClass().getName()
+                                SoapConfig.sc.getClass().getName()
                         );
-                        sgn = BillDirectApplication.sc.signElem(bs.toString(),
+                        sgn = SoapConfig.sc.signElem(bs.toString(),
                                 "foo", "foo");
                     } else if (signerId == 2) {
                         log.info("************* Выбран signerId=2, класс подписи:{}",
-                                BillDirectApplication.sc.getClass().getName());
-                        sgn = BillDirectApplication.sc2.signElem(bs.toString(),
+                                SoapConfig.sc.getClass().getName());
+                        sgn = SoapConfig.sc2.signElem(bs.toString(),
                                 "foo", "foo");
                     } else {
                         throw new RuntimeException("signerId не установлен");

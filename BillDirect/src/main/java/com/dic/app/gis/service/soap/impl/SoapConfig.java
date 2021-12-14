@@ -1,17 +1,25 @@
 package com.dic.app.gis.service.soap.impl;
 
 import com.dic.app.gis.service.soap.SoapConfigs;
+import com.dic.app.gis.sign.commands.SignCommand;
+import com.dic.app.gis.sign.commands.SignCommands;
 import com.dic.bill.dao.UserDAO;
 import com.dic.bill.model.exs.Eolink;
-import com.dic.bill.model.sec.User;
 import com.ric.cmn.CommonUtl;
+import com.ric.cmn.Utl;
 import com.ric.cmn.excp.UnusableCode;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class SoapConfig implements SoapConfigs {
 
 
@@ -38,9 +46,9 @@ public class SoapConfig implements SoapConfigs {
     @Value("${hostIp}")
     private String hostIp;
 
-    public SoapConfig(UserDAO userDao) {
-        this.userDao = userDao;
-    }
+    private final ApplicationContext ctx;
+    public static SignCommands sc;
+    public static SignCommands sc2;
 
     /**
      * Получить OrgPPGUID организации
@@ -144,5 +152,71 @@ public class SoapConfig implements SoapConfigs {
             eolink.setErr(errActual);
         }
     }
+
+    @PostConstruct
+    public void init() {
+        SoapConfig soapConfig = ctx.getBean(SoapConfig.class);
+        //Создать первый объект подписывания XML
+        try {
+            sc = buildSigner(soapConfig, 1);
+            log.info("Объект подписывания XML-1 СОЗДАН!");
+        } catch (Exception e1) {
+            log.error("****************************************************************");
+            log.error("*                                                              *");
+            log.error("*                                                              *");
+            log.error("* Объект подписывания XML-1 не создан, приложение ОСТАНОВЛЕНО! *");
+            log.error("*                                                              *");
+            log.error("*                                                              *");
+            log.error("****************************************************************");
+            log.error("stackTrace={}", Utl.getStackTraceString(e1));
+            // Завершить выполнение приложения
+            SpringApplication.exit(ctx, () -> 0);
+        }
+
+        //Создать второй объект подписывания XML (при наличии)
+        if (soapConfig.getSignPass2() != null) {
+            try {
+                sc2 = buildSigner(soapConfig, 2);
+                log.info("Объект подписывания XML-2 СОЗДАН!");
+            } catch (Exception e1) {
+                log.error("****************************************************************");
+                log.error("*                                                              *");
+                log.error("*                                                              *");
+                log.error("* Объект подписывания XML-2 не создан, приложение ОСТАНОВЛЕНО! *");
+                log.error("*                                                              *");
+                log.error("*                                                              *");
+                log.error("****************************************************************");
+                log.error("stackTrace={}", Utl.getStackTraceString(e1));
+                // Завершить выполнение приложения
+                SpringApplication.exit(ctx, () -> 0);
+            }
+        }
+
+    }
+
+
+    /**
+     * Создать объект подписывания
+     *
+     * @param soapConfig - конфиг
+     * @param cnt        - номер объекта по порядку
+     * @return объект подписывания
+     */
+    private static SignCommands buildSigner(SoapConfig soapConfig, int cnt) throws Exception {
+        if (cnt == 1) {
+            // первый объект
+            if (soapConfig.getSignPath() == null) {
+                throw new RuntimeException("Не установлен параметр signPath в application.properties!");
+            }
+            return new SignCommand(soapConfig.getSignPass(), soapConfig.getSignPath());
+        } else {
+            // второй объект
+            if (soapConfig.getSignPath2() == null) {
+                throw new RuntimeException("Не установлен параметр signPath2 в application.properties!");
+            }
+            return new SignCommand(soapConfig.getSignPass2(), soapConfig.getSignPath2());
+        }
+    }
+
 
 }
