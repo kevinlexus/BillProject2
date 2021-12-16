@@ -53,7 +53,7 @@ public class SaldoMngImpl implements SaldoMng {
      * @param lstDistPayment     - уже распределенная, сохраненная оплата
      * @param lstDistControl     - распределенная оплата для контроля исх кред.сал.
      * @param isSalIn            - учесть входящее сальдо
-     * @param isChrg             - учесть начисление
+     * @param isCurrentChrg      - учесть начисление
      * @param isChrgPrevPeriod   - учесть начисление предыдущего периода
      * @param isChng             - учесть перерасчеты
      * @param isCorrPay          - учесть корректировки оплаты
@@ -66,11 +66,11 @@ public class SaldoMngImpl implements SaldoMng {
     public List<SumUslOrgDTO> getOutSal(Kart kart, String period,
                                         List<SumUslOrgDTO> lstDistPayment,
                                         List<SumUslOrgDTO> lstDistControl,
-                                        boolean isSalIn, boolean isChrg, boolean isChrgPrevPeriod, boolean isChng,
+                                        boolean isSalIn, boolean isCurrentChrg, boolean isChrgPrevPeriod, boolean isChng,
                                         boolean isCorrPay, boolean isPay, String prevPeriod,
                                         boolean isCurPeriodPay, boolean isCurPeriodCorrPay) throws WrongParam {
-        if (isChrg && isChrgPrevPeriod) {
-            throw new WrongParam("ОШИБКА! Не допустимо использовать isChrg=true и isChrgPrevPeriod=true одновременно");
+        if (isCurrentChrg && isChrgPrevPeriod) {
+            throw new WrongParam("ОШИБКА! Не допустимо использовать isCurrentChrg=true и isChrgPrevPeriod=true одновременно");
         } else if (isChrgPrevPeriod && prevPeriod == null) {
             throw new WrongParam("ОШИБКА! Не указан предыдущий период начисления - prevPeriod");
         } else if (!isChrgPrevPeriod && prevPeriod != null) {
@@ -93,8 +93,8 @@ public class SaldoMngImpl implements SaldoMng {
             saldoUslDAO.getSaldoUslByLsk(kart.getLsk(), period).forEach(t ->
                     groupByLstUslOrg(lst, t.getUslId(), t.getOrgId(), t.getSumma()));
         }
-        if (isChrg) {
-            // начисление
+        if (isCurrentChrg) {
+            // начисление текущего периода
             chargeDAO.getChargeByLskGrouped(kart.getLsk()).forEach(t ->
                     groupByLstUslOrg(lst, t.getUslId(), t.getOrgId(), t.getSumma()));
         }

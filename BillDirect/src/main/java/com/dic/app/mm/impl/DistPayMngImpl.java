@@ -415,10 +415,10 @@ public class DistPayMngImpl implements DistPayMng {
                         }
                     } else {
                         // предыдущий период
-                        saveKwtpDayLog(amount, "3.1 Распределить по начислению предыдущего периода={}, " +
+                        saveKwtpDayLog(amount, "3.1 Распределить по начислению соответствующего периода={}, " +
                                         "без ограничения по исх.сал.",
                                 configApp.getPeriodBack());
-                        distWithRestriction(amount, 3, false, null,
+                        distWithRestriction(amount, 8, false, null,
                                 null, null, null,
                                 false, false, null,
                                 true, null, false);
@@ -587,7 +587,7 @@ public class DistPayMngImpl implements DistPayMng {
      * Распределить платеж
      *  @param amount                   - итоги
      * @param tp                       - тип 0-по вх.деб.сал.+кред.сал, 1- по начислению,
-     *                                 2- по деб.сал-оплата, 3 -по начислению заданного периода
+     *                                 2- по деб.сал-оплата, 3 -по начислению предыдущего периода
      *                                 4- по уже готовому распределению оплаты долга (распр.пени обычно)
      *                                 5- по начислению текущего периода,
      *                                 6- распределение пени по вх.саль.до по пене
@@ -631,109 +631,8 @@ public class DistPayMngImpl implements DistPayMng {
         String currPeriod = configApp.getPeriod();
         List<SumUslOrgDTO> lstDistribBase;
         // получить базовую коллекцию для распределения
-        if (tp == 0) {
-            // получить вх.сал.
-            lstDistribBase = new ArrayList<>(amount.getInSal());
-        } else if (tp == 1) {
-            // получить начисление
-            List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
-                    amount.getLstDistPayment(), amount.getLstDistPayment(),
-                    false, true, false, false,
-                    false, false, null, false, false);
-            // фильтровать по положительным значениям
-            lstDistribBase = inSal.stream()
-                    .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
-                    ).collect(Collectors.toList());
-        } else if (tp == 3) {
-            // получить начисление предыдущего периода
-            List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
-                    amount.getLstDistPayment(), amount.getLstDistPayment(),
-                    false, false, true, false, false, false,
-                    configApp.getPeriodBack(), false, false);
-            // фильтровать по положительным значениям
-            lstDistribBase = inSal.stream()
-                    .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
-                    ).collect(Collectors.toList());
-        } else if (tp == 4) {
-            // получить уже распределенную сумму оплаты, в качестве базы для распределения (обычно распр.пени)
-            lstDistribBase = amount.getLstDistPayment();
-        } else if (tp == 5) {
-            // получить начисление текущего периода
-            List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
-                    null, null,
-                    false, true, false, false, false, false,
-                    null, false, false);
-            // фильтровать по положительным значениям
-            lstDistribBase = inSal.stream()
-                    .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
-                    ).collect(Collectors.toList());
-        } else if (tp == 6) {
-            // получить вх.сальдо по пене
-            lstDistribBase = saldoUslDAO.getPinSalXitog3ByLsk(amount.getKart().getLsk(), currPeriod)
-                    .stream().map(t -> new SumUslOrgDTO(t.getUslId(), t.getOrgId(), t.getSumma()))
-                    .collect(Collectors.toList());
-        } else if (tp == 7) {
-            // получить текущее начисление ред. 25.06.2019 убрал вот это:минус оплата за текущий период и корректировки по оплате за текущий период
-            List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
-                    null, null,
-                    false, true, false, false, false,
-                    false, null, false, false);
-            // фильтровать по положительным значениям
-            lstDistribBase = inSal.stream()
-                    .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
-                    ).collect(Collectors.toList());
-        } else {
-            throw new WrongParam("Некорректный параметр tp=" + tp);
-        }
-        // исключить нули
-        lstDistribBase.removeIf(t -> t.getSumma().compareTo(BigDecimal.ZERO) == 0);
+        lstDistribBase = getBaseForDistrib(amount, tp, isIncludeByClosedOrgList, isExcludeByClosedOrgList, lstExcludeUslId, lstFilterByUslId, currPeriod);
 
-        // исключить услуги
-        if (lstExcludeUslId != null) {
-            lstDistribBase.removeIf(t -> lstExcludeUslId.contains(t.getUslId()));
-        }
-        // оставить только услуги по списку
-        if (lstFilterByUslId != null) {
-            lstDistribBase.removeIf(t -> !lstFilterByUslId.contains(t.getUslId()));
-        }
-
-        if (isIncludeByClosedOrgList) {
-            // оставить только услуги и организации, содержащиеся в списке закрытых орг.
-            lstDistribBase.removeIf(t -> amount.getLstSprProcPay()
-                    .stream().noneMatch(d -> amount.getKart().getUk().equals(d.getUk()) // УК
-                            && t.getUslId().equals(d.getUsl().getId())  // услуга
-                            && t.getOrgId().equals(d.getOrg().getId())  // организация - поставщик
-                            && Utl.between2(amount.getDopl(), d.getMgFrom(), d.getMgTo()) // период
-                    )
-            );
-        } else if (isExcludeByClosedOrgList) {
-            // оставить только услуги и организации, НЕ содержащиеся в списке закрытых орг.
-            lstDistribBase.removeIf(t -> amount.getLstSprProcPay()
-                    .stream().anyMatch(d -> amount.getKart().getUk().equals(d.getUk()) // УК
-                            && t.getUslId().equals(d.getUsl().getId())  // услуга
-                            && t.getOrgId().equals(d.getOrg().getId())  // организация - поставщик
-                            && Utl.between2(amount.getDopl(), d.getMgFrom(), d.getMgTo()) // период
-                    )
-            );
-        } else
-            //noinspection ConstantConditions
-            if (isIncludeByClosedOrgList && isExcludeByClosedOrgList) {
-                throw new WrongParam("Некорректно использовать isIncludeByClosedOrgList=true и " +
-                        "isExcludeByClosedOrgList=true одновременно!");
-            }
-
-        BigDecimal amntSal = lstDistribBase.stream()
-                .map(SumUslOrgDTO::getSumma)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (Utl.in(tp, 1, 7)) {
-            saveKwtpDayLog(amount, "Выбранное текущее начисление > 0 для распределения оплаты, по лиц.счету lsk={}:",
-                    amount.getKart().getLsk());
-        }
-        saveKwtpDayLog(amount, "Будет распределено по строкам:");
-        lstDistribBase.forEach(t ->
-                saveKwtpDayLog(amount, "usl={}, org={}, summa={}",
-                        t.getUslId(), t.getOrgId(), t.getSumma()));
-        saveKwtpDayLog(amount, "итого:{}", amntSal);
 
         Map<DistributableBigDecimal, BigDecimal> mapDistPay = null;
         if (tp == 7) {
@@ -867,6 +766,124 @@ public class DistPayMngImpl implements DistPayMng {
         }
 
 
+    }
+
+    private List<SumUslOrgDTO> getBaseForDistrib(Amount amount, int tp, boolean isIncludeByClosedOrgList, boolean isExcludeByClosedOrgList, List<String> lstExcludeUslId, List<String> lstFilterByUslId, String currPeriod) throws WrongParam {
+        List<SumUslOrgDTO> lstDistribBase;
+        if (tp == 0) {
+            // получить вх.сал.
+            lstDistribBase = new ArrayList<>(amount.getInSal());
+        } else if (tp == 1) {
+            // получить начисление
+            List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
+                    amount.getLstDistPayment(), amount.getLstDistPayment(),
+                    false, true, false, false,
+                    false, false, null, false, false);
+            // фильтровать по положительным значениям
+            lstDistribBase = inSal.stream()
+                    .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
+                    ).collect(Collectors.toList());
+        } else if (tp == 3) {
+            // получить начисление предыдущего периода
+            List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
+                    amount.getLstDistPayment(), amount.getLstDistPayment(),
+                    false, false, true, false, false, false,
+                    configApp.getPeriodBack(), false, false);
+            // фильтровать по положительным значениям
+            lstDistribBase = inSal.stream()
+                    .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
+                    ).collect(Collectors.toList());
+        } else if (tp == 4) {
+            // получить уже распределенную сумму оплаты, в качестве базы для распределения (обычно распр.пени)
+            lstDistribBase = amount.getLstDistPayment();
+        } else if (tp == 5) {
+            // получить начисление текущего периода
+            List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
+                    null, null,
+                    false, true, false, false, false, false,
+                    null, false, false);
+            // фильтровать по положительным значениям
+            lstDistribBase = inSal.stream()
+                    .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
+                    ).collect(Collectors.toList());
+        } else if (tp == 6) {
+            // получить вх.сальдо по пене
+            lstDistribBase = saldoUslDAO.getPinSalXitog3ByLsk(amount.getKart().getLsk(), currPeriod)
+                    .stream().map(t -> new SumUslOrgDTO(t.getUslId(), t.getOrgId(), t.getSumma()))
+                    .collect(Collectors.toList());
+        } else if (tp == 7) {
+            // получить текущее начисление ред. 25.06.2019 убрал вот это:минус оплата за текущий период и корректировки по оплате за текущий период
+            List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
+                    null, null,
+                    false, true, false, false, false,
+                    false, null, false, false);
+            // фильтровать по положительным значениям
+            lstDistribBase = inSal.stream()
+                    .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
+                    ).collect(Collectors.toList());
+        } else if (tp == 8) {
+            // получить начисление выбранного периода fixme период!!!
+            List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
+                    amount.getLstDistPayment(), amount.getLstDistPayment(),
+                    false, false, true, false, false, false,
+                    amount.getDopl(), false, false);
+            // фильтровать по положительным значениям
+            lstDistribBase = inSal.stream()
+                    .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
+                    ).collect(Collectors.toList());
+        } else {
+            throw new WrongParam("Некорректный параметр tp=" + tp);
+        }
+        // исключить нули
+        lstDistribBase.removeIf(t -> t.getSumma().compareTo(BigDecimal.ZERO) == 0);
+
+        // исключить услуги
+        if (lstExcludeUslId != null) {
+            lstDistribBase.removeIf(t -> lstExcludeUslId.contains(t.getUslId()));
+        }
+        // оставить только услуги по списку
+        if (lstFilterByUslId != null) {
+            lstDistribBase.removeIf(t -> !lstFilterByUslId.contains(t.getUslId()));
+        }
+
+        if (isIncludeByClosedOrgList) {
+            // оставить только услуги и организации, содержащиеся в списке закрытых орг.
+            lstDistribBase.removeIf(t -> amount.getLstSprProcPay()
+                    .stream().noneMatch(d -> amount.getKart().getUk().equals(d.getUk()) // УК
+                            && t.getUslId().equals(d.getUsl().getId())  // услуга
+                            && t.getOrgId().equals(d.getOrg().getId())  // организация - поставщик
+                            && Utl.between2(amount.getDopl(), d.getMgFrom(), d.getMgTo()) // период
+                    )
+            );
+        } else if (isExcludeByClosedOrgList) {
+            // оставить только услуги и организации, НЕ содержащиеся в списке закрытых орг.
+            lstDistribBase.removeIf(t -> amount.getLstSprProcPay()
+                    .stream().anyMatch(d -> amount.getKart().getUk().equals(d.getUk()) // УК
+                            && t.getUslId().equals(d.getUsl().getId())  // услуга
+                            && t.getOrgId().equals(d.getOrg().getId())  // организация - поставщик
+                            && Utl.between2(amount.getDopl(), d.getMgFrom(), d.getMgTo()) // период
+                    )
+            );
+        } else
+            //noinspection ConstantConditions
+            if (isIncludeByClosedOrgList && isExcludeByClosedOrgList) {
+                throw new WrongParam("Некорректно использовать isIncludeByClosedOrgList=true и " +
+                        "isExcludeByClosedOrgList=true одновременно!");
+            }
+
+        BigDecimal amntSal = lstDistribBase.stream()
+                .map(SumUslOrgDTO::getSumma)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (Utl.in(tp, 1, 7)) {
+            saveKwtpDayLog(amount, "Выбранное текущее начисление > 0 для распределения оплаты, по лиц.счету lsk={}:",
+                    amount.getKart().getLsk());
+        }
+        saveKwtpDayLog(amount, "Будет распределено по строкам:");
+        lstDistribBase.forEach(t ->
+                saveKwtpDayLog(amount, "usl={}, org={}, summa={}",
+                        t.getUslId(), t.getOrgId(), t.getSumma()));
+        saveKwtpDayLog(amount, "итого:{}", amntSal);
+        return lstDistribBase;
     }
 
     /**
