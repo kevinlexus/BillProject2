@@ -10,6 +10,9 @@ public enum BaseForDistPays {
     CURR_PERIOD_CHARGE_MOIFY_7(7), // чем отличается от CURR_CHARGE хз
     SELECTED_PERIOD_CHARGE_8(8);
 
+    private final int id;
+
     BaseForDistPays(int id) {
+        this.id=id;
     }
 }
