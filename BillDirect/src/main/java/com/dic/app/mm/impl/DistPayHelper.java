@@ -1,5 +1,6 @@
 package com.dic.app.mm.impl;
 
+import com.dic.app.enums.BaseForDistPays;
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.dao.SaldoUslDAO;
 import com.dic.bill.dto.Amount;
@@ -28,13 +29,15 @@ public class DistPayHelper {
     private final ConfigApp configApp;
     private final SaldoUslDAO saldoUslDAO;
 
-    public List<SumUslOrgDTO> getBaseForDistrib(Amount amount, int tp, boolean isIncludeByClosedOrgList, boolean isExcludeByClosedOrgList, List<String> lstExcludeUslId, List<String> lstFilterByUslId, String currPeriod) throws WrongParam {
+    public List<SumUslOrgDTO> getBaseForDistrib(Amount amount, BaseForDistPays tp, boolean isIncludeByClosedOrgList,
+                                                boolean isExcludeByClosedOrgList, List<String> lstExcludeUslId,
+                                                List<String> lstFilterByUslId, String currPeriod) throws WrongParam {
         List<SumUslOrgDTO> lstDistribBase;
-        if (tp == 0) {
+        if (tp.equals(BaseForDistPays.IN_SAL_0)) {
             // получить вх.сал.
             lstDistribBase = new ArrayList<>(amount.getInSal());
-        } else if (tp == 1) {
-            // получить начисление
+        } else if (tp.equals(BaseForDistPays.CURR_CHARGE_1)) {
+            // получить текущее начисление
             List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
                     amount.getLstDistPayment(), amount.getLstDistPayment(),
                     false, true, false, false,
@@ -43,7 +46,7 @@ public class DistPayHelper {
             lstDistribBase = inSal.stream()
                     .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
                     ).collect(Collectors.toList());
-        } else if (tp == 3) {
+        } else if (tp.equals(BaseForDistPays.BACK_PERIOD_CHARGE_3)) {
             // получить начисление предыдущего периода
             List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
                     amount.getLstDistPayment(), amount.getLstDistPayment(),
@@ -53,10 +56,10 @@ public class DistPayHelper {
             lstDistribBase = inSal.stream()
                     .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
                     ).collect(Collectors.toList());
-        } else if (tp == 4) {
+        } else if (tp.equals(BaseForDistPays.ALREADY_DISTRIB_PAY_4)) {
             // получить уже распределенную сумму оплаты, в качестве базы для распределения (обычно распр.пени)
             lstDistribBase = amount.getLstDistPayment();
-        } else if (tp == 5) {
+        } else if (tp.equals(BaseForDistPays.CURR_PERIOD_CHARGE_5)) {
             // получить начисление текущего периода
             List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
                     null, null,
@@ -66,12 +69,12 @@ public class DistPayHelper {
             lstDistribBase = inSal.stream()
                     .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
                     ).collect(Collectors.toList());
-        } else if (tp == 6) {
+        } else if (tp.equals(BaseForDistPays.IN_SAL_PEN_6)) {
             // получить вх.сальдо по пене
             lstDistribBase = saldoUslDAO.getPinSalXitog3ByLsk(amount.getKart().getLsk(), currPeriod)
                     .stream().map(t -> new SumUslOrgDTO(t.getUslId(), t.getOrgId(), t.getSumma()))
                     .collect(Collectors.toList());
-        } else if (tp == 7) {
+        } else if (tp.equals(BaseForDistPays.CURR_PERIOD_CHARGE_MOIFY_7)) {
             // получить текущее начисление ред. 25.06.2019 убрал вот это:минус оплата за текущий период и корректировки по оплате за текущий период
             List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
                     null, null,
@@ -81,7 +84,7 @@ public class DistPayHelper {
             lstDistribBase = inSal.stream()
                     .filter(t -> t.getSumma().compareTo(BigDecimal.ZERO) > 0
                     ).collect(Collectors.toList());
-        } else if (tp == 8) {
+        } else if (tp.equals(BaseForDistPays.SELECTED_PERIOD_CHARGE_8)) {
             // получить начисление выбранного периода
             List<SumUslOrgDTO> inSal = saldoMng.getOutSal(amount.getKart(), currPeriod,
                     amount.getLstDistPayment(), amount.getLstDistPayment(),
@@ -134,7 +137,7 @@ public class DistPayHelper {
         BigDecimal amntSal = lstDistribBase.stream()
                 .map(SumUslOrgDTO::getSumma)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (Utl.in(tp, 1, 7)) {
+        if (tp.equals(BaseForDistPays.CURR_CHARGE_1) || tp.equals(BaseForDistPays.CURR_PERIOD_CHARGE_MOIFY_7)) {
             saveKwtpDayLog(amount, "Выбранное текущее начисление > 0 для распределения оплаты, по лиц.счету lsk={}:",
                     amount.getKart().getLsk());
         }
