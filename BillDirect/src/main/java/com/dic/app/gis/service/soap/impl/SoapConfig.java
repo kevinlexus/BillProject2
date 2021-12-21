@@ -8,10 +8,10 @@ import com.dic.bill.model.exs.Eolink;
 import com.ric.cmn.CommonUtl;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.UnusableCode;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +49,8 @@ public class SoapConfig implements SoapConfigs {
     private final ApplicationContext ctx;
     public static SignCommands sc;
     public static SignCommands sc2;
+    @Getter
+    private boolean isGisKeysLoaded;
 
     /**
      * Получить OrgPPGUID организации
@@ -75,11 +77,11 @@ public class SoapConfig implements SoapConfigs {
         return "GIS";
     }
 
-/*
-    */
+    /*
+     */
 /**
-     * Вернуть пользователя, от имени которого выполняются процессы
-     *//*
+ * Вернуть пользователя, от имени которого выполняются процессы
+ *//*
 
     @Override
     public User getCurUser() {
@@ -160,17 +162,17 @@ public class SoapConfig implements SoapConfigs {
         try {
             sc = buildSigner(soapConfig, 1);
             log.info("Объект подписывания XML-1 СОЗДАН!");
+            isGisKeysLoaded = true;
         } catch (Exception e1) {
-            log.error("****************************************************************");
-            log.error("*                                                              *");
-            log.error("*                                                              *");
-            log.error("* Объект подписывания XML-1 не создан, приложение ОСТАНОВЛЕНО! *");
-            log.error("*                                                              *");
-            log.error("*                                                              *");
-            log.error("****************************************************************");
+            isGisKeysLoaded = false;
+            log.error("********************************************************************");
+            log.error("*                                                                  *");
+            log.error("*                                                                  *");
+            log.error("* Объект подписывания XML-1 не создан, выполнение ГИС ОСТАНОВЛЕНО! *");
+            log.error("*                                                                  *");
+            log.error("*                                                                  *");
+            log.error("********************************************************************");
             log.error("stackTrace={}", Utl.getStackTraceString(e1));
-            // Завершить выполнение приложения
-            SpringApplication.exit(ctx, () -> 0);
         }
 
         //Создать второй объект подписывания XML (при наличии)
@@ -179,16 +181,15 @@ public class SoapConfig implements SoapConfigs {
                 sc2 = buildSigner(soapConfig, 2);
                 log.info("Объект подписывания XML-2 СОЗДАН!");
             } catch (Exception e1) {
-                log.error("****************************************************************");
-                log.error("*                                                              *");
-                log.error("*                                                              *");
-                log.error("* Объект подписывания XML-2 не создан, приложение ОСТАНОВЛЕНО! *");
-                log.error("*                                                              *");
-                log.error("*                                                              *");
-                log.error("****************************************************************");
+                isGisKeysLoaded = false;
+                log.error("********************************************************************");
+                log.error("*                                                                  *");
+                log.error("*                                                                  *");
+                log.error("* Объект подписывания XML-2 не создан, выполнение ГИС ОСТАНОВЛЕНО! *");
+                log.error("*                                                                  *");
+                log.error("*                                                                  *");
+                log.error("********************************************************************");
                 log.error("stackTrace={}", Utl.getStackTraceString(e1));
-                // Завершить выполнение приложения
-                SpringApplication.exit(ctx, () -> 0);
             }
         }
 

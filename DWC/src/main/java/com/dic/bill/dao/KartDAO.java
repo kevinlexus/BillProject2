@@ -244,7 +244,7 @@ public interface KartDAO extends JpaRepository<Kart, String> {
                                             @Param("klskIds") Set<Long> klskIds,
                                             @Param("uslIds") List<String> uslIds);
 
-    @Query(value = "select distinct t.k_lsk_id from scott.kart t where t.lsk in (:lsks)", nativeQuery = true)
-    List<Long> findKlskIdByLsk(@Param("lsks") List<String> lsks);
+    @Query(value = "select distinct t.k_lsk_id from scott.kart t where t.lsk between :lskFrom and :lskTo", nativeQuery = true)
+    List<Long> findKlskIdByLsk(@Param("lskFrom") String lskFrom, @Param("lskTo") String lskTo);
 
 }

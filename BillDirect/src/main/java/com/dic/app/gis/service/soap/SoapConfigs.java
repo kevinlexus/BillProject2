@@ -10,17 +10,7 @@ public interface SoapConfigs {
 
     String getHostIp();
 
-/*
-    String getFingerPrint();
-
-    String getBscLogin();
-
-    String getBscPass();
-*/
-
     String getPrefixGis();
-
-    //User getCurUser();
 
     Eolink getRkcByHouse(Eolink eolink);
 
@@ -33,4 +23,6 @@ public interface SoapConfigs {
     String getSignPath2();
 
     void saveError(Eolink eolink, long err, boolean isSet) throws UnusableCode;
+
+    boolean isGisKeysLoaded();
 }

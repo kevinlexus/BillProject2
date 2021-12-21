@@ -155,7 +155,9 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
             List<String> kulNds;
             Set<Long> klskIds = new HashSet<>();
             boolean isAllObj = changesParam.getSelObjList().stream().anyMatch(t -> t.getTp().equals(SelObjTypes.ALL));
-            Optional<String> selLsk = changesParam.getSelObjList().stream().filter(t -> t.getTp().equals(SelObjTypes.LSK)).map(Selobj::getLsk).findAny();
+            Optional<Selobj> lskRange = changesParam.getSelObjList().stream()
+                    .filter(t -> t.getTp().equals(SelObjTypes.LSK))
+                    .findAny();
             if (isAllObj) {
                 // весь фонд. Выбрать все дома
                 kulNds = houseDAO.getAllKulNds();
@@ -167,11 +169,8 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                 klskIds = changesParam.getSelObjList().stream()
                         .filter(t -> t.getTp().equals(SelObjTypes.FIN_ACCOUNT))
                         .map(Selobj::getKlskId).collect(Collectors.toSet());
-                List<String> lsks = changesParam.getSelObjList().stream()
-                        .filter(t -> t.getTp().equals(SelObjTypes.LSK))
-                        .map(Selobj::getLsk).collect(Collectors.toList());
-                if (lsks.size() > 0) {
-                    klskIds.addAll(kartDAO.findKlskIdByLsk(lsks));
+                if (lskRange.isPresent()) {
+                    klskIds.addAll(kartDAO.findKlskIdByLsk(lskRange.get().getLskFrom(), lskRange.get().getLskTo()));
                 }
             }
 
@@ -199,7 +198,8 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                 Map<Long, Map<String, Map<String, List<LskChargeUsl>>>> chargesByKlskId = processHelperMng.getChargesByKlskId(changesParam, kulNds, klskIds);
                 resultChanges = chargesByKlskId.entrySet().parallelStream()
                         .flatMap(t -> changeMng.genChangesProc(changesParam, t.getKey(), t.getValue()).stream())
-                        .filter(t -> selLsk.isEmpty() || selLsk.get().equals(t.getLsk()))
+                        .filter(t -> lskRange.isEmpty() ||
+                                Utl.between(t.getLsk(), lskRange.get().getLskFrom(), lskRange.get().getLskTo()))
                         .collect(Collectors.toList());
             }
             if (isExistAbs) {

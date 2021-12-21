@@ -224,6 +224,18 @@ public class Utl {
         return (val.compareTo(rangeBegin) >= 0 && val.compareTo(rangeEnd) <= 0);
     }
 
+    /**
+     * Находится ли одно String в диапазоне двух других String, преобразуюя в Integer, включительно
+     *
+     * @param val         - значение для поиска
+     * @param rangeBegin - диапазон, начало
+     * @param rangeEnd   - диапазон, окончание
+     */
+    public static boolean between(String val, String rangeBegin, String rangeEnd) {
+        return (Integer.parseInt(val) >= (Integer.parseInt(rangeBegin))
+                && Integer.parseInt(val) <= (Integer.parseInt(rangeEnd)));
+    }
+
     // вернуть кол-во месяцев между датами
     public static long getDiffMonths(Date first, Date last) {
         LocalDateTime dt1 = Instant.ofEpochMilli(first.getTime())

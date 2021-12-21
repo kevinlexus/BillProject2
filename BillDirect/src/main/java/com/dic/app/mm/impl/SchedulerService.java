@@ -2,6 +2,7 @@ package com.dic.app.mm.impl;
 
 import com.dic.app.gis.service.maintaners.TaskControllers;
 import com.dic.app.gis.service.maintaners.TaskMng;
+import com.dic.app.gis.service.soap.impl.SoapConfig;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.scott.Ko;
@@ -25,8 +26,7 @@ public class SchedulerService {
 
     private final TaskControllers taskController;
     private final ApplicationContext ctx;
-    private final EntityManager em;
-    private final TaskMng taskMng;
+    private final SoapConfig soapConfig;
 
     /**
      * Проверка необходимости выйти из приложения
@@ -46,7 +46,7 @@ public class SchedulerService {
     public void searchGisTasks() {
         File tempFile = new File("stopGis");
         boolean exists = tempFile.exists();
-        if (!exists) {
+        if (soapConfig.isGisKeysLoaded() && !exists) {
             taskController.searchTask();
         }
     }

@@ -13,6 +13,7 @@ public class Selobj {
     String kul; // код ул.
     String nd;  // № дома
     Long klskId; // фин.лиц.сч.
-    String lsk; // лиц.счет
+    String lskFrom; // лиц.счет начальный
+    String lskTo; // лиц.счет конечный
     SelObjTypes tp; // тип объекта, 0-дом, 1-фин.лиц., 2-лиц.сч., 3-весь фонд
 }
