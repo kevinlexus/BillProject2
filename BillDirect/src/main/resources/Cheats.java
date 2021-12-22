@@ -1,4 +1,16 @@
 // Cheats!
+
+// 22.12.2021
+// Работа с числами (по книге Леонард.А. Java.Решение практичкеских задач 2021г.)
+
+// 1. Нельзя использовать такое, потому что это не приведет к Exception:
+    int nr = Long.valueOf(Long.MAX_VALUE).intValue;
+    int nr = (int)Long.MAX_VALUE;
+// Правильно использовать такой подход, будет ArithmeticException:
+    int nr = Math.toIntExact(Long.MAX_VALUE);
+
+
+
 // потоки (Парма)
 ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 List<Future<MapSqlParameterSource>> futureList = executor.invokeAll(todo);
