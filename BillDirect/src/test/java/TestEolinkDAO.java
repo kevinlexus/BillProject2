@@ -63,7 +63,7 @@ public class TestEolinkDAO {
     public void testGetHouseByTpWoTaskTp() {
 		log.info("Test eolinkDAO.getHouseByTpWoTaskTp - Start");
 
-		for (HouseUkTaskRec t : eolinkDAO2.getHouseByTpWoTaskTp("GIS_EXP_HOUSE", "GIS_EXP_ACCS")) {
+		for (HouseUkTaskRec t : eolinkDAO2.getHouseByTpWoTaskTp("GIS_EXP_HOUSE", "GIS_EXP_ACCS", 0)) {
 			log.info("check house.id={}, task.id={}, uk.id={}", t.getEolHouseId(), t.getMasterTaskId(), t.getEolUkId());
 		}
 

@@ -2,9 +2,12 @@ package com.dic.bill.model.scott;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -18,6 +21,8 @@ import java.util.List;
 @Table(name = "C_HOUSES", schema = "SCOTT")
 @Getter
 @Setter
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheHouse", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class House implements java.io.Serializable {
 
     public House() {
@@ -56,6 +61,19 @@ public class House implements java.io.Serializable {
     // вводы
     @OneToMany(mappedBy = "house", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Vvod> vvod = new ArrayList<>(0);
+
+    // является ли частным домом (не МКД)
+    @Type(type = "org.hibernate.type.NumericBooleanType")
+    @Column(name = "IS_PRIVATE")
+    private Boolean isPrivate;
+
+    // дата создания
+    @Column(name = "DT_CRT", updatable = false)
+    private Date dtCrt;
+
+    // дата обновления
+    @Column(name = "DT_UPD")
+    private Date updDt;
 
     @Override
     public boolean equals(Object o) {

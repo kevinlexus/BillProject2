@@ -600,10 +600,11 @@ public class HouseManagementAsyncBindingBuilder {
             // Сохранить уникальный номер дома
             houseEol.setUn(retState.getExportHouseResult().getHouseUniqueNumber());
 
-            ru.gosuslugi.dom.schema.integration.house_management.ExportHouseResultType.ApartmentHouse ah =
+            ru.gosuslugi.dom.schema.integration.house_management.ExportHouseResultType.ApartmentHouse apartmentHouse =
                     retState.getExportHouseResult().getApartmentHouse();
+            ExportHouseResultType.LivingHouse livingHouse = retState.getExportHouseResult().getLivingHouse();
 
-            if (ah != null) {
+            if (apartmentHouse != null) {
                 // Многоквартирный дом
                 // статус - активный
                 houseEol.setStatus(1);
@@ -611,252 +612,267 @@ public class HouseManagementAsyncBindingBuilder {
                 Map<Integer, Eolink> entryMap = new HashMap<>();
 
                 // Подъезды
-                List<String> lstEntryGuid = new ArrayList<>();
-                for (Entrance t : ah.getEntrance()) {
-                    log.trace("Подъезд: №={}, GUID={}", t.getEntranceNum(), t.getEntranceGUID());
-                    Eolink entryEol = eolinkDao.getEolinkByGuid(t.getEntranceGUID());
-                    lstEntryGuid.add(t.getEntranceGUID());
-                    if (entryEol == null) {
-                        // не найдено, создать подъезд
-                        AddrTp addrTp = lstMng.getAddrTpByCD("Подъезд");
-
-                        entryEol = Eolink.builder()
-                                .withOrg(par.reqProp.getUk())
-                                .withKul(par.reqProp.getKul())
-                                .withNd(par.reqProp.getNd())
-                                .withEntry(Integer.valueOf(t.getEntranceNum()))
-                                .withGuid(t.getEntranceGUID())
-                                .withObjTp(addrTp)
-                                .withParent(houseEol)
-                                .withUser(config.getCurUserGis().get())
-                                .withStatus(1).build();
-                        // сохранить, для иерархии
-                        entryMap.put(Integer.valueOf(t.getEntranceNum()), entryEol);
-                        em.persist(entryEol);
-                        // добавить подъезд к дому, чтобы выбирался позже
-                        houseEol.getChild().add(entryEol);
-                    }
-
-                    // обновить параметры подъезда
-                    entryEol.setEntry(Integer.valueOf(t.getEntranceNum()));
-                    Date dtTerm = Utl.getDateFromXmlGregCal(t.getTerminationDate());
-                    if (dtTerm != null && (dtTerm.getTime() < curDate.getTime())) {
-                        // Объект не активен
-                        entryEol.setStatus(0);
-                    } else {
-                        // Объект активен
-                        entryEol.setStatus(1);
-                    }
-                }
-
-                // проверить наличие подъезда по дому, с данным GUID
-                List<Eolink> lstEntry = eolinkDao.getChildByTp(houseEol, "Подъезд");
-                lstEntry.forEach(t -> {
-                    log.trace("Подъезд из базы: id={}, entry={}", t.getId(), t.getEntry());
-                    if (!lstEntryGuid.contains(t.getGuid())) {
-                        // не найден, промаркировать неактивным
-                        log.trace("Подъезд №{} помечен неактивным!", t.getEntry());
-                        t.setStatus(0);
-                    }
-                });
+                List<Eolink> entrances = createEntrance(par, houseEol, curDate, apartmentHouse, entryMap);
 
                 // ЖИЛЫЕ помещения
-                for (ExportHouseResultType.ApartmentHouse.ResidentialPremises t : ah.getResidentialPremises()) {
-                    log.trace("Жилое помещение: №={}, UniqNumber={}, GUID={}",
-                            t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID());
-                    Eolink premisEol = eolinkDao.getEolinkByGuid(t.getPremisesGUID());
-                    // обработка номера помещения
-                    String num;
-                    num = prepNum(t);
-                    if (premisEol == null) {
-                        // не найдено, создать помещение
-                        AddrTp addrTp = lstMng.getAddrTpByCD("Квартира");
-                        Ko premisKo = null;
-                        premisEol = Eolink.builder()
-                                .withOrg(par.reqProp.getUk())
-                                .withKul(par.reqProp.getKul())
-                                .withNd(par.reqProp.getNd())
-                                .withKw(num)
-                                .withEntry(t.getEntranceNum() != null ? Integer.valueOf(t.getEntranceNum()) : null)
-                                .withGuid(t.getPremisesGUID())
-                                .withUn(t.getPremisesUniqueNumber())
-                                .withObjTp(addrTp)
-                                .withKoObj(premisKo)
-                                .withParent(t.getEntranceNum() != null ?
-                                        entryMap.get(Integer.valueOf(t.getEntranceNum())) : houseEol)   // присоединить к родителю:
-                                // подъезд, или дом, если не найден подъезд
-                                .withUser(config.getCurUserGis().get())
-                                .withStatus(1)
-                                .build();
-                        log.info("Попытка создать запись жилого помещения в Eolink: № подъезда:{}, № помещения={}, un={}, GUID={}",
-                                t.getEntranceNum(),
-                                t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID());
-                        em.persist(premisEol);
-                    }
-
-                    // обновить комнаты
-                    AddrTp addrTp = lstMng.getAddrTpByCD("Комната");
-                    for (ExportHouseResultType.ApartmentHouse.ResidentialPremises.LivingRoom r : t.getLivingRoom()) {
-                        log.trace("Комната, UniqNumber={}, GUID={}",
-                                r.getLivingRoomUniqueNumber(), r.getLivingRoomGUID());
-                        Eolink roomEol = eolinkDao.getEolinkByGuid(r.getLivingRoomGUID());
-                        if (roomEol == null) {
-                            // не найдено, создать комнату
-                            roomEol = Eolink.builder()
-                                    .withGuid(r.getLivingRoomGUID())
-                                    .withUn(r.getLivingRoomUniqueNumber())
-                                    .withObjTp(addrTp)
-                                    .withKoObj(null) // TODO сделать ko! ред.21.08.2018
-                                    .withParent(premisEol) // присоединить к квартире
-                                    .withUser(config.getCurUserGis().get())
-                                    .withStatus(1)
-                                    .build();
-                            log.info("Попытка создать запись комнаты в Eolink:un={}, GUID={}",
-                                    r.getLivingRoomUniqueNumber(), r.getLivingRoomGUID());
-                            em.persist(roomEol);
-                        }
-                    }
-
-                    // погасить ошибки
-                    soapConfig.saveError(premisEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR |
-                            CommonErrs.ERR_EMPTY_KLSK | CommonErrs.ERR_DOUBLE_KLSK_EOLINK |
-                            CommonErrs.ERR_NOT_FOUND_ACTUAL_OBJ, false);
-
-                    // обновить параметры помещения
-                    Date dtTerm = Utl.getDateFromXmlGregCal(t.getTerminationDate());
-                    if (dtTerm != null && (dtTerm.getTime() < curDate.getTime())) {
-                        // Объект не активен
-                        premisEol.setStatus(0);
-                    } else {
-                        // Объект активен
-                        premisEol.setStatus(1);
-                    }
-                    if (premisEol.getKoObj() == null && premisEol.getStatus().equals(1)) {
-                        // найти соответствующий объект Ko помещения
-                        Ko ko = null;
-                        try {
-                            ko = kartMng.getKoPremiseByKulNdKw(par.reqProp.getKul(), par.reqProp.getNd(), num);
-                        } catch (DifferentKlskBySingleAdress differentKlskBySingleAdress) {
-                            // в KART разные KLSK на один адрес!
-                            soapConfig.saveError(premisEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR, true);
-                        } catch (EmptyId emptyId) {
-                            // в KART найден пустой KLSK в данном адресе!
-                            soapConfig.saveError(premisEol, CommonErrs.ERR_EMPTY_KLSK, true);
-                        }
-                        if (ko == null) {
-                            // не найден актуальный (действующий объект) в Kart с KLSK
-                            soapConfig.saveError(premisEol, CommonErrs.ERR_NOT_FOUND_ACTUAL_OBJ, true);
-                        } else {
-                            Eolink checkEolink = eolinkDao2.getEolinkByKlskId(ko.getId());
-                            if (checkEolink != null) {
-                                soapConfig.saveError(premisEol, CommonErrs.ERR_DOUBLE_KLSK_EOLINK, true);
-                            } else {
-                                log.info("Попытка установить по объекту помещения Eolink.id={}, Ko.id={}",
-                                        premisEol.getId(), ko.getId());
-                                premisEol.setKoObj(ko);
-                            }
-                        }
-                    } else if (premisEol.getStatus().equals(0)) {
-                        // убрать Ko по неактуальному помещению
-                        premisEol.setKoObj(null);
-                    }
-
-                    // прикрепить к подъезду, взятому из ГИС ЖКХ
-                    if (t.getEntranceNum() != null) {
-                        Integer entryNum = Integer.valueOf(t.getEntranceNum());
-                        premisEol.setEntry(entryNum);
-                        // обновить родительский подъезд
-                        Eolink entry = lstEntry.stream().filter(e -> e.getEntry().equals(entryNum))
-                                .findFirst().orElse(null);
-                        premisEol.setParent(entry);
-                    } else {
-                        // помещение без отдельного входа
-                        premisEol.setParent(houseEol);
-                    }
-
-                    t.getLivingRoom().forEach(f -> log.trace("f.isNoRSOGKNEGRPRegistered()1={}", f.isNoRSOGKNEGRPRegistered()));
-                }
+                createResidentalPremises(par, houseEol, curDate, apartmentHouse, entryMap, entrances);
 
                 // НЕЖИЛЫЕ помещения
-                for (NonResidentialPremises t : ah.getNonResidentialPremises()) {
-                    log.trace("Нежилое помещение: №={}, UniqNumber={}, GUID={}",
-                            t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID());
-                    Eolink premisEol = eolinkDao.getEolinkByGuid(t.getPremisesGUID());
-                    // обработка номера помещения
-                    String num;
-                    num = prepNum(t);
-
-                    if (premisEol == null) {
-                        // Не найдено, создать помещение
-                        AddrTp addrTp = lstMng.getAddrTpByCD("Помещение нежилое");
-
-                        premisEol = Eolink.builder()
-                                .withOrg(par.reqProp.getUk())
-                                .withKul(par.reqProp.getKul())
-                                .withNd(par.reqProp.getNd())
-                                .withKw(num)
-                                .withGuid(t.getPremisesGUID())
-                                .withObjTp(addrTp)
-                                .withParent(houseEol)
-                                .withUser(config.getCurUserGis().get())
-                                .withStatus(1).build();
-
-                        log.info("Попытка создать запись Нежилого помещения в Eolink: № помещения={}, un={}, GUID={}",
-                                t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID());
-                        em.persist(premisEol);
-                    }
-
-                    // погасить ошибки
-                    soapConfig.saveError(premisEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR |
-                            CommonErrs.ERR_EMPTY_KLSK | CommonErrs.ERR_DOUBLE_KLSK_EOLINK, false);
-
-                    // обновить параметры помещения
-                    Date dtTerm = Utl.getDateFromXmlGregCal(t.getTerminationDate());
-                    if (dtTerm != null && (dtTerm.getTime() < curDate.getTime())) {
-                        // Объект не активен
-                        premisEol.setStatus(0);
-                    } else {
-                        // Объект активен
-                        premisEol.setStatus(1);
-                    }
-
-                    // найти соответствующий объект Ko по актуальному помещению
-                    if (premisEol.getKoObj() == null && premisEol.getStatus().equals(1)) {
-                        Ko ko = null;
-                        try {
-                            ko = kartMng.getKoPremiseByKulNdKw(par.reqProp.getKul(), par.reqProp.getNd(), num);
-                        } catch (DifferentKlskBySingleAdress differentKlskBySingleAdress) {
-                            // разные KLSK на один адрес!";
-                            soapConfig.saveError(premisEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR, true);
-                        } catch (EmptyId emptyId) {
-                            // найден пустой KLSK в данном адресе!";
-                            soapConfig.saveError(premisEol, CommonErrs.ERR_EMPTY_KLSK, true);
-                        }
-
-                        if (ko == null) {
-                            // вернулся пустой KLSK
-                            soapConfig.saveError(premisEol, CommonErrs.ERR_EMPTY_KLSK, true);
-                        } else {
-                            Eolink checkEolink = eolinkDao2.getEolinkByKlskId(ko.getId());
-                            if (checkEolink != null) {
-                                soapConfig.saveError(premisEol, CommonErrs.ERR_DOUBLE_KLSK_EOLINK, true);
-                            } else {
-                                //log.info("Попытка установить по объекту Eolink.id={}, Ko.id={}",
-                                //      premisEol.getId(), ko.getId());
-                                premisEol.setKoObj(ko);
-                            }
-                        }
-                    } else if (premisEol.getStatus().equals(0)) {
-                        // убрать Ko по неактуальному помещению
-                        premisEol.setKoObj(null);
-                    }
-                }
+                createNonResidentalPremises(par, houseEol, curDate, apartmentHouse);
+            } else if (livingHouse!=null) {
+                log.info("************ Частный дом, houseGUID={}", livingHouse.getHouseGUID()); // todo сделать признак, что Eolink - частный дом
             }
             // Установить статус выполнения задания
             task.setState("ACP");
             //log.info("******* Task.id={}, экспорт объектов дома выполнен", task.getId());
             taskMng.logTask(task, false, true);
         }
+    }
+
+    private void createNonResidentalPremises(SoapPar par, Eolink houseEol, Date curDate, ExportHouseResultType.ApartmentHouse apartmentHouse) throws UnusableCode {
+        for (NonResidentialPremises t : apartmentHouse.getNonResidentialPremises()) {
+            log.trace("Нежилое помещение: №={}, UniqNumber={}, GUID={}",
+                    t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID());
+            Eolink premisEol = eolinkDao.getEolinkByGuid(t.getPremisesGUID());
+            // обработка номера помещения
+            String num;
+            num = prepNum(t);
+
+            if (premisEol == null) {
+                // Не найдено, создать помещение
+                AddrTp addrTp = lstMng.getAddrTpByCD("Помещение нежилое");
+
+                premisEol = Eolink.builder()
+                        .withOrg(par.reqProp.getUk())
+                        .withKul(par.reqProp.getKul())
+                        .withNd(par.reqProp.getNd())
+                        .withKw(num)
+                        .withGuid(t.getPremisesGUID())
+                        .withObjTp(addrTp)
+                        .withParent(houseEol)
+                        .withUser(config.getCurUserGis().get())
+                        .withStatus(1).build();
+
+                log.info("Попытка создать запись Нежилого помещения в Eolink: № помещения={}, un={}, GUID={}",
+                        t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID());
+                em.persist(premisEol);
+            }
+
+            // погасить ошибки
+            soapConfig.saveError(premisEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR |
+                    CommonErrs.ERR_EMPTY_KLSK | CommonErrs.ERR_DOUBLE_KLSK_EOLINK, false);
+
+            // обновить параметры помещения
+            Date dtTerm = Utl.getDateFromXmlGregCal(t.getTerminationDate());
+            if (dtTerm != null && (dtTerm.getTime() < curDate.getTime())) {
+                // Объект не активен
+                premisEol.setStatus(0);
+            } else {
+                // Объект активен
+                premisEol.setStatus(1);
+            }
+
+            // найти соответствующий объект Ko по актуальному помещению
+            if (premisEol.getKoObj() == null && premisEol.getStatus().equals(1)) {
+                Ko ko = null;
+                try {
+                    ko = kartMng.getKoPremiseByKulNdKw(par.reqProp.getKul(), par.reqProp.getNd(), num);
+                } catch (DifferentKlskBySingleAdress differentKlskBySingleAdress) {
+                    // разные KLSK на один адрес!";
+                    soapConfig.saveError(premisEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR, true);
+                } catch (EmptyId emptyId) {
+                    // найден пустой KLSK в данном адресе!";
+                    soapConfig.saveError(premisEol, CommonErrs.ERR_EMPTY_KLSK, true);
+                }
+
+                if (ko == null) {
+                    // вернулся пустой KLSK
+                    soapConfig.saveError(premisEol, CommonErrs.ERR_EMPTY_KLSK, true);
+                } else {
+                    Eolink checkEolink = eolinkDao2.getEolinkByKlskId(ko.getId());
+                    if (checkEolink != null) {
+                        soapConfig.saveError(premisEol, CommonErrs.ERR_DOUBLE_KLSK_EOLINK, true);
+                    } else {
+                        //log.info("Попытка установить по объекту Eolink.id={}, Ko.id={}",
+                        //      premisEol.getId(), ko.getId());
+                        premisEol.setKoObj(ko);
+                    }
+                }
+            } else if (premisEol.getStatus().equals(0)) {
+                // убрать Ko по неактуальному помещению
+                premisEol.setKoObj(null);
+            }
+        }
+    }
+
+    private void createResidentalPremises(SoapPar par, Eolink houseEol, Date curDate, ExportHouseResultType.ApartmentHouse apartmentHouse, Map<Integer, Eolink> entryMap, List<Eolink> entrances) throws UnusableCode {
+        for (ExportHouseResultType.ApartmentHouse.ResidentialPremises t : apartmentHouse.getResidentialPremises()) {
+            log.trace("Жилое помещение: №={}, UniqNumber={}, GUID={}",
+                    t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID());
+            Eolink premisEol = eolinkDao.getEolinkByGuid(t.getPremisesGUID());
+            // обработка номера помещения
+            String num;
+            num = prepNum(t);
+            if (premisEol == null) {
+                // не найдено, создать помещение
+                AddrTp addrTp = lstMng.getAddrTpByCD("Квартира");
+                Ko premisKo = null;
+                premisEol = Eolink.builder()
+                        .withOrg(par.reqProp.getUk())
+                        .withKul(par.reqProp.getKul())
+                        .withNd(par.reqProp.getNd())
+                        .withKw(num)
+                        .withEntry(t.getEntranceNum() != null ? Integer.valueOf(t.getEntranceNum()) : null)
+                        .withGuid(t.getPremisesGUID())
+                        .withUn(t.getPremisesUniqueNumber())
+                        .withObjTp(addrTp)
+                        .withKoObj(premisKo)
+                        .withParent(t.getEntranceNum() != null ?
+                                entryMap.get(Integer.valueOf(t.getEntranceNum())) : houseEol)   // присоединить к родителю:
+                        // подъезд, или дом, если не найден подъезд
+                        .withUser(config.getCurUserGis().get())
+                        .withStatus(1)
+                        .build();
+                log.info("Попытка создать запись жилого помещения в Eolink: № подъезда:{}, № помещения={}, un={}, GUID={}",
+                        t.getEntranceNum(),
+                        t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID());
+                em.persist(premisEol);
+            }
+
+            // обновить комнаты
+            AddrTp addrTp = lstMng.getAddrTpByCD("Комната");
+            for (ExportHouseResultType.ApartmentHouse.ResidentialPremises.LivingRoom r : t.getLivingRoom()) {
+                log.trace("Комната, UniqNumber={}, GUID={}",
+                        r.getLivingRoomUniqueNumber(), r.getLivingRoomGUID());
+                Eolink roomEol = eolinkDao.getEolinkByGuid(r.getLivingRoomGUID());
+                if (roomEol == null) {
+                    // не найдено, создать комнату
+                    roomEol = Eolink.builder()
+                            .withGuid(r.getLivingRoomGUID())
+                            .withUn(r.getLivingRoomUniqueNumber())
+                            .withObjTp(addrTp)
+                            .withKoObj(null) // TODO сделать ko! ред.21.08.2018
+                            .withParent(premisEol) // присоединить к квартире
+                            .withUser(config.getCurUserGis().get())
+                            .withStatus(1)
+                            .build();
+                    log.info("Попытка создать запись комнаты в Eolink:un={}, GUID={}",
+                            r.getLivingRoomUniqueNumber(), r.getLivingRoomGUID());
+                    em.persist(roomEol);
+                }
+            }
+
+            // погасить ошибки
+            soapConfig.saveError(premisEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR |
+                    CommonErrs.ERR_EMPTY_KLSK | CommonErrs.ERR_DOUBLE_KLSK_EOLINK |
+                    CommonErrs.ERR_NOT_FOUND_ACTUAL_OBJ, false);
+
+            // обновить параметры помещения
+            Date dtTerm = Utl.getDateFromXmlGregCal(t.getTerminationDate());
+            if (dtTerm != null && (dtTerm.getTime() < curDate.getTime())) {
+                // Объект не активен
+                premisEol.setStatus(0);
+            } else {
+                // Объект активен
+                premisEol.setStatus(1);
+            }
+            if (premisEol.getKoObj() == null && premisEol.getStatus().equals(1)) {
+                // найти соответствующий объект Ko помещения
+                Ko ko = null;
+                try {
+                    ko = kartMng.getKoPremiseByKulNdKw(par.reqProp.getKul(), par.reqProp.getNd(), num);
+                } catch (DifferentKlskBySingleAdress differentKlskBySingleAdress) {
+                    // в KART разные KLSK на один адрес!
+                    soapConfig.saveError(premisEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR, true);
+                } catch (EmptyId emptyId) {
+                    // в KART найден пустой KLSK в данном адресе!
+                    soapConfig.saveError(premisEol, CommonErrs.ERR_EMPTY_KLSK, true);
+                }
+                if (ko == null) {
+                    // не найден актуальный (действующий объект) в Kart с KLSK
+                    soapConfig.saveError(premisEol, CommonErrs.ERR_NOT_FOUND_ACTUAL_OBJ, true);
+                } else {
+                    Eolink checkEolink = eolinkDao2.getEolinkByKlskId(ko.getId());
+                    if (checkEolink != null) {
+                        soapConfig.saveError(premisEol, CommonErrs.ERR_DOUBLE_KLSK_EOLINK, true);
+                    } else {
+                        log.info("Попытка установить по объекту помещения Eolink.id={}, Ko.id={}",
+                                premisEol.getId(), ko.getId());
+                        premisEol.setKoObj(ko);
+                    }
+                }
+            } else if (premisEol.getStatus().equals(0)) {
+                // убрать Ko по неактуальному помещению
+                premisEol.setKoObj(null);
+            }
+
+            // прикрепить к подъезду, взятому из ГИС ЖКХ
+            if (t.getEntranceNum() != null) {
+                Integer entryNum = Integer.valueOf(t.getEntranceNum());
+                premisEol.setEntry(entryNum);
+                // обновить родительский подъезд
+                Eolink entry = entrances.stream().filter(e -> e.getEntry().equals(entryNum))
+                        .findFirst().orElse(null);
+                premisEol.setParent(entry);
+            } else {
+                // помещение без отдельного входа
+                premisEol.setParent(houseEol);
+            }
+
+            t.getLivingRoom().forEach(f -> log.trace("f.isNoRSOGKNEGRPRegistered()1={}", f.isNoRSOGKNEGRPRegistered()));
+        }
+    }
+
+    private List<Eolink> createEntrance(SoapPar par, Eolink houseEol, Date curDate, ExportHouseResultType.ApartmentHouse apartmentHouse, Map<Integer, Eolink> entryMap) {
+        List<String> lstEntryGuid = new ArrayList<>();
+        for (Entrance t : apartmentHouse.getEntrance()) {
+            log.trace("Подъезд: №={}, GUID={}", t.getEntranceNum(), t.getEntranceGUID());
+            Eolink entryEol = eolinkDao.getEolinkByGuid(t.getEntranceGUID());
+            lstEntryGuid.add(t.getEntranceGUID());
+            if (entryEol == null) {
+                // не найдено, создать подъезд
+                AddrTp addrTp = lstMng.getAddrTpByCD("Подъезд");
+
+                entryEol = Eolink.builder()
+                        .withOrg(par.reqProp.getUk())
+                        .withKul(par.reqProp.getKul())
+                        .withNd(par.reqProp.getNd())
+                        .withEntry(Integer.valueOf(t.getEntranceNum()))
+                        .withGuid(t.getEntranceGUID())
+                        .withObjTp(addrTp)
+                        .withParent(houseEol)
+                        .withUser(config.getCurUserGis().get())
+                        .withStatus(1).build();
+                // сохранить, для иерархии
+                entryMap.put(Integer.valueOf(t.getEntranceNum()), entryEol);
+                em.persist(entryEol);
+                // добавить подъезд к дому, чтобы выбирался позже
+                houseEol.getChild().add(entryEol);
+            }
+
+            // обновить параметры подъезда
+            entryEol.setEntry(Integer.valueOf(t.getEntranceNum()));
+            Date dtTerm = Utl.getDateFromXmlGregCal(t.getTerminationDate());
+            if (dtTerm != null && (dtTerm.getTime() < curDate.getTime())) {
+                // Объект не активен
+                entryEol.setStatus(0);
+            } else {
+                // Объект активен
+                entryEol.setStatus(1);
+            }
+        }
+
+        // проверить наличие подъезда по дому, с данным GUID
+        List<Eolink> lstEntry = eolinkDao.getChildByTp(houseEol, "Подъезд");
+        lstEntry.forEach(t -> {
+            log.trace("Подъезд из базы: id={}, entry={}", t.getId(), t.getEntry());
+            if (!lstEntryGuid.contains(t.getGuid())) {
+                // не найден, промаркировать неактивным
+                log.trace("Подъезд №{} помечен неактивным!", t.getEntry());
+                t.setStatus(0);
+            }
+        });
+        return lstEntry;
     }
 
     /**
@@ -2022,9 +2038,9 @@ public class HouseManagementAsyncBindingBuilder {
             }
         }
 
-        // создать зависимые задания по домам по экспорту лиц.счетов, с указанием Ук - владельца счета
+        // создать зависимые задания по домам МКД, по экспорту лиц.счетов, с указанием Ук - владельца счета
         // получить дома без заданий
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_EXP_HOUSE", "GIS_EXP_ACCS")) {
+        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_EXP_HOUSE", "GIS_EXP_ACCS", 0)) {
 
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
             Eolink procUk = em.find(Eolink.class, t.getEolUkId());
@@ -2040,9 +2056,26 @@ public class HouseManagementAsyncBindingBuilder {
 
         }
 
-        // создать независимые задания по домам по импорту лиц.счетов, с указанием Ук - владельца счета
+        // создать независимые задания по Частному сектору, по экспорту лиц.счетов, с указанием Ук - владельца счета
         // получить дома без заданий
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_IMP_ACCS")) {
+        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_EXP_ACCS", 1)) {
+
+            Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
+            Eolink procUk = em.find(Eolink.class, t.getEolUkId());
+            Task newTask4 = ptb.setUp(eolHouse, null, null, "GIS_EXP_ACCS", "INS",
+                    config.getCurUserGis().get().getId(), procUk);
+            ptb.save(newTask4);
+            log.info("Добавлено задание на экспорт лиц.счетов по Дому Eolink.id={}, Task.procUk.id={}",
+                    eolHouse.getId(), procUk.getId());
+            // добавить зависимое задание к системному повторяемому заданию
+            // (будет запускаться системным заданием)
+            ptb.addAsChild(newTask4, "SYSTEM_RPT_HOUSE_EXP");
+
+        }
+
+        // создать независимые задания по домам МКД, по импорту лиц.счетов, с указанием Ук - владельца счета
+        // получить дома без заданий
+        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_IMP_ACCS", 0)) {
 
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
             Eolink procUk = em.find(Eolink.class, t.getEolUkId());

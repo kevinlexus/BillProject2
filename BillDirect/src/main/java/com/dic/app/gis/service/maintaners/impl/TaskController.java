@@ -74,6 +74,13 @@ public class TaskController implements TaskControllers {
     @Override
     @Transactional
     public void searchTask() {
+/*
+        log.info("*************");
+        List<Task> uuu = taskDao2.getAllUnprocessedAndNotActive(Arrays.asList(-1));
+        uuu.forEach(t->log.info("CHECK id={}, act={}, name={}", t.getId(), t.getAct().getCd(), t.getAct().getName()));
+        log.info("*************");
+*/
+
         //log.info("queueTask.size={}", queueTask.size());
         taskInWork.forEach((key, value) -> log.info("taskInWork taskId={}", key));
         queueTask.forEach(t -> log.info("queueTask taskId={}", t));

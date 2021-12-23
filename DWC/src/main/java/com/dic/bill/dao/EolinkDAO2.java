@@ -1,6 +1,7 @@
 package com.dic.bill.dao;
 
 import com.dic.bill.dto.HouseUkTaskRec;
+import com.dic.bill.dto.BaseHouseUkTaskRec;
 import com.dic.bill.model.exs.Eolink;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,12 +13,13 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
 
 
     /**
-     * Получить все дома из Eolink, по которым
+     * Получить все дома МКД, из Eolink, по которым
      * НЕТ созданных заданий определенного типа действия содержащих обрабатываемый УК
      * используется например для выгрузки лиц.счетов, для загрузки ПД
      *
      * @param masterTaskCD - CD ведущего задания (например 'GIS_EXP_HOUSE')
      * @param checkTaskCD  - CD задания для проверки (например 'GIS_EXP_ACCS')
+     * @param isPrivate  - МКД -0, Частный сектор -1
      */
     @Query(value = "select distinct t.id as eolHouseId, uk.id as eolUkId, " +
             "s2.id as masterTaskId from exs.eolink t "
@@ -26,6 +28,7 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
             + "join bs.addr_tp tp2 on tp2.cd='Организация' "
             + "join exs.eolink uk on uk.fk_objtp=tp2.id and tp2.parent_id is not null and k.reu=uk.reu " // УК
             + "join bs.list stp2 on stp2.cd=:masterTaskCD "
+            + "join scott.c_houses h on k.house_id=h.id and h.is_private=:isPrivate "
             + "join exs.task s2 on s2.fk_eolink=t.id and s2.fk_act=stp2.id " // ведущее задание, к которому прикреплять
             + "where not exists " // где нет заданий указанного типа
             + "		(select * from exs.task s join bs.list stp on s.fk_act=stp.id "
@@ -34,7 +37,8 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
             + "     and s.fk_eolink=t.id "
             + "		)", nativeQuery = true)
     List<HouseUkTaskRec> getHouseByTpWoTaskTp(@Param("masterTaskCD") String masterTaskCD,
-                                              @Param("checkTaskCD") String checkTaskCD);
+                                              @Param("checkTaskCD") String checkTaskCD,
+                                              @Param("isPrivate") Integer isPrivate);
 
     /**
      * Получить все дома из Eolink, по которым
@@ -42,12 +46,14 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
      * используется например для выгрузки лиц.счетов, для загрузки ПД
      * БЕЗ ведущего задания
      *
-     * @param checkTaskCD - CD задания для проверки (например 'GIS_EXP_ACCS')
+     * @param checkTaskCD CD задания для проверки (например 'GIS_EXP_ACCS')
+     * @param isPrivate  МКД -0, Частный сектор -1
      */
     @Query(value = "select distinct t.id as eolHouseId, uk.id as eolUkId, " +
             "null as masterTaskId from exs.eolink t "
             + "join bs.addr_tp tp on t.fk_objtp=tp.id and tp.cd='Дом' " // по объектам Дом
             + "join scott.kart k on t.kul=k.kul and t.nd=k.nd and k.psch not in (8,9) " // по Kart поиск лиц.счетов УК
+            + "join scott.c_houses h on k.house_id=h.id and h.is_private=:isPrivate "
             + "join bs.addr_tp tp2 on tp2.cd='Организация' "
             + "join exs.eolink uk on uk.fk_objtp=tp2.id and tp2.parent_id is not null and k.reu=uk.reu " // УК
             + "where not exists " // где нет заданий указанного типа
@@ -56,7 +62,9 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
             + "		where s.fk_proc_uk=uk.id "
             + "     and s.fk_eolink=t.id "
             + "		)", nativeQuery = true)
-    List<HouseUkTaskRec> getHouseByTpWoTaskTp(@Param("checkTaskCD") String checkTaskCD);
+    List<HouseUkTaskRec> getHouseByTpWoTaskTp(@Param("checkTaskCD") String checkTaskCD,
+                                              @Param("isPrivate") Integer isPrivate);
+
 
     /**
      * Найти объект Eolink по klskId
@@ -65,6 +73,17 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
      */
     @Query(value = "select t from Eolink t where t.koObj.id=:klskId")
     Eolink getEolinkByKlskId(@Param("klskId") Long klskId);
+
+
+    /**
+     * Удалить задания по домам, которые не соответствуют дате обновления дома, для того, чтобы запустить процесс пересоздания задания
+     */
+    @Query(value = "delete from exs.task t where " +
+            "exists (select * from exs.eolink e join bs.list stp on t. and t.fk_act=stp.id " +
+            "and stp.cd=:checkTaskCD" +
+            "" +
+            ") ", nativeQuery = true)
+    void deleteTaskHouseWithMismatchUpdateDate(@Param("checkTaskCD") String checkTaskCD);
 
     /*
      * Найти Лиц.счета, по помещениям, входящим в подъезд, по Дому, по УК

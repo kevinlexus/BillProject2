@@ -104,6 +104,10 @@ public class TaskProcessor {
                             // Проверка наличия заданий по импорту ПД
                             bill.checkPeriodicImpExpPd(task.getId());
                             break;
+                        default:
+                            task.setState("ERR");
+                            task.setResult("Нет обработчика по заданию, необходимо проверить!");
+                            break;
                     }
                 }
                 break;

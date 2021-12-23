@@ -696,6 +696,13 @@ public class HcsBillsAsyncBuilder {
         Eolink uk = task.getProcUk();
         // РКЦ
         Eolink rkc = house.getParent().getParent();
+        if (rkc.getParent() != null) {
+            // это не РКЦ, найти РКЦ! // fixme переписать нахождение РКЦ рекурсивно!!! ред. 23.12.21
+            rkc = rkc.getParent();
+            if (rkc.getParent() != null) {
+                throw new CantPrepSoap("Не найдена запись РКЦ!");
+            }
+        }
         // получить период импорта ПД
         String period = eolParMng.getStr(rkc, "ГИС ЖКХ.PERIOD_IMP_PD");
         if (period == null) {
@@ -1519,7 +1526,9 @@ public class HcsBillsAsyncBuilder {
     private void createTaskExpPayDoc(String actTp, String parentCD, String state, String purpose) {
         // создать по всем домам задания, если их нет
         // получить дома без заданий
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp(actTp)) {
+        List<HouseUkTaskRec> lst = eolinkDao2.getHouseByTpWoTaskTp(actTp, 0);
+        lst.addAll(eolinkDao2.getHouseByTpWoTaskTp(actTp, 1));
+        for (HouseUkTaskRec t : lst) {
             int a;// создавать по 100 штук, иначе -блокировка Task (нужен коммит)
             a = 1;
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());

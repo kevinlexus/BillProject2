@@ -9,7 +9,18 @@
 // Правильно использовать такой подход, будет ArithmeticException:
     int nr = Math.toIntExact(Long.MAX_VALUE);
 
+// Удобно использовать для получения NPE и конкатенации строк
+  String name = Objects.requireNonNull(name1, "Ошибка, name1 == null!")
+    +Objects.requireNonNull(name2, "Ошибка, name2 == null!");
 
+// Удобно получать периоды между датами
+    LocalDate startLocalDate = LocalDate.of (2018, 3, 12);
+    LocalDate endLocalDate = LocalDate.of(2019, 7, 20);
+    Period periodBetween = Period.between(startLocalDate, endLocalDate);
+// Или использовать Duration
+
+
+//
 
 // потоки (Парма)
 ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
