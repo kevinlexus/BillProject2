@@ -2,6 +2,7 @@ package com.dic.bill.model.exs;
 
 import com.dic.bill.model.bs.AddrTp;
 import com.dic.bill.model.bs.Lst2;
+import com.dic.bill.model.scott.House;
 import com.dic.bill.model.scott.Kart;
 import com.dic.bill.model.scott.Ko;
 import com.dic.bill.model.scott.Org;
@@ -128,6 +129,11 @@ public class Eolink implements java.io.Serializable  {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name="FK_UK", referencedColumnName="ID")
 	private Eolink uk;
+
+	// дом
+	@OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	@JoinColumn(name="FK_HOUSE", referencedColumnName="ID")
+	private House house;
 
 	// ОГРН Организации
 	@Column(name = "OGRN")

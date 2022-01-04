@@ -30,9 +30,9 @@ public class ChrgMngImpl implements ChrgMng {
 	/**
 	 * Получить записи начисления из разных источников
 	 * @author Lev
-	 * @param lsk - лиц.счет (необязательно для новой разраб.)
-	 * @param period - период выборки
-	 * @param uk - УК из Eolink
+	 * @param lsk лиц.счет (необязательно для новой разраб.)
+	 * @param period период выборки
+	 * @param uk УК из Eolink, по которой выбирается справочник услуг
 	 */
 	@Override
 	public List<SumChrgRec> getChrgGrp(String lsk, String period, Eolink uk) {

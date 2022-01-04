@@ -88,6 +88,7 @@ public class HcsBillsAsyncBuilder {
     private final PseudoTaskBuilder ptb;
     private final TaskMng taskMng;
     private final ConfigApp config;
+    private final EolinkMng eolinkMng;
 
 
     @AllArgsConstructor
@@ -695,14 +696,17 @@ public class HcsBillsAsyncBuilder {
         // владеющая лиц.счетом УК
         Eolink uk = task.getProcUk();
         // РКЦ
-        Eolink rkc = house.getParent().getParent();
-        if (rkc.getParent() != null) {
-            // это не РКЦ, найти РКЦ! // fixme переписать нахождение РКЦ рекурсивно!!! ред. 23.12.21
-            rkc = rkc.getParent();
-            if (rkc.getParent() != null) {
-                throw new CantPrepSoap("Не найдена запись РКЦ!");
-            }
+        Eolink rkc = eolinkMng.getEolinkRKC();
+        // справочник УК (может использоваться от родительской орг, как в УК 109 кис.)
+        Eolink ukReference;
+        if (task.getProcUk().getParent().getId().equals(rkc.getId())) {
+            // если родительский объект - РКЦ
+            ukReference = uk;
+        } else {
+            // если родительский объект - УК
+            ukReference = task.getProcUk().getParent();
         }
+
         // получить период импорта ПД
         String period = eolParMng.getStr(rkc, "ГИС ЖКХ.PERIOD_IMP_PD");
         if (period == null) {
@@ -750,7 +754,7 @@ public class HcsBillsAsyncBuilder {
                     break;
                 }
                 log.info("Добавление платежного документа, Pdoc.id={}", t.getId());
-                boolean isAdd = addPaymentDocument(uk, t, house, req, tguidPay);
+                boolean isAdd = addPaymentDocument(uk, t, req, tguidPay, ukReference);
                 t.setIsConfirmCorrect(true);
                 if (isAdd) {
                     // если хотя бы один документ добавлен - загружать
@@ -829,18 +833,19 @@ public class HcsBillsAsyncBuilder {
     /**
      * Добавление платежного документа
      *
-     * @param uk       организация
-     * @param pdoc     ПД
-     * @param req      запрос
-     * @param tguidPay транспортный GUID платежных реквизитов
+     * @param uk          организация
+     * @param pdoc        ПД
+     * @param req         запрос
+     * @param tguidPay    транспортный GUID платежных реквизитов
+     * @param ukReference УК, по которой используется справочник услуг для ПД
      * @return добавлен ли документ
-     * @throws CantPrepSoap   невозможно создать SOAP
-     * @throws WrongGetMethod некорректный параметр
+     * @throws CantPrepSoap невозможно создать SOAP
      */
-    private Boolean addPaymentDocument(Eolink uk, Pdoc pdoc, Eolink house,
+    private Boolean addPaymentDocument(Eolink uk, Pdoc pdoc,
                                        ImportPaymentDocumentRequest req,
-                                       String tguidPay)
-            throws CantPrepSoap, WrongGetMethod, ParseException {
+                                       String tguidPay,
+                                       Eolink ukReference)
+            throws CantPrepSoap, ParseException {
         PaymentDocument pd = new PaymentDocument();
         // оступ
         log.info("");
@@ -895,7 +900,7 @@ public class HcsBillsAsyncBuilder {
         pd.setPaymentDocumentNumber(pdoc.getCd());
         List<SumChrgRec> lstSum
                 =
-                chrgMng.getChrgGrp(acc.getKart().getLsk(), period, uk).stream()
+                chrgMng.getChrgGrp(acc.getKart().getLsk(), period, ukReference).stream()
                         .map(t -> new SumChrgRecAlter
                                 (t.getUlistId(), t.getChrg(), t.getChng(),
                                         t.getVol(),

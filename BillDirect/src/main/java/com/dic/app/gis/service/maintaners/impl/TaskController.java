@@ -109,7 +109,7 @@ public class TaskController implements TaskControllers {
                     if (!queueTask.contains(taskId) && !taskInWork.containsKey(taskId)) {
                         taskInWork.put(taskId, taskId);
                         queueTask.put(taskId);
-                        log.info("Задача id={}, ушла в очередь", taskId);
+                        log.trace("Задача id={}, ушла в очередь", taskId);
                     }
                 }
             } catch (Exception e) {

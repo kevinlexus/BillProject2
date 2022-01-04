@@ -46,9 +46,9 @@
 
     <cache-template name="entityCache">
         <expiry>
-            <ttl unit="minutes">30</ttl>
+            <ttl unit="minutes">60</ttl>
         </expiry>
-        <heap unit="entries">2000</heap>
+        <heap unit="entries">5000</heap>
     </cache-template>
 
 </config>

@@ -2013,7 +2013,11 @@ public class HouseManagementAsyncBindingBuilder {
 
     public void checkPeriodicHouseExp(Integer taskId) throws WrongParam {
         Task task = em.find(Task.class, taskId);
-        // создать по всем домам задания на экспорт объектов дома, если их нет
+
+        // удалить задания, которые необходимо пересоздать
+        eolinkDao2.deleteTaskHouseWithMismatchUpdateDate();
+
+        // создать по всем домам задания на экспорт объектов дома, если их нет fixme Переделать! По Частному сектору не нужно создавать такие задания!
         // создавать по 10 штук, иначе - блокировка Task (нужен коммит)
         int a = 1;
         for (Eolink e : eolinkDao.getEolinkByTpWoTaskTp("Дом", "GIS_EXP_HOUSE", "SYSTEM_RPT_HOUSE_EXP")) {

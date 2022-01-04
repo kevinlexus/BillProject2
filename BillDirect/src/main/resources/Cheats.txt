@@ -19,8 +19,20 @@
     Period periodBetween = Period.between(startLocalDate, endLocalDate);
 // Или использовать Duration
 
+// удобный цикл по неделям (или датам) в цикле stream:
+startLocalDate.datesUntil(endLocalDate,
+Period.ofWeeks(1)).forEach(System.out::println);
 
-//
+// сравнение массивов
+ Arrays.equals(melons1, melons2)
+
+// получить массив чисел вот так:
+int[] arr = IntStream.rangeClosed(1, 21).toArray();
+
+// разбить объекты на две группы, по весу
+Map<Boolean, List<Melon>> separatedMelons = melons.stream()
+.collect(Collectors.partitioningBy(
+(Melon t) -> t.getWeight () >= 3000));
 
 // потоки (Парма)
 ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());

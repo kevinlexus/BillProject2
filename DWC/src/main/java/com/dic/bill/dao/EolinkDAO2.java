@@ -1,9 +1,9 @@
 package com.dic.bill.dao;
 
 import com.dic.bill.dto.HouseUkTaskRec;
-import com.dic.bill.dto.BaseHouseUkTaskRec;
 import com.dic.bill.model.exs.Eolink;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,7 +19,7 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
      *
      * @param masterTaskCD - CD ведущего задания (например 'GIS_EXP_HOUSE')
      * @param checkTaskCD  - CD задания для проверки (например 'GIS_EXP_ACCS')
-     * @param isPrivate  - МКД -0, Частный сектор -1
+     * @param isPrivate    - МКД -0, Частный сектор -1
      */
     @Query(value = "select distinct t.id as eolHouseId, uk.id as eolUkId, " +
             "s2.id as masterTaskId from exs.eolink t "
@@ -47,7 +47,7 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
      * БЕЗ ведущего задания
      *
      * @param checkTaskCD CD задания для проверки (например 'GIS_EXP_ACCS')
-     * @param isPrivate  МКД -0, Частный сектор -1
+     * @param isPrivate   МКД -0, Частный сектор -1
      */
     @Query(value = "select distinct t.id as eolHouseId, uk.id as eolUkId, " +
             "null as masterTaskId from exs.eolink t "
@@ -76,14 +76,20 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
 
 
     /**
-     * Удалить задания по домам, которые не соответствуют дате обновления дома, для того, чтобы запустить процесс пересоздания задания
+     * Удалить задания выгрузки объектов, лиц.счетов, по домам,
+     * в которых дата обновления дома позже чем дата создания задания, для того, чтобы запустить процесс пересоздания задания.
+     * Сделано, чтобы например задания по Частному сектору, исполнялись без наличия master задания
      */
+    @Modifying
     @Query(value = "delete from exs.task t where " +
-            "exists (select * from exs.eolink e join bs.list stp on t. and t.fk_act=stp.id " +
-            "and stp.cd=:checkTaskCD" +
-            "" +
-            ") ", nativeQuery = true)
-    void deleteTaskHouseWithMismatchUpdateDate(@Param("checkTaskCD") String checkTaskCD);
+            "            exists (select * from exs.eolink e " +
+            "            join bs.list stp on stp.cd in ('GIS_EXP_ACCS', 'GIS_EXP_HOUSE') " +
+            "            join bs.addr_tp atp on e.fk_objtp=atp.id and atp.cd in ('Дом') " +
+            "            join scott.c_houses h on e.fk_house=h.id " +
+            "            where t.fk_act=stp.id and t.fk_eolink=e.id and h.dt_upd > t.dt_crt " +
+            "            )", nativeQuery = true)
+    void deleteTaskHouseWithMismatchUpdateDate();
+
 
     /*
      * Найти Лиц.счета, по помещениям, входящим в подъезд, по Дому, по УК
@@ -129,8 +135,9 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
     /**
      * Найти открытые лиц.счета из Kart, которых нет в Eolink, но по которым есть помещения в Eolink,
      * входящие в подъезд
+     *
      * @param eolHouseId - Id дома
-     * @param eolUkId - Id владеющая лиц.счетом УК
+     * @param eolUkId    - Id владеющая лиц.счетом УК
      */
     @Query(value = "select k.lsk from SCOTT.KART k " +
             "join EXS.EOLINK t on k.reu=t.reu and t.id=:eolUkId " +
@@ -148,8 +155,9 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
     /**
      * Найти открытые лиц.счета из Kart, которых нет в Eolink, но по которым есть помещения в Eolink,
      * НЕ входящие в подъезд
+     *
      * @param eolHouseId - Id дома
-     * @param eolUkId - Id владеющая лиц.счетом УК
+     * @param eolUkId    - Id владеющая лиц.счетом УК
      */
     @Query(value = "select k.lsk from SCOTT.KART k " +
             "join EXS.EOLINK t on k.reu=t.reu and t.id=:eolUkId " +
@@ -165,6 +173,7 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
 
     /**
      * Получить объект по TGUID
+     *
      * @param tguid - TGUID
      */
     @Query("select t from Eolink t where t.tguid=:tguid")
