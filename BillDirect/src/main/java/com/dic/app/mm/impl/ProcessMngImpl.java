@@ -106,6 +106,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                 .withIsMultiThreads(true)
                 .withStopMark("processMng.process")
                 .build();
+        reqConf.prepareChrgCountAmount(); // fixme сделал, потому что в Полыс. валилось в автоначислении: java.lang.NullPointerException: Cannot invoke "com.dic.bill.dto.ChrgCountAmount.setResultVol(java.math.BigDecimal) pp.mm.impl.GenChrgProcessMngImpl.genChrg(GenChrgProcessMngImpl.java:181)
         reqConf.prepareId();
         //StopWatch sw = new StopWatch();
         //sw.start("TIMING: " + reqConf.getTpName());
