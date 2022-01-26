@@ -13,26 +13,32 @@
   String name = Objects.requireNonNull(name1, "Ошибка, name1 == null!")
     +Objects.requireNonNull(name2, "Ошибка, name2 == null!");
 
+// Сравнение массивов
+ Arrays.equals(melons1, melons2)
+
+// Получить массив чисел вот так:
+int[] arr = IntStream.rangeClosed(1, 21).toArray();
+
+// Разбить объекты на две группы, по весу
+Map<Boolean, List<Melon>> separatedMelons = melons.stream()
+.collect(Collectors.partitioningBy(
+(Melon t) -> t.getWeight () >= 3000));
+
 // Удобно получать периоды между датами
     LocalDate startLocalDate = LocalDate.of (2018, 3, 12);
     LocalDate endLocalDate = LocalDate.of(2019, 7, 20);
     Period periodBetween = Period.between(startLocalDate, endLocalDate);
 // Или использовать Duration
 
-// удобный цикл по неделям (или датам) в цикле stream:
+// Или вот так:
+    long years = ChronoUnit.YEARS.between(startLocalDate, endLocalDate);
+
+// Удобный цикл по неделям (или датам) в цикле stream:
 startLocalDate.datesUntil(endLocalDate,
 Period.ofWeeks(1)).forEach(System.out::println);
 
-// сравнение массивов
- Arrays.equals(melons1, melons2)
 
-// получить массив чисел вот так:
-int[] arr = IntStream.rangeClosed(1, 21).toArray();
 
-// разбить объекты на две группы, по весу
-Map<Boolean, List<Melon>> separatedMelons = melons.stream()
-.collect(Collectors.partitioningBy(
-(Melon t) -> t.getWeight () >= 3000));
 
 // потоки (Парма)
 ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());

@@ -81,26 +81,39 @@ public class TaskController implements TaskControllers {
         log.info("*************");
 */
 
-        //log.info("queueTask.size={}", queueTask.size());
-        taskInWork.forEach((key, value) -> log.info("taskInWork taskId={}", key));
-        queueTask.forEach(t -> log.info("queueTask taskId={}", t));
+        //log.trace("queueTask.size={}", queueTask.size());
+        //taskInWork.forEach((key, value) -> log.trace("taskInWork taskId={}", key));
+        //queueTask.forEach(t -> log.trace("queueTask taskId={}", t));
         if (queueTask.size() < COUNT_OF_THREADS) {
             // перебрать все необработанные задания
             List<Task> unprocessedTasks;
             if (queueTask.size() > 0) {
+/*
+                taskDao2.getAllUnprocessedAndNotActive(new ArrayList<>(queueTask))
+                        .stream()
+                        .forEach(t-> log.info("1.check task.id={}", t.getId()));
+
+*/
                 unprocessedTasks = taskDao2.getAllUnprocessedAndNotActive(new ArrayList<>(queueTask))
                         .stream()
                        // .filter(t->t.getAct().getId().equals(2052))
                         .filter(t -> t.getPriority() != null || (t.getDtNextStart() == null || t.getDtNextStart().getTime() <= new Date().getTime())) //следующий старт
                         .sorted(Comparator.comparing((Task t) -> Utl.nvl(t.getPriority(), 0)).reversed().thenComparing(Task::getId))
-                        .limit(LIMIT_OF_TASKS).collect(Collectors.toList());
+                        //.limit(LIMIT_OF_TASKS)
+                        .collect(Collectors.toList());
             } else {
+/*
+                taskDao2.getAllUnprocessed()
+                        .stream()
+                        .forEach(t-> log.info("2.check task.id={}", t.getId()));
+*/
                 unprocessedTasks = taskDao2.getAllUnprocessed()
                         .stream()
                        // .filter(t->t.getAct().getId().equals(2052))
                         .filter(t -> t.getPriority() != null || (t.getDtNextStart() == null || t.getDtNextStart().getTime() <= new Date().getTime())) //следующий старт
                         .sorted(Comparator.comparing((Task t) -> Utl.nvl(t.getPriority(), 0)).reversed().thenComparing(Task::getId))
-                        .limit(LIMIT_OF_TASKS).collect(Collectors.toList());
+                        //.limit(LIMIT_OF_TASKS)
+                        .collect(Collectors.toList());
             }
 
             try {
