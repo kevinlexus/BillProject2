@@ -9,6 +9,7 @@ import com.dic.bill.model.scott.Org;
 import com.ric.cmn.excp.CantPrepSoap;
 import com.ric.cmn.excp.WrongGetMethod;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
@@ -64,7 +65,7 @@ public class ReqProp {
         // или из параметра по УК (ТСЖ Содружество, Свободы)
         gisVersion = config.getGisVersion();
         hostIp = config.getHostIp();
-        if (hostIp == null) {
+        if (StringUtils.isEmpty(hostIp)) {
             try {
                 hostIp = eolParMng.getStr(eolinkUk, "ГИС ЖКХ.HOST_IP");
             } catch (WrongGetMethod wrongGetMethod) {
