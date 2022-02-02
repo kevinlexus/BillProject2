@@ -29,9 +29,9 @@ public class TaskProcessor {
     private final TaskMng taskMng;
     private final EntityManager em;
     private final HouseManagementAsyncBindingBuilder hb;
+    private final DebtRequestsServiceAsyncBindingBuilder db;
     private final HcsOrgRegistryAsyncBindingBuilder os;
     private final HcsOrgRegistryAsyncBindingSimpleBuilder osSimple;
-//    private final HcsOrgRegistryAsyncBindingSimpleBuilder2 osSimple;
     private final DeviceMeteringAsyncBindingBuilder dm;
     private final HcsBillsAsyncBuilder bill;
     private final TaskServices tb;
@@ -151,6 +151,16 @@ public class TaskProcessor {
                 } else if (state.equals("ACK")) {
                     // Запрос ответа
                     hb.exportHouseDataAsk(task.getId());
+                }
+                break;
+            case "GIS_EXP_DEB_SUB_REQUEST":
+                // Экспорт из ГИС ЖКХ запросы по задолженностям
+                if (state.equals("INS")) {
+                    //db.exportDebtSubrequests(task.getId());
+                    db.exportDebtRequests(task.getId());
+                } else if (state.equals("ACK")) {
+                    // Запрос ответа
+                    db.exportDebtSubrequestsAsk(task.getId());
                 }
                 break;
             case "GIS_EXP_ACCS":

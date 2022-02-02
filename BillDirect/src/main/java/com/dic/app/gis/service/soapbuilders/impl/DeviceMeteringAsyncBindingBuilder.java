@@ -229,7 +229,7 @@ public class DeviceMeteringAsyncBindingBuilder {
 
             if (ulistMng.getResType(meter.getUsl()) == 1) {
                 ElectricDeviceValue elVal = new ElectricDeviceValue();
-                ElectricMeteringValueImportType currElVal = new ElectricMeteringValueImportType();
+                ElectricDeviceValue.CurrentValue currElVal = new ElectricDeviceValue.CurrentValue();
 
                 // Дата снятия показания
                 currElVal.setDateValue(Utl.getXMLDate(dtGet));
@@ -252,8 +252,7 @@ public class DeviceMeteringAsyncBindingBuilder {
                 val.setElectricDeviceValue(elVal);
             } else if (ulistMng.getResType(meter.getUsl()) == 0) {
                 OneRateDeviceValue oneRateVal = new OneRateDeviceValue();
-                OneRateMeteringValueImportType currOneRateVal =
-                        new OneRateMeteringValueImportType();
+                OneRateDeviceValue.CurrentValue currOneRateVal = new OneRateDeviceValue.CurrentValue();
                 currOneRateVal.setDateValue(Utl.getXMLDate(dtGet));
 
                 // показания по тарифам
