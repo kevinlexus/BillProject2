@@ -156,8 +156,7 @@ public class TaskProcessor {
             case "GIS_EXP_DEB_SUB_REQUEST":
                 // Экспорт из ГИС ЖКХ запросы по задолженностям
                 if (state.equals("INS")) {
-                    //db.exportDebtSubrequests(task.getId());
-                    db.exportDebtRequests(task.getId());
+                    db.exportDebtSubrequests(task.getId());
                 } else if (state.equals("ACK")) {
                     // Запрос ответа
                     db.exportDebtSubrequestsAsk(task.getId());

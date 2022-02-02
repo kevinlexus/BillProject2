@@ -1,16 +1,12 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
 
-import com.dic.app.gis.service.maintaners.*;
+import com.dic.app.gis.service.maintaners.EolinkParMng;
+import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.gis.service.maintaners.impl.ReqProp;
-import com.dic.app.gis.service.soap.SoapConfigs;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.mm.ConfigApp;
-import com.dic.bill.UlistDAO;
-import com.dic.bill.dao.*;
-import com.dic.bill.mm.KartMng;
-import com.dic.bill.mm.LstMng;
-import com.dic.bill.mm.MeterMng;
+import com.dic.bill.dao.DebRequestDAO;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
 import com.ric.cmn.Utl;
@@ -24,7 +20,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,28 +48,12 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class DebtRequestsServiceAsyncBindingBuilder {
 
-    private final ApplicationContext ctx;
     @PersistenceContext
     private EntityManager em;
-    private final UlistMng ulistMng;
     private final ConfigApp config;
-    private final TaskParMng taskParMng;
-    private final EolinkDAO eolinkDao;
-    private final EolinkDAO2 eolinkDao2;
-    private final AddrTpDAO addrTpDAO;
-    private final OrgDAO orgDAO;
-    private final UlistDAO ulistDAO;
-    private final EolinkParMng eolinkParMng;
-    private final TaskEolinkParMng teParMng;
-    private final TaskDAO taskDao;
-    private final KartMng kartMng;
-    private final EolinkMng eolinkMng;
     private final TaskMng taskMng;
-    private final LstMng lstMng;
-    private final SoapConfigs soapConfig;
-    private final MeterMng meterMng;
-    private final PseudoTaskBuilder ptb;
     private final EolinkParMng eolParMng;
+    private final DebRequestDAO debRequestDAO;
 
     @Getter
     @Setter
@@ -197,12 +176,15 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
         Period period = new Period();
-        XMLGregorianCalendar startDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.of(2021, 12, 1).atStartOfDay().toInstant(ZoneOffset.UTC)));
+        XMLGregorianCalendar startDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.of(2021, 11, 1).atStartOfDay().toInstant(ZoneOffset.UTC)));
         period.setStartDate(startDate);
         XMLGregorianCalendar endDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.of(2022, 2, 1).atStartOfDay().toInstant(ZoneOffset.UTC)));
         period.setEndDate(endDate);
         req.setPeriodOfSendingRequest(period);
-        //req.getRequestStatus().add(RequestStatusType.SENT);
+
+        req.getHouseGUID().add(task.getEolink().getGuid());
+        req.getResponseStatus().add(ResponseStatusType.SENT);
+        //req.getResponseStatus().add(ResponseStatusType.NOT_SENT);
 
         try {
             ack = par.port.exportDebtSubrequests(req);
@@ -244,14 +226,21 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
         Period period = new Period();
-        XMLGregorianCalendar startDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.of(2021, 12, 1).atStartOfDay().toInstant(ZoneOffset.UTC)));
+        XMLGregorianCalendar startDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.of(2022, 1, 26).atStartOfDay().toInstant(ZoneOffset.UTC)));
         period.setStartDate(startDate);
         XMLGregorianCalendar endDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.of(2022, 2, 1).atStartOfDay().toInstant(ZoneOffset.UTC)));
         period.setEndDate(endDate);
 
         req.setRequestCreationPeriod(period);
-        req.setPeriodOfSendingRequest(period);
-        //req.getRequestStatus().add(AllRequestStatusesType.SENT);
+        //req.setPeriodOfSendingRequest(period);
+        req.getHouseGUID().add(task.getEolink().getGuid());
+        req.getRequestStatus().add(AllRequestStatusesType.SENT);
+/*
+        req.getRequestStatus().add(AllRequestStatusesType.PROCESSED);
+        req.getRequestStatus().add(AllRequestStatusesType.PROCESSING);
+        req.getRequestStatus().add(AllRequestStatusesType.REVOKED);
+        req.getRequestStatus().add(AllRequestStatusesType.DRAFT);
+*/
 
         try {
             ack = par.port.exportDebtRequests(req);
@@ -291,6 +280,25 @@ public class DebtRequestsServiceAsyncBindingBuilder {
             // не обработано
         } else if (!task.getState().equals("ERR")) {
             // Ошибок нет, обработка
+            ExportDRsResultType exportDRsResultType = retState.getExportDRsResult();
+            ExportDRsResultType.PagedOutput pagedOutput = exportDRsResultType.getPagedOutput();
+            log.info("pagedOutput.isLastPage()={}", pagedOutput.isLastPage());
+            for (ExportDRType exportDRType : exportDRsResultType.getRequestData()) {
+                /*Optional<DebRequest> requestOpt = debRequestDAO.getByRequestGuid(exportDRType.getRequestGUID());
+                if (requestOpt.isEmpty()) {
+                    DebRequest debRequest = new DebRequest();
+                    debRequest.setRequestGuid(exportDRType.getRequestGUID());
+                    debRequest.setRequestNumber(exportDRType.getRequestNumber());
+                    ExportHousingFundObjectInfoType housingFundObject = exportDRType.getHousingFundObject();
+                    debRequest.setHouseGuid(housingFundObject.getFiasHouseGUID());
+                    debRequest.setAddress(housingFundObject.getAddress());
+                }
+*/
+
+            }
+
+
+            // todo оставить что то одно
             ExportDSRsResultType result = retState.getExportDSRsResult();
             log.info("result={}", result);
             // Установить статус выполнения задания
