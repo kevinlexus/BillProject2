@@ -1,19 +1,22 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
 
+import com.dic.app.enums.DebtSubRequestInnerStatuses;
+import com.dic.app.enums.DebtSubRequestResponseStatuses;
+import com.dic.app.enums.DebtSubRequestStatuses;
 import com.dic.app.gis.service.maintaners.EolinkParMng;
 import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.gis.service.maintaners.impl.ReqProp;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.mm.ConfigApp;
-import com.dic.bill.dao.DebRequestDAO;
+import com.dic.bill.dao.DebSubRequestDAO;
+import com.dic.bill.dao.EolinkDAO;
+import com.dic.bill.dao.EolinkDAO2;
+import com.dic.bill.model.exs.DebSubRequest;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
 import com.ric.cmn.Utl;
-import com.ric.cmn.excp.CantPrepSoap;
-import com.ric.cmn.excp.CantSendSoap;
-import com.ric.cmn.excp.UnusableCode;
-import com.ric.cmn.excp.WrongGetMethod;
+import com.ric.cmn.excp.*;
 import com.sun.xml.ws.developer.WSBindingProvider;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -38,6 +41,7 @@ import javax.xml.ws.BindingProvider;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Date;
+import java.util.Optional;
 
 /**
  * Сервис обмена информацией с ГИС ЖКХ по Дому
@@ -53,7 +57,8 @@ public class DebtRequestsServiceAsyncBindingBuilder {
     private final ConfigApp config;
     private final TaskMng taskMng;
     private final EolinkParMng eolParMng;
-    private final DebRequestDAO debRequestDAO;
+    private final EolinkDAO eolinkDAO;
+    private final DebSubRequestDAO debSubRequestDAO;
 
     @Getter
     @Setter
@@ -183,8 +188,8 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         req.setPeriodOfSendingRequest(period);
 
         req.getHouseGUID().add(task.getEolink().getGuid());
-        req.getResponseStatus().add(ResponseStatusType.SENT);
-        //req.getResponseStatus().add(ResponseStatusType.NOT_SENT);
+        req.getResponseStatus().add(ResponseStatusType.SENT); // todo исправить
+        req.setIncludeResponses(true);
 
         try {
             ack = par.port.exportDebtSubrequests(req);
@@ -207,70 +212,21 @@ public class DebtRequestsServiceAsyncBindingBuilder {
 
     }
 
-
-    public void exportDebtRequests(Integer taskId) throws CantPrepSoap, WrongGetMethod, DatatypeConfigurationException, CantSendSoap {
+    public void exportDebtSubrequestsAsk(Integer taskId) throws UnusableCode, CantPrepSoap, CantSendSoap, WrongParam {
         Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
+
         // Установить параметры SOAP
         SoapPar par = setUp(task);
 
-        AckRequest ack = null;
-
-        // для обработки ошибок
-        boolean err = false;
-        String errMainStr = null;
-
-        ExportDRsRequest req = new ExportDRsRequest();
-
-        req.setId("foo");
-        req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
-
-        Period period = new Period();
-        XMLGregorianCalendar startDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.of(2022, 1, 26).atStartOfDay().toInstant(ZoneOffset.UTC)));
-        period.setStartDate(startDate);
-        XMLGregorianCalendar endDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.of(2022, 2, 1).atStartOfDay().toInstant(ZoneOffset.UTC)));
-        period.setEndDate(endDate);
-
-        req.setRequestCreationPeriod(period);
-        //req.setPeriodOfSendingRequest(period);
-        req.getHouseGUID().add(task.getEolink().getGuid());
-        req.getRequestStatus().add(AllRequestStatusesType.SENT);
-/*
-        req.getRequestStatus().add(AllRequestStatusesType.PROCESSED);
-        req.getRequestStatus().add(AllRequestStatusesType.PROCESSING);
-        req.getRequestStatus().add(AllRequestStatusesType.REVOKED);
-        req.getRequestStatus().add(AllRequestStatusesType.DRAFT);
+/* Работа статусов:
+        status_gis = sent        status = received
+        status_gis = sent        status = sent      - изменили и отправили
+        status_gis = sent        status = accepted
+        status_gis = sent        status = sent      - изменили и отправили
+        status_gis = sent        status = accepted
+        status_gis = sent        status = revoked   - отменили
 */
-
-        try {
-            ack = par.port.exportDebtRequests(req);
-        } catch (ru.gosuslugi.dom.schema.integration.drs_service_async.Fault e1) {
-            e1.printStackTrace();
-            err = true;
-            errMainStr = e1.getFaultInfo().getErrorMessage();
-        }
-
-        if (err) {
-            task.setState("ERR");
-            task.setResult("Ошибка при отправке XML: " + errMainStr);
-            taskMng.logTask(task, false, false);
-        } else {
-            // Установить статус "Запрос статуса"
-            task.setState("ACK");
-            task.setMsgGuid(ack.getAck().getMessageGUID());
-            taskMng.logTask(task, false, true);
-        }
-
-    }
-
-
-    public void exportDebtSubrequestsAsk(Integer taskId) throws UnusableCode, CantPrepSoap, CantSendSoap {
-        Task task = em.find(Task.class, taskId);
-        taskMng.logTask(task, true, null);
-
-        // Установить параметры SOAP
-        SoapPar par = setUp(task);
-
         // дом
         Eolink houseEol = task.getEolink();
         // получить состояние
@@ -280,27 +236,96 @@ public class DebtRequestsServiceAsyncBindingBuilder {
             // не обработано
         } else if (!task.getState().equals("ERR")) {
             // Ошибок нет, обработка
-            ExportDRsResultType exportDRsResultType = retState.getExportDRsResult();
-            ExportDRsResultType.PagedOutput pagedOutput = exportDRsResultType.getPagedOutput();
-            log.info("pagedOutput.isLastPage()={}", pagedOutput.isLastPage());
-            for (ExportDRType exportDRType : exportDRsResultType.getRequestData()) {
-                /*Optional<DebRequest> requestOpt = debRequestDAO.getByRequestGuid(exportDRType.getRequestGUID());
-                if (requestOpt.isEmpty()) {
-                    DebRequest debRequest = new DebRequest();
-                    debRequest.setRequestGuid(exportDRType.getRequestGUID());
-                    debRequest.setRequestNumber(exportDRType.getRequestNumber());
-                    ExportHousingFundObjectInfoType housingFundObject = exportDRType.getHousingFundObject();
-                    debRequest.setHouseGuid(housingFundObject.getFiasHouseGUID());
-                    debRequest.setAddress(housingFundObject.getAddress());
-                }
+            ExportDSRsResultType exportDSRsResult = retState.getExportDSRsResult();
+
+            ExportDSRsResultType.PagedOutput pagedOutput = exportDSRsResult.getPagedOutput();
+            for (DSRType subrequest : exportDSRsResult.getSubrequestData()) {
+                DSRType.RequestInfo requestInfo = subrequest.getRequestInfo();
+                if (requestInfo != null) {
+                    ExportHousingFundObjectInfoType housingFundObject = requestInfo.getHousingFundObject();
+
+                    DebSubRequest debSubRequest;
+                    Optional<DebSubRequest> requestOpt = debSubRequestDAO.getByRequestGuid(subrequest.getSubrequestGUID());
+                    if (requestOpt.isEmpty()) {
+                        debSubRequest = new DebSubRequest();
+                    } else {
+                        debSubRequest = requestOpt.get();
+                    }
+
+                    // статус запроса в ГИС
+                    debSubRequest.setStatusGis(DebtSubRequestStatuses.getByName(requestInfo.getStatus().value()).getId());
+
+                    debSubRequest.setRequestGuid(subrequest.getSubrequestGUID());
+                    debSubRequest.setRequestNumber(requestInfo.getRequestNumber());
+
+                    Eolink house = eolinkDAO.getEolinkByGuid(housingFundObject.getFiasHouseGUID());
+                    debSubRequest.setHouse(house);
+                    debSubRequest.setAddress(housingFundObject.getAddress());
+                    debSubRequest.setAddressDetail(housingFundObject.getAddressDetails());
+                    debSubRequest.setSentDate(Utl.getDateFromXmlGregCal(requestInfo.getSentDate()));
+                    debSubRequest.setResponseDate(Utl.getDateFromXmlGregCal(requestInfo.getResponseDate()));
+
+                    debSubRequest.setExecutorGUID(requestInfo.getExecutorInfo().getGUID());
+                    debSubRequest.setExecutorFIO(requestInfo.getExecutorInfo().getFio());
+                    OrganizationInfoType organization = requestInfo.getOrganization();
+                    debSubRequest.setOrgFromGuid(organization.getOrgRootGUID());
+                    debSubRequest.setOrgFromName(organization.getName());
+                    debSubRequest.setOrgFromPhone(organization.getTel());
+
+                    if (subrequest.getResponseData() != null) {
+                        debSubRequest.setHasDebt(subrequest.getResponseData().isHasDebt());
+                        debSubRequest.setResponseStatus(DebtSubRequestResponseStatuses.getByName(subrequest.getResponseStatus().value()).getId());
+                    }
+
+
+/* fixme !
+•	элементы debtInfo и additionalFile могут быть указаны, только при наличии задолженности, подтвержденной судебным актом (т.е. когда элемент hasDebt принимает значение TRUE);
+•	при наличии задолженности, подтвержденной судебным актом (т.е. когда элемент hasDebt принимает значение TRUE), необходимо указать хотя бы один элемент debtInfo;
+•	идентификатор исполнителя (executorGUID) можно посмотреть в личном кабинете ГИС ЖКХ в разделе "Администрирование" / "Сотрудники".
 */
 
+                    debSubRequestDAO.save(debSubRequest);
+                } else {
+                    log.error("DSRType.RequestInfo requestInfo - пустой");
+                }
+
+
+                //debSubRequest.setCreationDate(subrequest.);
+/*
+                    if (subrequest.getResponseData().getDebtInfo().size()>1) {
+                        log.warn("Внимание! Информация о задолжнике может быть утрачена, принято больше 1 записи в subrequest.getResponseData().getDebtInfo()!");
+                    }
+                    Optional<DebtInfoType> debtInfoOpt = subrequest.getResponseData().getDebtInfo().stream().findFirst();
+                    debtInfoOpt.ifPresent(t-> {
+                        if (t.getPerson()!=null) {
+                            debSubRequest.setFirstName(t.getPerson().getFirstName());
+                            debSubRequest.setLastName(t.getPerson().getLastName());
+                            debSubRequest.setMiddleName(t.getPerson().getMiddleName());
+                            debSubRequest.setSnils(t.getPerson().getSnils());
+                            t.getDocument().stream().findFirst().ifPresent(d->debSubRequest.setDocType(d.getType().getName())); // todo док подтвержд.задолжн.
+                        }
+                    });
+*/
+/*
+                    debSubRequest.setDocSeria(debtInfo);
+                    debSubRequest.setDocNumber();
+                    debSubRequest.setDocType();
+                    debSubRequest.setHasDebt();
+                    debSubRequest.setResponseDate();
+
+                    debSubRequest.setFirstName();
+                    debSubRequest.setLastName();
+                    debSubRequest.setMiddleName();
+                    debSubRequest.setResponseDate();
+                    debSubRequest.setExecutorFIO();
+                    debSubRequest.setExecutorGUID();
+                    debSubRequest.setOrgFromGuid();
+                    debSubRequest.setOrgFromName();
+                    debSubRequest.setOrgFromPhone();
+*/
+
+
             }
-
-
-            // todo оставить что то одно
-            ExportDSRsResultType result = retState.getExportDSRsResult();
-            log.info("result={}", result);
             // Установить статус выполнения задания
             task.setState("ACP");
             //log.info("******* Task.id={}, экспорт объектов дома выполнен", task.getId());

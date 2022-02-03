@@ -1,11 +1,13 @@
 package com.dic.app.gis.service.maintaners.impl;
 
 
+import com.dic.app.gis.service.maintaners.TaskParMng;
 import com.dic.app.gis.service.soapbuilders.TaskServices;
 import com.dic.bill.dao.TaskDAO;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.TaskPar;
 import com.ric.cmn.Utl;
+import com.ric.cmn.excp.WrongGetMethod;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.CronExpression;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,8 @@ public class TaskService implements TaskServices {
     private EntityManager em;
     @Autowired
     private TaskDAO taskDao;
+    @Autowired
+    private TaskParMng taskParMng;
     // расписание
     List<TaskPar> lstSched = new ArrayList<>(20);
     // список сработавших событий в расписании
@@ -118,7 +122,7 @@ public class TaskService implements TaskServices {
      */
     @Scheduled(fixedDelay = 20000)
     @Transactional
-    public void loadTasksByTimer() {
+    public void loadTasksByTimer() throws WrongGetMethod {
         loadSchedules();
     }
 
@@ -198,19 +202,20 @@ public class TaskService implements TaskServices {
     /**
      * Загрузить расписания работы всех заданий типа GIS_SYSTEM_RPT
      */
-    private void loadSchedules() {
+    private void loadSchedules() throws WrongGetMethod {
         // Получить все параметры определённого типа по всем задачам
         synchronized (lstSched) {
             lstSched = new ArrayList<>(0);
             List<Task> lstTask = new ArrayList<>(taskDao.getByTp("GIS_SYSTEM_RPT"));
-            for (Task t : lstTask) {
-                TaskPar par = t.getTaskPar().stream()
+            for (Task task : lstTask) {
+                TaskPar par = task.getTaskPar().stream()
                         .filter(d -> d.getPar().getCd().equals("ГИС ЖКХ.Crone"))
                         .findFirst().orElse(null);
                 if (par != null) {
                     lstSched.add(par);
                 } else {
-                    log.warn("ОШИБКА! Не обнаружен параметр \"ГИС ЖКХ.Crone\" по повторяемому заданию с типом \"GIS_SYSTEM_RPT\"");
+                    log.warn("Не обнаружен параметр \"ГИС ЖКХ.Crone\" по повторяемому заданию с типом \"GIS_SYSTEM_RPT\" task.id={}, будет создан по умолчанию", task.getId());
+                    taskParMng.setStr(task, "ГИС ЖКХ.Crone", "0 0 1 * * ?");
                 }
             }
         }
