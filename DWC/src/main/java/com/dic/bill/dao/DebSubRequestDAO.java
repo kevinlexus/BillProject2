@@ -8,8 +8,9 @@ import java.util.Optional;
 
 public interface DebSubRequestDAO extends JpaRepository<DebSubRequest, Integer> {
 
-    List<DebSubRequest> getAllByHouseGuid(String guid);
-
     Optional<DebSubRequest> getByRequestGuid(String guid);
 
+    Optional<DebSubRequest> getByTguid(String guid);
+
+    List<DebSubRequest> getAllByStatusInAndHouseId(List<Integer> statuses, Integer houseId);
 }

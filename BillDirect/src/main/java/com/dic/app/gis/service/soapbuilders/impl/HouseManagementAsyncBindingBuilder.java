@@ -2113,11 +2113,11 @@ public class HouseManagementAsyncBindingBuilder {
 
         // создать независимые задания по импорту ответов на запросы о задолженности от УСЗН
         // получить дома без заданий
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_IMP_DEB_SUB_ANSWER", 0)) {
+        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_IMP_DEB_SUB_RESPONSE", 0)) {
 
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
             Eolink procUk = em.find(Eolink.class, t.getEolUkId());
-            Task newTask4 = ptb.setUp(eolHouse, null, null, "GIS_IMP_DEB_SUB_ANSWER", "INS",
+            Task newTask4 = ptb.setUp(eolHouse, null, null, "GIS_IMP_DEB_SUB_RESPONSE", "INS",
                     config.getCurUserGis().get().getId(), procUk);
             ptb.save(newTask4);
             log.info("Добавлено задание по импорту ответов на запросы о задолженности от УСЗН по Дому Eolink.id={}, Task.procUk.id={}",

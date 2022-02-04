@@ -156,10 +156,19 @@ public class TaskProcessor {
             case "GIS_EXP_DEB_SUB_REQUEST":
                 // Экспорт из ГИС ЖКХ запросы по задолженностям
                 if (state.equals("INS")) {
-                    db.exportDebtSubrequests(task.getId());
+                    db.exportDebtSubrequest(task.getId());
                 } else if (state.equals("ACK")) {
                     // Запрос ответа
-                    db.exportDebtSubrequestsAsk(task.getId());
+                    db.exportDebtSubrequestAsk(task.getId());
+                }
+                break;
+            case "GIS_IMP_DEB_SUB_RESPONSE":
+                // Экспорт из ГИС ЖКХ запросы по задолженностям
+                if (state.equals("INS")) {
+                    db.importDebtSubrequestResponse(task.getId());
+                } else if (state.equals("ACK")) {
+                    // Запрос ответа
+                    db.importDebtSubrequestResponseAsk(task.getId());
                 }
                 break;
             case "GIS_EXP_ACCS":

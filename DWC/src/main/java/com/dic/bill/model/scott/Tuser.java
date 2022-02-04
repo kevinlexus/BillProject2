@@ -31,6 +31,9 @@ public class Tuser implements java.io.Serializable, Simple {
     @Column(name = "CD")
 	private String cd;
 
+	@Column(name = "GUID")
+	private String guid; // GUID пользователя в ГИС
+
 	public Tuser() {
 		super();
 	}
