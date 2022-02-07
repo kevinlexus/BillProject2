@@ -4,8 +4,8 @@ package com.dic.app.gis.service.soapbuilders.impl;
 import com.dic.app.gis.service.maintaners.EolinkParMng;
 import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.gis.service.maintaners.TaskParMng;
-import com.dic.app.gis.service.maintaners.UlistMng;
 import com.dic.app.gis.service.maintaners.impl.ReqProp;
+import com.dic.app.gis.service.maintaners.impl.UlistMng;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.UlistDAO;
@@ -17,11 +17,9 @@ import com.ric.cmn.excp.CantPrepSoap;
 import com.ric.cmn.excp.CantSendSoap;
 import com.ric.cmn.excp.WrongGetMethod;
 import com.ric.cmn.excp.WrongParam;
-import com.sun.xml.ws.developer.WSBindingProvider;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +27,6 @@ import ru.gosuslugi.dom.schema.integration.base.AckRequest;
 import ru.gosuslugi.dom.schema.integration.base.CommonResultType;
 import ru.gosuslugi.dom.schema.integration.base.CommonResultType.Error;
 import ru.gosuslugi.dom.schema.integration.base.GetStateRequest;
-import ru.gosuslugi.dom.schema.integration.base.ResultHeader;
 import ru.gosuslugi.dom.schema.integration.nsi.ExportDataProviderNsiItemRequest;
 import ru.gosuslugi.dom.schema.integration.nsi_base.NsiElementType;
 import ru.gosuslugi.dom.schema.integration.nsi_service_async.NsiPortsTypeAsync;
@@ -37,7 +34,6 @@ import ru.gosuslugi.dom.schema.integration.nsi_service_async.NsiServiceAsync;
 
 import javax.persistence.EntityManager;
 import javax.xml.ws.BindingProvider;
-import javax.xml.ws.Holder;
 import java.math.BigInteger;
 import java.util.Date;
 
@@ -77,8 +73,8 @@ public class NsiServiceAsyncBindingBuilder {
         // подоготовительный объект для SOAP
         SoapBuilder sb = new SoapBuilder();
         ReqProp reqProp = new ReqProp(config, task, eolParMng);
-        sb.setUp((BindingProvider) port, (WSBindingProvider) port, true, reqProp.getPpGuid(),
-                reqProp.getHostIp());
+        sb.setUp((BindingProvider) port, true, reqProp.getPpGuid(),
+                reqProp.getHostIp(), true);
 
         // логгинг запросов
         sb.setTrace(task.getTrace().equals(1));

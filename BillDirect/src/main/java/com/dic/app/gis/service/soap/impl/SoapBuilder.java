@@ -66,18 +66,17 @@ public class SoapBuilder {
 
     /**
      * Инициализация
-     *
-     * @param sign   - подписать XML?
-     * @param hostIp - Ip адрес хоста
-     */
+     *  @param sign   подписать XML?
+     * @param hostIp Ip адрес хоста
+     * @param isOperatorSigned*/
 
-    public void setUp(BindingProvider port, WSBindingProvider port2, boolean sign,
-                      String ppGuid, String hostIp) throws CantSendSoap {
+    public void setUp(BindingProvider port, boolean sign,
+                      String ppGuid, String hostIp, boolean isOperatorSigned) throws CantSendSoap {
         RequestHeader rh = new RequestHeader();
         UUID messGUID = Utl.getRndUuid();
         rh.setMessageGUID(messGUID.toString());
 
-        setUp(port, null, rh, sign, true, ppGuid, hostIp);
+        setUp(port, null, rh, sign, isOperatorSigned, ppGuid, hostIp);
     }
 
     /**
@@ -102,8 +101,8 @@ public class SoapBuilder {
      * @param hostIp Ip адрес хоста
      */
     private void setUp(BindingProvider port, ISRequestHeader rhSimple,
-                       RequestHeader rh, boolean sign,
-                       boolean isOperatorSigned, String ppGuid, String hostIp) throws CantSendSoap {
+                      RequestHeader rh, boolean sign,
+                      boolean isOperatorSigned, String ppGuid, String hostIp) throws CantSendSoap {
         bp = port;
         WSBindingProvider ws = (WSBindingProvider) port;
 
@@ -166,4 +165,12 @@ public class SoapBuilder {
         binding.setHandlerChain(handlerChain);
     }
 
+    public void setUpWithISRequestHeader(BindingProvider port, boolean sign,
+                                         String hostIp) throws CantSendSoap {
+        ISRequestHeader rh = new ISRequestHeader();
+        UUID messGUID = Utl.getRndUuid();
+        rh.setMessageGUID(messGUID.toString());
+
+        setUp(port,  rh, null, sign, false, null, hostIp);
+    }
 }

@@ -7,10 +7,8 @@ import com.dic.bill.model.exs.UlistTp;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.*;
 import com.dic.bill.UlistDAO;
-import com.dic.app.gis.service.maintaners.UlistMng;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -20,7 +18,6 @@ import ru.gosuslugi.dom.schema.integration.nsi_base.NsiElementNsiRefFieldType.Ns
 import ru.gosuslugi.dom.schema.integration.nsi_common_service_async.Fault;
 
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -36,7 +33,7 @@ import java.util.Optional;
 @Service
 @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
 @RequiredArgsConstructor
-public class UlistMngImpl implements UlistMng {
+public class UlistMng {
 
 	private final UlistDAO ulistDao;
 	private final NsiCommonAsyncBindingBuilder nsiCommonBuilder;
@@ -46,8 +43,8 @@ public class UlistMngImpl implements UlistMng {
 	// Хранилище справочников ГИС ЖКХ
 	private RefStore rStore;
 
+/*
 	// Инициализация
-	@Override
 	public Boolean setUp() {
 		// загрузка справочников из ГИС ЖКХ
 		if (!loadRef()){
@@ -58,6 +55,7 @@ public class UlistMngImpl implements UlistMng {
 		}
 
 	}
+*/
 
 	// префикс для элементов справочника
 	private String getPrefixedCD(String cd, String grp, String code, String org, String idx) {
@@ -69,7 +67,6 @@ public class UlistMngImpl implements UlistMng {
 	}
 
 	// префикс для заголовка справочника
-	@Override
 	public String getPrefixedCD(String cd, String grp) {
 		return config.getPrefixGis()+"_"+grp+"_"+cd;
 	}
@@ -77,7 +74,7 @@ public class UlistMngImpl implements UlistMng {
 	/**
 	 * Создать или обновить справочник NSI или NSIRAO
 	 */
-	private void updNsiList(List<UlistTp> lst, NsiItemInfoType nsiItem, String grp) throws CantUpdNSI {
+	private void updNsiList(Integer taskId, List<UlistTp> lst, NsiItemInfoType nsiItem, String grp) throws CantUpdNSI {
 		String prefix = getPrefixedCD(nsiItem.getRegistryNumber().toString(), grp);
 		// найти заголовочный элемент в нашей базе
 		Optional<UlistTp> el = lst.stream()
@@ -92,7 +89,7 @@ public class UlistMngImpl implements UlistMng {
 			log.info("Создан заголовочный элемент ListTp :{}", prefix);
 			// обновить элементы справочника
 			log.info("Создание справочника: {}", prefix);
-			updNsiItem(lstTp, grp, nsiItem.getRegistryNumber());
+			updNsiItem(taskId, lstTp, grp, nsiItem.getRegistryNumber());
 			log.info("Создан справочник: {}", prefix);
 		} else {
 			// найден элемент, проверить дату обновления
@@ -102,7 +99,7 @@ public class UlistMngImpl implements UlistMng {
 				String strDate2 = sm.format(Utl.getDateFromXmlGregCal(nsiItem.getModified()));
 				log.info("Даты обновления: старая ={}, новая 2 ={}", strDate1, strDate2);
 				// обновить элементы справочника
-				updNsiItem(el.get(), grp, nsiItem.getRegistryNumber());
+				updNsiItem(taskId, el.get(), grp, nsiItem.getRegistryNumber());
 				// установить дату обновления
 				el.get().setDt1(Utl.getDateFromXmlGregCal(nsiItem.getModified()));
 				log.info("Обновлён справочник: {}", prefix);
@@ -122,11 +119,11 @@ public class UlistMngImpl implements UlistMng {
 	 * @param grp - группа
 	 * @param id - Id справочника
 	 */
-	private void updNsiItem(UlistTp ulistTp, String grp, BigInteger id) throws CantUpdNSI {
+	private void updNsiItem(Integer taskId, UlistTp ulistTp, String grp, BigInteger id) throws CantUpdNSI {
 		// получить из ГИС справочник
 		NsiItemType res;
 		try {
-			res = nsiCommonBuilder.getNsiItem(grp, id);
+			res = nsiCommonBuilder.getNsiItem(taskId, grp, id);
 		} catch (Fault | CantSignSoap | CantSendSoap | CantPrepSoap e) {
 			log.error(Utl.getStackTraceString(e));
 			throw new CantUpdNSI("Ошибка при обновлении справочника NSI grp="+ grp+", id="+ id);
@@ -143,7 +140,6 @@ public class UlistMngImpl implements UlistMng {
 		}
 	}
 
-	@Override
 	public Integer mergeElement(UlistTp ulistTp, String grp, Integer id, NsiElementType t, Integer idx, String org) {
 		// CD в данном справочнике нужно практически только для того, чтобы искать дочерние записи полей (fields),
         // не обеспечивается уникальность. Главная запись ищется по GUID
@@ -324,13 +320,12 @@ public class UlistMngImpl implements UlistMng {
 	 * @param grp группа, например NSI, NSIRAO
 	 * @param id идентификатор справочника
 	 */
-	@Override
-	public NsiItemType getNsi(String grp, BigInteger id) throws CantGetNSI {
+	public NsiItemType getNsi(Integer taskId, String grp, BigInteger id) throws CantGetNSI {
 		// получить из ГИС
 		NsiItemType res;
 		try {
 			log.info("Запрос справочника из ГИС: grp={}, id={}", grp, id);
-			res = nsiCommonBuilder.getNsiItem(grp, id);
+			res = nsiCommonBuilder.getNsiItem(taskId, grp, id);
 		} catch (CantSignSoap | CantSendSoap | Fault | CantPrepSoap e1) {
 			log.error(Utl.getStackTraceString(e1));
 			throw new CantGetNSI("Ошибка получения справочника NSI по группе grp="+grp);
@@ -341,17 +336,17 @@ public class UlistMngImpl implements UlistMng {
 
 
 	// загрузить справочники в память
-	public Boolean loadRef() {
+	public Boolean loadRef(Integer taskId) {
 		// получить необходимые справочники из ГИС, поместить в хранилище в памяти
 		setrStore(new RefStore());
 		try {
-			getrStore().add(getNsi("NSI", BigInteger.valueOf(21)), "NSI", BigInteger.valueOf(21));
-			getrStore().add(getNsi("NSI", BigInteger.valueOf(27)), "NSI", BigInteger.valueOf(27));
-			getrStore().add(getNsi("NSI", BigInteger.valueOf(22)), "NSI", BigInteger.valueOf(22));
-			getrStore().add(getNsi("NSI", BigInteger.valueOf(24)), "NSI", BigInteger.valueOf(24));
-			getrStore().add(getNsi("NSI", BigInteger.valueOf(30)), "NSI", BigInteger.valueOf(30));
-			getrStore().add(getNsi("NSI", BigInteger.valueOf(32)), "NSI", BigInteger.valueOf(32));
-			getrStore().add(getNsi("NSI", BigInteger.valueOf(2)), "NSI", BigInteger.valueOf(2));
+			getrStore().add(getNsi(taskId, "NSI", BigInteger.valueOf(21)), "NSI", BigInteger.valueOf(21));
+			getrStore().add(getNsi(taskId, "NSI", BigInteger.valueOf(27)), "NSI", BigInteger.valueOf(27));
+			getrStore().add(getNsi(taskId, "NSI", BigInteger.valueOf(22)), "NSI", BigInteger.valueOf(22));
+			getrStore().add(getNsi(taskId, "NSI", BigInteger.valueOf(24)), "NSI", BigInteger.valueOf(24));
+			getrStore().add(getNsi(taskId, "NSI", BigInteger.valueOf(30)), "NSI", BigInteger.valueOf(30));
+			getrStore().add(getNsi(taskId, "NSI", BigInteger.valueOf(32)), "NSI", BigInteger.valueOf(32));
+			getrStore().add(getNsi(taskId, "NSI", BigInteger.valueOf(2)), "NSI", BigInteger.valueOf(2));
 		} catch (CantGetNSI e) {
 			log.error("Ошибка получения справочников NSI!");
 			return false;
@@ -363,8 +358,7 @@ public class UlistMngImpl implements UlistMng {
 	/**
 	 * Загрузить NSI справочники из ГИС
 	 */
-	@Override
-	public void loadNsi(String grp) throws CantUpdNSI {
+	public void loadNsi(Integer taskId, String grp) throws CantUpdNSI {
 		// Обновить виды справочников
 		// получить из нашей базы
 		List<UlistTp> lst =  ulistDao.getListTp(grp);
@@ -372,7 +366,7 @@ public class UlistMngImpl implements UlistMng {
 		NsiListType res;
 		try {
 			log.info("Запрос справочников группы grp={}", grp);
-			res = nsiCommonBuilder.getNsiList(grp);
+			res = nsiCommonBuilder.getNsiList(taskId, grp);
 		} catch (Fault | CantSendSoap | CantPrepSoap e1) {
 			log.error(Utl.getStackTraceString(e1));
 			throw new CantUpdNSI("Ошибка обновления группы справочников grp="+grp);
@@ -384,7 +378,7 @@ public class UlistMngImpl implements UlistMng {
 		// обработать каждый справочник
 		try {
 			for (NsiItemInfoType nsiItemInfoType : res.getNsiItemInfo()) {
-				updNsiList(lst, nsiItemInfoType, grp);
+				updNsiList(taskId, lst, nsiItemInfoType, grp);
 			}
 		} catch (Exception e) {
 			log.error(Utl.getStackTraceString(e));
@@ -430,7 +424,6 @@ public class UlistMngImpl implements UlistMng {
 	 * @param name - имя искомого элемента
 	 * @param value - значение искомого элемента
 	 */
-	@Override
 	public ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef
 		getNsiElem(String grp, Integer id, String name, String value) {
 
@@ -470,7 +463,6 @@ public class UlistMngImpl implements UlistMng {
 	 * Получить элемент справочника, сохранённый в базе данных, по элементу
 	 * @param elem - Элемент
 	 */
-	@Override
 	public ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef
 		getNsiElem(Ulist elem) {
 
@@ -485,7 +477,6 @@ public class UlistMngImpl implements UlistMng {
 	/**
 	 * Вывести на экран содержимое всех загруженных справочников (TODO)
 	 */
-	@Override
 	public void showAll() {
 		getrStore().getMapRef().stream().forEach(d -> {
 			log.info("Grp={}, Res={}", d.getGrp(), d.getRes());
@@ -501,7 +492,6 @@ public class UlistMngImpl implements UlistMng {
 		});
 	}
 
-	@Override
 	public RefStore getrStore() {
 		return rStore;
 	}
@@ -513,7 +503,6 @@ public class UlistMngImpl implements UlistMng {
 	/**
 	 * Получить коммунальный ресурс NSI по коду USL
 	 */
-	@Override
     @Cacheable(cacheNames="UlistMngImpl.getResourceByUsl", key="{#usl }", unless = "#result == null")
 	public ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef getResourceByUsl(String usl) {
 		ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef mres = null;
@@ -537,7 +526,6 @@ public class UlistMngImpl implements UlistMng {
 	/**
 	 * Получить код USL по коммунальному ресурсу NSI по коду USL
 	 */
-	@Override
     @Cacheable(cacheNames="UlistMngImpl.getUslByResource", key="{#nsi.getGUID() }", unless = "#result == null")
 	public String getUslByResource(ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef nsi) throws WrongParam {
 		String usl = null;
@@ -563,7 +551,6 @@ public class UlistMngImpl implements UlistMng {
 	/**
 	 * Получить CD услуги Serv по коммунальному ресурсу NSI по коду USL
 	 */
-	@Override
     @Cacheable(cacheNames="UlistMngImpl.getServCdByResource", key="{#nsi.getGUID() }", unless = "#result == null")
 	public String getServCdByResource(ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef nsi) throws WrongParam {
 		//log.info("NSI guid={}", nsi.getGUID());
@@ -593,7 +580,6 @@ public class UlistMngImpl implements UlistMng {
 	/**
 	 * Получить тип ресурса по коду USL
 	 */
-	@Override
 	public Integer getResType(String usl) {
 		// тип ресурса 0 - коммунальный, 1 - электроэнергия
 		Integer tp = 0;

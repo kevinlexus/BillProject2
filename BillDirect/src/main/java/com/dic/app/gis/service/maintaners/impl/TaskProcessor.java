@@ -1,7 +1,6 @@
 package com.dic.app.gis.service.maintaners.impl;
 
 import com.dic.app.gis.service.maintaners.TaskMng;
-import com.dic.app.gis.service.maintaners.UlistMng;
 import com.dic.app.gis.service.soapbuilders.TaskServices;
 import com.dic.app.gis.service.soapbuilders.impl.*;
 import com.dic.bill.model.exs.Task;
@@ -27,6 +26,7 @@ public class TaskProcessor {
 
 
     private final TaskMng taskMng;
+    private final UlistMng ulistMng;
     private final EntityManager em;
     private final HouseManagementAsyncBindingBuilder hb;
     private final DebtRequestsServiceAsyncBindingBuilder db;
@@ -35,7 +35,6 @@ public class TaskProcessor {
     private final DeviceMeteringAsyncBindingBuilder dm;
     private final HcsBillsAsyncBuilder bill;
     private final TaskServices tb;
-    private final UlistMng ulistMng;
     private final NsiServiceAsyncBindingBuilder nsiSv;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
@@ -266,8 +265,8 @@ public class TaskProcessor {
                 if (state.equals("INS")) {
                     // Экспорт общих справочников
                     // note Внимание! в task.eolink заполнять любую УК, так как ppguid будет по РКЦ!
-                    ulistMng.loadNsi("NSI");
-                    ulistMng.loadNsi("NSIRAO");
+                    ulistMng.loadNsi(task.getId(), "NSI");
+                    ulistMng.loadNsi(task.getId(), "NSIRAO");
                     taskMng.setState(task, "ACP");
                 }
                 break;

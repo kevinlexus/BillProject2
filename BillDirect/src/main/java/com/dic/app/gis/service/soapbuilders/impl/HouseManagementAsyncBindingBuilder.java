@@ -3,6 +3,7 @@ package com.dic.app.gis.service.soapbuilders.impl;
 
 import com.dic.app.gis.service.maintaners.*;
 import com.dic.app.gis.service.maintaners.impl.ReqProp;
+import com.dic.app.gis.service.maintaners.impl.UlistMng;
 import com.dic.app.gis.service.soap.SoapConfigs;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.mm.ConfigApp;
@@ -21,7 +22,6 @@ import com.diffplug.common.base.Errors;
 import com.ric.cmn.CommonErrs;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.*;
-import com.sun.xml.ws.developer.WSBindingProvider;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -73,7 +73,6 @@ public class HouseManagementAsyncBindingBuilder {
     @PersistenceContext
     private EntityManager em;
     private final UlistMng ulistMng;
-    //private final SoapConfig config;
     private final ConfigApp config;
     private final TaskParMng taskParMng;
     private final EolinkDAO eolinkDao;
@@ -121,8 +120,8 @@ public class HouseManagementAsyncBindingBuilder {
         // подоготовительный объект для SOAP
         SoapBuilder sb = new SoapBuilder();
         ReqProp reqProp = new ReqProp(config, task, eolParMng);
-        sb.setUp((BindingProvider) port, (WSBindingProvider) port, true, reqProp.getPpGuid(),
-                reqProp.getHostIp());
+        sb.setUp((BindingProvider) port, true, reqProp.getPpGuid(),
+                reqProp.getHostIp(), true);
 
         // логгинг запросов
         sb.setTrace(task.getTrace().equals(1));

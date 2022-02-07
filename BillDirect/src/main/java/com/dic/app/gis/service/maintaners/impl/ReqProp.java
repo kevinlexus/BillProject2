@@ -1,6 +1,5 @@
 package com.dic.app.gis.service.maintaners.impl;
 
-import com.dic.app.gis.service.maintaners.EolinkMng;
 import com.dic.app.gis.service.maintaners.EolinkParMng;
 import com.dic.app.mm.ConfigApp;
 import com.dic.bill.model.exs.Eolink;
@@ -11,8 +10,6 @@ import com.ric.cmn.excp.WrongGetMethod;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
-
 /**
  * Хранилище настроек SOAP запроса
  *
@@ -21,19 +18,16 @@ import java.util.List;
 @Slf4j
 public class ReqProp {
 
-    //    private Task foundTask;
-    private String houseGuid;
+    private final String houseGuid;
     private String ppGuid;
-    private String kul;
-    private String nd;
-    // УК по данному Task в виде объекта EOLINK
-    private Eolink eolinkUk;
+    private final String kul;
+    private final String nd;
     // УК по данному Task в виде объекта T_ORG
-    private Org uk;
+    private final Org uk;
     // Id подписчика XML (если hostIp не заполнен, то определяется по УК)
     private int signerId = 1;
     private String hostIp;
-    private String gisVersion;
+    private final String gisVersion;
 
     /*
      * Установить значения настроек до создания объекта SoapBuilder
@@ -46,6 +40,8 @@ public class ReqProp {
         houseGuid = eolink.getGuid();
 
         // получить УК
+        // УК по данному Task в виде объекта EOLINK
+        Eolink eolinkUk;
         if (task.getProcUk() == null) {
             eolinkUk = getUkByTaskEolink(eolink, task);
         } else {
@@ -86,130 +82,13 @@ public class ReqProp {
         }
     }
 
-    /*
-     * Установить значения настроек до создания объекта SoapBuilder для простых запросов,
-     * типа получения параметров организации
-     *
-     */
-/*
-    public ReqProp(ConfigApp config, Task task, EolinkParMng eolParMng, int kmp) throws CantPrepSoap {
-        // получить GUID организации с уровня РКЦ
-        Eolink uk = task.getEolink();
-        ppGuid = uk.getParent().getGuid();
-
-        // IP адрес сервиса STUNNEL, получить или из application.properties - hostIp (Кис, Полыс)
-        // или из параметра по УК (ТСЖ Содружество, Свободы)
-        gisVersion = config.getGisVersion();
-        hostIp = config.getHostIp();
-        if (hostIp == null) {
-            try {
-                hostIp = eolParMng.getStr(uk, "ГИС ЖКХ.HOST_IP");
-            } catch (WrongGetMethod wrongGetMethod) {
-                wrongGetMethod.printStackTrace();
-                throw new CantPrepSoap("Ошибка при получении параметра 'ГИС ЖКХ.HOST_IP' по организации Eolink.id=" + uk.getId());
-            }
-        }
-        if (hostIp == null) {
-            throw new CantPrepSoap("Не заполнен параметр hostIp по организации Eolink.id=" + uk.getId()
-                    + "(ТСЖ Свобод) либо не заполнен application.properties - hostIp (Кис.Полыс.)");
-        }
-        try {
-            Double signerIdD = eolParMng.getDbl(uk, "ГИС ЖКХ.SIGNER_ID");
-            signerId = signerIdD.intValue();
-        } catch (WrongGetMethod wrongGetMethod) {
-            wrongGetMethod.printStackTrace();
-            throw new CantPrepSoap("Ошибка при получении параметра 'ГИС ЖКХ.SIGNER_ID' по организации Eolink.id=" + uk.getId());
-        }
-    }
-*/
-
-    /*
-     * Установить значения настроек до создания объекта SoapBuilder для еще более простых запросов
-     *
-     */
-    public ReqProp(ConfigApp config, EolinkMng eolinkMng, EolinkParMng eolParMng) throws CantPrepSoap {
-        // IP адрес сервиса STUNNEL, получить или из application.properties - hostIp (Кис, Полыс)
-        // или из параметра по УК (ТСЖ Содружество, Свободы)
-        gisVersion = config.getGisVersion();
-        hostIp = config.getHostIp();
-        if (hostIp == null) {
-            // получить GUID организации с уровня РКЦ
-            List<Eolink> ukList = eolinkMng.getEolinkUk();
-            eolinkUk = ukList.get(0);
-            ppGuid = eolinkUk.getGuid();
-            try {
-                hostIp = eolParMng.getStr(eolinkUk, "ГИС ЖКХ.HOST_IP");
-            } catch (WrongGetMethod wrongGetMethod) {
-                wrongGetMethod.printStackTrace();
-                throw new CantPrepSoap("Ошибка при получении параметра 'ГИС ЖКХ.HOST_IP' по организации Eolink.id=" + uk.getId());
-            }
-            if (hostIp == null) {
-                throw new CantPrepSoap("Не заполнен параметр hostIp по организации Eolink.id=" + uk.getId()
-                        + "(ТСЖ Свобод) либо не заполнен application.properties - hostIp (Кис.Полыс.)");
-            }
-            try {
-                Double signerIdD = eolParMng.getDbl(eolinkUk, "ГИС ЖКХ.SIGNER_ID");
-                signerId = signerIdD.intValue();
-            } catch (WrongGetMethod wrongGetMethod) {
-                wrongGetMethod.printStackTrace();
-                throw new CantPrepSoap("Ошибка при получении параметра 'ГИС ЖКХ.SIGNER_ID' по организации Eolink.id=" + uk.getId());
-            }
-        }
-    }
-
-
-    /*
-     * Установить значения настроек после создания объекта SoapBuilder
-     */
-/*
-
-    public void setPropAfter(Task task) {
-        // найти Task, для использования в транзации
-        foundTask = em.find(Task.class, task.getId());
-    }
-*/
-
-    /*
-     * Установить значения настроек после создания объекта SoapBuilder
-     */
-/*
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor=Exception.class)
-	public void setPropAfter(Task task, SoapBuilder sb) throws CantPrepSoap {
-		this.sb = sb;
-		// GUID организации от которой выполняется запрос
-		sb.setPpGuid(ppGuid);
-		// IP адрес сервиса STUNNEL
-		//log.info("Использованный hostIp2={}", hostIp);
-		//sb.setHostIp(hostIp);
-	}
-*/
-
-    /*
-     * Установить значения настроек
-     */
-
-/*
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void setPropWOGUID(Task task, SoapBuilder sb) {
-        if (task.getEolink() != null) {
-            reu = task.getEolink().getOrg().getReu();
-            kul = task.getEolink().getKul();
-            nd = task.getEolink().getNd();
-            houseGuid = task.getEolink().getGuid();
-        }
-        // GUID текущей организации
-        this.ppGuid = config.getOrgPPGuid();
-    }
-*/
-
     /**
      * Получить рекурсивно eolink УК
      *
      * @param eolink текущий объект
      * @param task   задание
      */
-    private Eolink getUkByTaskEolink(Eolink eolink, Task task) throws CantPrepSoap {
+    private Eolink getUkByTaskEolink(Eolink eolink, Task task) {
         Eolink eolFound;
         if (eolink.getObjTp().getCd().equals("Организация")) {
             eolFound = eolink;
@@ -219,7 +98,6 @@ public class ReqProp {
         return eolFound;
 
     }
-
 
     public String getHouseGuid() {
         return houseGuid;

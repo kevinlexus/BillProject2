@@ -128,7 +128,7 @@ public class UlistDAOImpl implements UlistDAO {
     @Override
     public Ulist getListElemByParent(Integer parentId, String name) {
         Query query = em.createQuery("select t from com.dic.bill.model.exs.Ulist t " +
-                "join t.parent p where p.id=:parentId and t.name = :name");
+                "join t.parent p where p.id=:parentId and t.name = :name and t.actual = true");
         query.setParameter("parentId", parentId);
         query.setParameter("name", name);
         Ulist ulist;

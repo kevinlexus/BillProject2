@@ -10,9 +10,6 @@ import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
 import com.ric.cmn.excp.CantPrepSoap;
 import com.ric.cmn.excp.CantSendSoap;
-import com.ric.cmn.excp.WrongGetMethod;
-import com.ric.cmn.excp.WrongParam;
-import com.sun.xml.ws.developer.WSBindingProvider;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +30,6 @@ import ru.gosuslugi.dom.schema.integration.organizations_registry_common_service
 
 import javax.persistence.EntityManager;
 import javax.xml.ws.BindingProvider;
-import java.io.IOException;
 
 @Slf4j
 @Service
@@ -65,8 +61,8 @@ public class HcsOrgRegistryAsyncBindingBuilder {
         // подоготовительный объект для SOAP
         SoapBuilder sb = new SoapBuilder();
         ReqProp reqProp = new ReqProp(config, task, eolParMng);
-        sb.setUp((BindingProvider) port, (WSBindingProvider) port, true, reqProp.getPpGuid(),
-                reqProp.getHostIp());
+        sb.setUp((BindingProvider) port, true, reqProp.getPpGuid(),
+                reqProp.getHostIp(), true);
 
         // логгинг запросов
         sb.setTrace(task.getTrace().equals(1));
