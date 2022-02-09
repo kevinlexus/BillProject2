@@ -184,6 +184,11 @@ public class Eolink implements java.io.Serializable  {
 					nullable = false, updatable = false) })
 	private List<Eolink> parentLinked = new ArrayList<>(0);
 
+	// запросы о задолженности УСЗН
+	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval=true)
+	@JoinColumn(name="FK_EOLINK_HOUSE", referencedColumnName="ID")
+	private List<DebSubRequest> debSubRequests = new ArrayList<>(0);
+
 	// Дочерние объекты, связанные через внешнюю таблицу
 /*	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval=true)
 	@JoinColumn(name="FK_PARENT", referencedColumnName="ID")

@@ -1,51 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <timestamp key="myTimestamp" datePattern="yyyy-MM-dd"/>
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>C:\Progs\BillDirect\BillDirect_${myTimestamp}.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <cleanHistoryOnStart>true</cleanHistoryOnStart>
-            <!-- архивировать ежедневно -->
-            <fileNamePattern>BillDirect_%d{yyyy-MM-dd}.gz</fileNamePattern>
-            <!-- оставить 30 дней истории, не более 5 гигов -->
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>5GB</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>%d{dd-MM-yyyy HH:mm:ss} %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="FILE_PAYMENT" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>C:\Progs\BillDirect\BillDirect_payment_${myTimestamp}.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <cleanHistoryOnStart>true</cleanHistoryOnStart>
-            <!-- архивировать ежедневно -->
-            <fileNamePattern>BillDirect_payment_%d{yyyy-MM-dd}.gz</fileNamePattern>
-            <!-- оставить 30 дней истории, не более 5 гигов -->
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>5GB</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %msg [%thread]%n</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="FILE_GIS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>C:\Progs\BillDirect\BillDirect_gis_${myTimestamp}.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <cleanHistoryOnStart>true</cleanHistoryOnStart>
-            <!-- архивировать ежедневно -->
-            <fileNamePattern>BillDirect_gis_%d{yyyy-MM-dd}.gz</fileNamePattern>
-            <!-- оставить 30 дней истории, не более 5 гигов -->
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>5GB</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %msg [%thread]%n</pattern>
-        </encoder>
-    </appender>
-
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <!-- Log message format -->
         <encoder>
@@ -63,23 +18,6 @@
 
     <logger name="com.ric" level="INFO"/>
     <logger name="com.dic" level="INFO"/>
-
-    <!-- логгер для платежей -->
-    <logger name="com.dic.app.mm.impl.DistPayMngImpl" level="INFO" additivity="false">
-        <appender-ref ref="FILE_PAYMENT"/>
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE"/>
-    </logger>
-    <!-- логгер для ГИС -->
-    <logger name="com.dic.app.gis" level="INFO" additivity="false">
-        <appender-ref ref="FILE_GIS"/>
-        <appender-ref ref="FILE"/>
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="com.dic.app.mm.impl.DistPayMngImpl" level="INFO" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
 
     <logger name="com.zaxxer.hikari" level="ERROR"/>
 
@@ -100,7 +38,6 @@
 
     <!-- Setting the root level of logging to INFO - Здесь менять уровни логгинга в Spring Boot-->
     <root level="INFO">
-        <appender-ref ref="FILE"/>
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>

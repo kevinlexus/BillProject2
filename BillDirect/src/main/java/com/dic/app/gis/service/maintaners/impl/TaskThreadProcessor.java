@@ -26,7 +26,6 @@ public class TaskThreadProcessor implements Runnable {
                 taskProcessor.processTask(taskId);
                 TaskController.getTaskInWork().remove(taskId);
             } catch (InterruptedException e) {
-                //log.info("Поток {}, ОСТАНОВЛЕН", num); // fixme исправить или убрать коммент
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException ex) {

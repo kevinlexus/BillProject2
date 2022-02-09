@@ -4,6 +4,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Transient;
 
+import com.dic.bill.dao.TaskDAO2;
 import com.ric.cmn.Utl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.List;
 
 
 @Service
@@ -30,6 +32,8 @@ public class TaskMngImpl implements TaskMng {
     private EntityManager em;
     @Autowired
     private TaskDAO taskDao;
+    @Autowired
+    private TaskDAO2 taskDao2;
 
     /**
      * Установить статус задания
@@ -138,5 +142,12 @@ public class TaskMngImpl implements TaskMng {
 		task.setDtNextStart(null);
 	}
 
+
+	@Override
+	@Transactional
+	public void putTaskToWorkByDebtRequestId(List<Integer> debRequestId) {
+		List<Task> tasks = taskDao2.findDistinctActiveTaskIdByDebRequestIds(debRequestId);
+		tasks.forEach(t -> t.setState("INS"));
+	}
 
 }

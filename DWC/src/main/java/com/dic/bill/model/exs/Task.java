@@ -84,7 +84,7 @@ public class Task implements java.io.Serializable  {
 	@Column(name = "STATE")
 	private String state;
 
-	// заданное действие
+	// тип задания
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name="FK_ACT", referencedColumnName="ID")
 	private Lst2 act;

@@ -2093,25 +2093,7 @@ public class HouseManagementAsyncBindingBuilder {
 
         }
 
-        // создать независимые задания по экспорту запросов о задолженности от УСЗН
-        // получить дома без заданий
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_EXP_DEB_SUB_REQUEST", 0)) {
-
-            Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
-            Eolink procUk = em.find(Eolink.class, t.getEolUkId());
-            Task newTask4 = ptb.setUp(eolHouse, null, null, "GIS_EXP_DEB_SUB_REQUEST", "INS",
-                    config.getCurUserGis().get().getId(), procUk);
-            ptb.save(newTask4);
-            log.info("Добавлено задание по экспорту запросов о задолженности от УСЗН по Дому Eolink.id={}, Task.procUk.id={}",
-                    eolHouse.getId(), procUk.getId());
-            // добавить зависимое задание к системному повторяемому заданию
-            // (будет запускаться системным заданием)
-            ptb.addAsChild(newTask4, "SYSTEM_RPT_HOUSE_EXP");
-
-        }
-
         // создать независимые задания по импорту ответов на запросы о задолженности от УСЗН
-        // получить дома без заданий
         for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_IMP_DEB_SUB_RESPONSE", 0)) {
 
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
@@ -2121,11 +2103,30 @@ public class HouseManagementAsyncBindingBuilder {
             ptb.save(newTask4);
             log.info("Добавлено задание по импорту ответов на запросы о задолженности от УСЗН по Дому Eolink.id={}, Task.procUk.id={}",
                     eolHouse.getId(), procUk.getId());
+
             // добавить зависимое задание к системному повторяемому заданию
-            // (будет запускаться системным заданием)
-            ptb.addAsChild(newTask4, "SYSTEM_RPT_HOUSE_IMP");
+            // будет переводиться в активное состояние, системным заданием
+            ptb.addAsChild(newTask4, "SYSTEM_RPT_HOUSE_EXP");
 
         }
+
+        // создать ЗАВИСИМЫЕ задания по экспорту запросов о задолженности от УСЗН
+        // получить дома без заданий
+        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_IMP_DEB_SUB_RESPONSE", "GIS_EXP_DEB_SUB_REQUEST", 0)) {
+
+            Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
+            Eolink procUk = em.find(Eolink.class, t.getEolUkId());
+            Task masterTask = em.find(Task.class, t.getMasterTaskId());
+            Task newTask3 = ptb.setUp(eolHouse, null, masterTask, "GIS_EXP_DEB_SUB_REQUEST", "INS",
+                    config.getCurUserGis().get().getId(), procUk);
+            ptb.save(newTask3);
+            log.info("Добавлено задание на экспорт лиц.счетов по Дому Eolink.id={}, Task.procUk.id={}",
+                    eolHouse.getId(), procUk.getId());
+            // добавить зависимое задание к заданию импорта ответов (сделано специально, чтобы после импорта, получить результаты)
+            // будет переводиться в активное состояние, системным заданием, но запускаться - после GIS_IMP_DEB_SUB_RESPONSE
+            ptb.addAsChild(newTask3, "SYSTEM_RPT_HOUSE_EXP");
+        }
+
         // Установить статус выполнения задания
         task.setState("ACP");
     }

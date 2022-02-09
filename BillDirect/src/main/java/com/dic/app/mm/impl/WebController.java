@@ -1,5 +1,7 @@
 package com.dic.app.mm.impl;
 
+import com.dic.app.gis.service.maintaners.TaskMng;
+import com.dic.app.gis.service.maintaners.impl.TaskController;
 import com.dic.app.mm.*;
 import com.dic.bill.dao.OrgDAO;
 import com.dic.bill.dao.PrepErrDAO;
@@ -11,8 +13,6 @@ import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.NaborMng;
 import com.dic.bill.mm.ObjParMng;
-import com.dic.bill.model.exs.Eolink;
-import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.scott.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ric.cmn.CommonConstants;
@@ -36,9 +36,11 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 /**
  * Контроллер WEB - запросов
@@ -69,6 +71,8 @@ public class WebController implements CommonConstants {
     private final KartMng kartMng;
     private final MeterMng meterMng;
     private final MntBase mntBase;
+    private final TaskMng taskMng;
+    private final TaskController taskController;
 
     /**
      * Корректировочная проводка по сальдо
@@ -452,7 +456,7 @@ public class WebController implements CommonConstants {
 
     @RequestMapping("/evictL2CEntity/{fullEntityClassName}/{id}")
     @ResponseBody
-    public String evictEolink(@PathVariable("fullEntityClassName") String fullEntityClassName, @PathVariable("id")String id) {
+    public String evictEolink(@PathVariable("fullEntityClassName") String fullEntityClassName, @PathVariable("id") String id) {
         Class<?> foundClass;
         try {
             foundClass = Class.forName(fullEntityClassName);
@@ -746,6 +750,16 @@ public class WebController implements CommonConstants {
             return "ERROR Произошла ошибка в процессе перерасчета";
         }
         return "OK " + changeDocId;
+    }
+
+    @RequestMapping(value = "/putTaskToWork/{ids}", method = RequestMethod.GET)
+    @ResponseBody
+    public String putTaskToWork(@PathVariable String ids) {
+        // отправить на запуск задачи ГИС, с указанными ID запросов
+        log.info("GOT /putTaskToWork with ids={}", ids);
+        taskMng.putTaskToWorkByDebtRequestId(Arrays.stream(ids.split(","))
+                .map(Integer::valueOf).collect(Collectors.toList()));
+        return "OK";
     }
 
 }

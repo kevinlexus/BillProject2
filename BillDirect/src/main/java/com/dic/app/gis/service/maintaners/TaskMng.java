@@ -2,6 +2,9 @@ package com.dic.app.gis.service.maintaners;
 
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 public interface TaskMng {
 
@@ -14,4 +17,7 @@ public interface TaskMng {
     void alterDtNextStart(Task task);
 
     void clearLagAndNextStart(Task task);
+
+    @Transactional
+    void putTaskToWorkByDebtRequestId(List<Integer> debRequestId);
 }

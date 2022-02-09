@@ -363,6 +363,14 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                         person.setLastName(debSubRequest.getLastName());
                         person.setMiddleName(debSubRequest.getMiddleName());
                         person.setSnils(debSubRequest.getSnils());
+                        /* todo можно документ заполнять
+                        DocumentType document = new DocumentType;
+                        document.setNumber();
+                        document.setSeries();
+                        document.setType();
+                        person.setDocument(document);
+                         */
+
                         debtInfo.setPerson(person);
                         responseData.getDebtInfo().add(debtInfo);
                     }
