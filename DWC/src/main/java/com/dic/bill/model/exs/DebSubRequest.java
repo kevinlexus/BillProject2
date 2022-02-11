@@ -62,9 +62,9 @@ public class DebSubRequest implements java.io.Serializable {
     @Column(name = "DOC_NUMBER")
     private String docNumber;
 
-    // документ - тип
-    @Column(name = "DOC_TYPE")
-    private String docType;
+    // GUID документа (НСИ #95)
+    @Column(name = "DOC_TYPE_GUID")
+    private String docTypeGUID;
 
     // адрес
     @Column(name = "ADDRESS")

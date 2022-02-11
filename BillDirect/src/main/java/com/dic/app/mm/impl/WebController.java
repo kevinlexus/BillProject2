@@ -754,12 +754,11 @@ public class WebController implements CommonConstants {
 
     @RequestMapping(value = "/putTaskToWork/{ids}", method = RequestMethod.GET)
     @ResponseBody
-    public String putTaskToWork(@PathVariable String ids) {
+    public int putTaskToWork(@PathVariable String ids) {
         // отправить на запуск задачи ГИС, с указанными ID запросов
         log.info("GOT /putTaskToWork with ids={}", ids);
-        taskMng.putTaskToWorkByDebtRequestId(Arrays.stream(ids.split(","))
+        return taskMng.putTaskToWorkByDebtRequestId(Arrays.stream(ids.split(","))
                 .map(Integer::valueOf).collect(Collectors.toList()));
-        return "OK";
     }
 
 }

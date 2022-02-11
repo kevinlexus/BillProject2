@@ -33,6 +33,7 @@ import ru.gosuslugi.dom.schema.integration.base.Period;
 import ru.gosuslugi.dom.schema.integration.drs.*;
 import ru.gosuslugi.dom.schema.integration.drs_service_async.DebtRequestsAsyncPort;
 import ru.gosuslugi.dom.schema.integration.drs_service_async.DebtRequestsServiceAsync;
+import ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -244,7 +245,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
             // Ошибок нет, обработка
             ExportDSRsResultType exportDSRsResult = retState.getExportDSRsResult();
 
-            ExportDSRsResultType.PagedOutput pagedOutput = exportDSRsResult.getPagedOutput();
+            ExportDSRsResultType.PagedOutput pagedOutput = exportDSRsResult.getPagedOutput(); // todo подумать!
             for (DSRType subrequest : exportDSRsResult.getSubrequestData()) {
                 DSRType.RequestInfo requestInfo = subrequest.getRequestInfo();
                 if (requestInfo != null) {
@@ -264,6 +265,10 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                     debSubRequest.setStatusGis(DebtSubRequestStatuses.getByName(requestInfo.getStatus().value()).getId());
 
                     if (isNew) {
+                        // по умолчанию поля, на новой записи
+                        debSubRequest.setHasDebt(false);
+                        debSubRequest.setIsRevoked(false);
+
                         debSubRequest.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId());
                         debSubRequest.setRequestGuid(subrequest.getSubrequestGUID());
                         debSubRequest.setRequestNumber(requestInfo.getRequestNumber());
@@ -292,7 +297,9 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                             ExecutorInfoType executorInfo = responseData.getExecutorInfo();
                             if (executorInfo != null) {
                                 Optional<Tuser> executorOpt = tuserDAO.getByGuid(executorInfo.getGUID());
-                                executorOpt.ifPresent(debSubRequest::setUser);
+                                if (debSubRequest.getUser() == null) {
+                                    executorOpt.ifPresent(debSubRequest::setUser);
+                                }
                             }
                         }
                     }
@@ -331,7 +338,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
         List<DebSubRequest> reqs = debSubRequestDAO.getAllByStatusInAndHouseId(
-                List.of(DebtSubRequestInnerStatuses.SENT.getId()), task.getEolink().getHouse().getId());
+                List.of(DebtSubRequestInnerStatuses.SENT.getId()), task.getEolink().getId());
 
 
         boolean existsForSending = false;
@@ -355,7 +362,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                     responseData.setDescription(debSubRequest.getDescription());
                     responseData.setExecutorGUID(debSubRequest.getUser().getGuid());
 
-                    if (debSubRequest.getFirstName()!=null) {
+                    if (debSubRequest.getFirstName() != null) {
                         // добавить задолжника
                         DebtInfoType debtInfo = new DebtInfoType();
                         DebtInfoType.Person person = new DebtInfoType.Person();
@@ -363,14 +370,25 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                         person.setLastName(debSubRequest.getLastName());
                         person.setMiddleName(debSubRequest.getMiddleName());
                         person.setSnils(debSubRequest.getSnils());
-                        /* todo можно документ заполнять
-                        DocumentType document = new DocumentType;
-                        document.setNumber();
-                        document.setSeries();
-                        document.setType();
-                        person.setDocument(document);
-                         */
 
+                        if (debSubRequest.getDocTypeGUID() != null && debSubRequest.getDocNumber() != null && debSubRequest.getDocSeria() != null) {
+                            // документ должника (НСИ 95)
+                            DocumentType document = new DocumentType();
+                            document.setNumber(debSubRequest.getDocNumber());
+                            document.setSeries(debSubRequest.getDocSeria());
+                            NsiRef docType = new NsiRef();
+                            docType.setGUID(debSubRequest.getDocTypeGUID());
+                            // docType.setCode(); todo если свалится запрос, то попробовать заполнять эти поля
+                            // docType.setName();
+
+                            document.setType(docType);
+                            person.setDocument(document);
+                        }
+
+                        /* todo можно заполнять документ, подтверждающий задолженность (НСИ 358), пока не стал делать
+                                                DebtInfoType.Document doc;
+                                                debtInfo.getDocument().add(doc);
+                        */
                         debtInfo.setPerson(person);
                         responseData.getDebtInfo().add(debtInfo);
                     }
@@ -380,7 +398,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
 
                 req.getAction().add(action);
             }
-            existsForSending=true;
+            existsForSending = true;
         }
 
         if (existsForSending) {
@@ -403,6 +421,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
             }
         } else {
             // Установить статус "Выполнено"
+            log.info("Ответов для отправки не обнаружено");
             task.setState("ACP");
             task.setResult(null);
             taskMng.logTask(task, false, true);

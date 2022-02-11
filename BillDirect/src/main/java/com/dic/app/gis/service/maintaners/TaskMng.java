@@ -19,5 +19,5 @@ public interface TaskMng {
     void clearLagAndNextStart(Task task);
 
     @Transactional
-    void putTaskToWorkByDebtRequestId(List<Integer> debRequestId);
+    int putTaskToWorkByDebtRequestId(List<Integer> debRequestId);
 }

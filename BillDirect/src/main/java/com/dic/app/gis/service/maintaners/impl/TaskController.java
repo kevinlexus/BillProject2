@@ -16,6 +16,7 @@ import javax.annotation.PreDestroy;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 //import com.ric.bill.Config;
@@ -101,12 +102,14 @@ public class TaskController implements TaskControllers {
         }
     }
 
-    private void putTaskToWork(Integer taskId) {
+    private int putTaskToWork(Integer taskId) {
+        AtomicInteger count = new AtomicInteger(0);
         taskInWork.computeIfAbsent(taskId, t -> {
             Optional<Task> task = taskDao2.findById(taskId);
             task.ifPresent(d -> {
                 try {
                     queueTask.put(taskId);
+                    count.incrementAndGet();
                 } catch (InterruptedException e) {
                     log.error("Ошибка отправки задачи в очередь", e);
                 }
@@ -114,5 +117,6 @@ public class TaskController implements TaskControllers {
             });
             return taskId;
         });
+        return count.get();
     }
 }

@@ -2,13 +2,11 @@ package com.dic.app.gis.service.maintaners.impl;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.persistence.Transient;
 
 import com.dic.bill.dao.TaskDAO2;
 import com.ric.cmn.Utl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.dic.bill.dao.TaskDAO;
@@ -145,9 +143,10 @@ public class TaskMngImpl implements TaskMng {
 
 	@Override
 	@Transactional
-	public void putTaskToWorkByDebtRequestId(List<Integer> debRequestId) {
+	public int putTaskToWorkByDebtRequestId(List<Integer> debRequestId) {
 		List<Task> tasks = taskDao2.findDistinctActiveTaskIdByDebRequestIds(debRequestId);
 		tasks.forEach(t -> t.setState("INS"));
+		return tasks.size();
 	}
 
 }
