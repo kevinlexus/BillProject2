@@ -448,12 +448,13 @@ public class DebtRequestsServiceAsyncBindingBuilder {
 
             for (CommonResultType commonResultType : importResult) {
                 String tguid = commonResultType.getTransportGUID();
+                Optional<DebSubRequest> debSubRequestOpt = debSubRequestDAO.getByTguid(tguid);
+                debSubRequestOpt.ifPresent(t -> t.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId()));
+
                 for (CommonResultType.Error error : commonResultType.getError()) {
-                    Optional<DebSubRequest> debSubRequestOpt = debSubRequestDAO.getByTguid(tguid);
                     debSubRequestOpt.ifPresent(t -> {
                         t.setResult(error.getDescription());
                         t.setIsErrorOnResponse(true);
-                        t.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId());
                     });
                     if (debSubRequestOpt.isEmpty()) {
                         log.error("Не найден DebSubRequest по tguid={}", tguid);
