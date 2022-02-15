@@ -2111,7 +2111,7 @@ public class HouseManagementAsyncBindingBuilder {
 
             // добавить зависимое задание к системному повторяемому заданию
             // будет переводиться в активное состояние, системным заданием
-            ptb.addAsChild(newTask4, "SYSTEM_RPT_HOUSE_EXP");
+            ptb.addAsChild(newTask4, "SYSTEM_RPT_DEB_SUB_EXCHANGE");
 
         }
 
@@ -2136,7 +2136,7 @@ public class HouseManagementAsyncBindingBuilder {
             // добавить зависимое задание к заданию импорта ответов (сделано специально, чтобы после импорта, получить результаты)
             // будет переводиться в активное состояние, системным заданием, но запускаться - после GIS_IMP_DEB_SUB_RESPONSE
             //log.info("**** 1.7");
-            ptb.addAsChild(newTask3, "SYSTEM_RPT_HOUSE_EXP");
+            ptb.addAsChild(newTask3, "SYSTEM_RPT_DEB_SUB_EXCHANGE");
         }
 
         // Установить статус выполнения задания
