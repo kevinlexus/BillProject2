@@ -70,8 +70,6 @@ public class TaskProcessor {
                 }
                 taskMng.setResult(task, errMess);
             }
-        } else {
-            log.warn("Задание не было активировано");
         }
 
     }
