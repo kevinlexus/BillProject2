@@ -142,7 +142,8 @@ public class PseudoTaskBuilder {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void addAsChild(Task task, String cd) {
-        Task parent = taskDao.getByCd(cd);
+        Integer parentId = taskDao.getTaskIdByCd(cd);
+        Task parent = em.find(Task.class, parentId);
         //log.info("**** 6");
         log.info("******* Прикреплено дочернее задание к родительскому Parent Task.id={}", parent.getId());
         Lst2 lst = lstMng.getByCD("Связь повторяемого задания");

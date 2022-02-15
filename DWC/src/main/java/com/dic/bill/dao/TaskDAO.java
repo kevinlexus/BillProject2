@@ -15,5 +15,5 @@ public interface TaskDAO {
 
     Boolean getChildAnyErr(Task task);
 
-    Task getByCd(String cd); // новый метод 2
+    Integer getTaskIdByCd(String cd); // новый метод 2
 }

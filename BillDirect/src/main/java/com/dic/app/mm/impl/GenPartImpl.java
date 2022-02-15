@@ -482,7 +482,7 @@ public class GenPartImpl implements GenPart {
                     // Тепл.энергия для нагрева ХВС (Кис.)
                     //area = kartArea;
                     Optional<Usl> uslParentOpt = uslDao.findByCd("х.в. для гвс");
-                    // Usl uslLinked = uslDao.getByCd("х.в. для гвс"); убрал 04.02.2021
+                    // Usl uslLinked = uslDao.getTaskIdByCd("х.в. для гвс"); убрал 04.02.2021
                     if (uslParentOpt.isPresent()) {
                         Usl uslLinked = uslParentOpt.get();
                         BigDecimal vvodVol2 = ko.getKart().stream()

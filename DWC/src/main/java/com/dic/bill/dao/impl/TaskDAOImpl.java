@@ -1,6 +1,5 @@
 package com.dic.bill.dao.impl;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -45,16 +44,15 @@ public class TaskDAOImpl implements TaskDAO {
 	}
 
     /**
-     * Вернуть задание по CD
-     */
+     * Вернуть Id задания по CD
+	 */
     @Override
-	//@Cacheable(cacheNames="TaskDAOImpl.getByKlskCd", key="{#cd }", unless = "#result == null")
-	// убрал кэширование - объект может измениться в Bexs fixme! подумать!!!
-    public Task getByCd(String cd) {
+	@Cacheable(cacheNames="TaskDAOImpl.getTaskIdByCd", key="{#cd }", unless = "#result == null")
+    public Integer getTaskIdByCd(String cd) {
 			Query query =em.createQuery("select t from Task t where t.cd=:cd");
 			query.setParameter("cd", cd);
 			try {
-				return (Task) query.getSingleResult();
+				return ((Task) query.getSingleResult()).getId();
 			} catch (javax.persistence.NoResultException e) {
 				// не найден результат
 				log.error("Не найдено задание по CD={}", cd);

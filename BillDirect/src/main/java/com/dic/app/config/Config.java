@@ -60,8 +60,8 @@ public class Config implements ApplicationContextAware, AsyncConfigurer {
                         .newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).build().asMap(), false),
                 new ConcurrentMapCache("LstMngImpl.getByCD", CacheBuilder
                         .newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).build().asMap(), false),
-                new ConcurrentMapCache("TaskDAOImpl.getByKlskCd", CacheBuilder
-                        .newBuilder().expireAfterWrite(600, TimeUnit.SECONDS).build().asMap(), false),
+                new ConcurrentMapCache("TaskDAOImpl.getTaskIdByCd", CacheBuilder
+                        .newBuilder().expireAfterWrite(60, TimeUnit.MINUTES).build().asMap(), false),
                 new ConcurrentMapCache("EolinkDAOImpl.getEolinkByGuid"),
                 new ConcurrentMapCache("UlistMngImpl.getUslByResource"),
                 new ConcurrentMapCache("UlistMngImpl.getServCdByResource"),

@@ -110,7 +110,7 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         // УК
         uk = em.find(Org.class, 874);
         // тип счета
-        tp = lstDao.getByCd("LSK_TP_RSO");
+        tp = lstDao.getTaskIdByCd("LSK_TP_RSO");
         kart.setTp(tp);
         // муницип статус (вообще не должен использоваться никакой!)
         //status = em.find(Status.class, 1);
@@ -149,7 +149,7 @@ public class TestDataBuilderImpl implements TestDataBuilder {
         // УК
         uk = em.find(Org.class, 12);
         // тип счета
-        tp = lstDao.getByCd("LSK_TP_ADDIT");
+        tp = lstDao.getTaskIdByCd("LSK_TP_ADDIT");
         kart.setTp(tp);
         // муницип статус (вообще не должен использоваться никакой!)
         //status = em.find(Status.class, 1);
