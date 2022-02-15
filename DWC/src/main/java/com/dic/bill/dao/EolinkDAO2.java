@@ -29,7 +29,7 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
             + "join exs.eolink uk on uk.fk_objtp=tp2.id and tp2.parent_id is not null and k.reu=uk.reu " // УК
             + "join bs.list stp2 on stp2.cd=:masterTaskCD "
             + "join scott.c_houses h on k.house_id=h.id and h.is_private=:isPrivate "
-            + "join exs.task s2 on s2.fk_eolink=t.id and s2.fk_act=stp2.id " // ведущее задание, к которому прикреплять
+            + "join exs.task s2 on s2.fk_eolink=t.id and s2.fk_act=stp2.id and s2.fk_proc_uk=uk.id " // ведущее задание, к которому прикреплять
             + "where not exists " // где нет заданий указанного типа
             + "		(select * from exs.task s join bs.list stp on s.fk_act=stp.id "
             + "     and stp.cd=:checkTaskCD "
