@@ -1,5 +1,6 @@
 package com.dic.bill.model.exs;
 
+import com.dic.bill.model.scott.Org;
 import com.dic.bill.model.scott.Tuser;
 import lombok.Getter;
 import lombok.Setter;
@@ -150,6 +151,11 @@ public class DebSubRequest implements java.io.Serializable {
     // ГИС ЖКХ Транспортный GUID
     @Column(name = "TGUID")
     private String tguid;
+
+    // запрос задолженности для УК
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="FK_UK", referencedColumnName="ID")
+    private Org uk;
 
     @Override
     public boolean equals(Object o) {

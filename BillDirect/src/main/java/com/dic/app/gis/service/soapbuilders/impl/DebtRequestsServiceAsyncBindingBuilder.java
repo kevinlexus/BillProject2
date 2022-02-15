@@ -268,6 +268,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                         // по умолчанию поля, на новой записи
                         debSubRequest.setHasDebt(false);
                         debSubRequest.setIsRevoked(false);
+                        debSubRequest.setUk(task.getProcUk().getOrg());
 
                         debSubRequest.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId());
                         debSubRequest.setRequestGuid(subrequest.getSubrequestGUID());
