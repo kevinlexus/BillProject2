@@ -14,6 +14,8 @@ import com.ric.cmn.excp.WrongParam;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import java.util.Date;
@@ -138,13 +140,18 @@ public class PseudoTaskBuilder {
      * @param cd - CD ведущее задания
      */
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void addAsChild(Task task, String cd) {
         Task parent = taskDao.getByCd(cd);
+        //log.info("**** 6");
         log.info("******* Прикреплено дочернее задание к родительскому Parent Task.id={}", parent.getId());
         Lst2 lst = lstMng.getByCD("Связь повторяемого задания");
+        //log.info("**** 7");
         TaskToTask t = new TaskToTask(parent, task, lst);
+        //log.info("**** 8");
         task.getOutside().add(t);
-        log.info("******* parent.id={}, getInside().size()={}", parent.getId(), parent.getInside().size());
+        //log.info("**** 9");
+        //log.info("******* parent.id={}, getInside().size()={}", parent.getId(), parent.getInside().size());
     }
 
     /**

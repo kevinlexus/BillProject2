@@ -7,7 +7,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 
-import org.springframework.data.repository.query.Param;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 
 import com.dic.bill.dao.TaskDAO;
@@ -48,8 +48,8 @@ public class TaskDAOImpl implements TaskDAO {
      * Вернуть задание по CD
      */
     @Override
-    // @Cacheable(cacheNames="TaskDAOImpl.getByKlskCd", key="{#cd }", unless = "#result == null")
-	// убрал кэширование - объект может измениться в Bexs
+    @Cacheable(cacheNames="TaskDAOImpl.getByKlskCd", key="{#cd }", unless = "#result == null")
+	// убрал кэширование - объект может измениться в Bexs // вернул кэширование 15.02.22 - тормозило очень
     public Task getByCd(String cd) {
 			Query query =em.createQuery("select t from Task t where t.cd=:cd");
 			query.setParameter("cd", cd);
