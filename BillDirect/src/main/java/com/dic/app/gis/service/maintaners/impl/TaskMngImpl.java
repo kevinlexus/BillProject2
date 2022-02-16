@@ -122,7 +122,7 @@ public class TaskMngImpl implements TaskMng {
 	@Override
 	public void alterDtNextStart(Task task) {
 		GregorianCalendar cal = new GregorianCalendar();
-		int lag2 = Utl.nvl(task.getLagNextStart(), 0) + 600; // 10 минут
+		int lag2 = Utl.nvl(task.getLagNextStart(), 0) + 60; // 1 минута
 		// не более 60 минут
 		if (lag2 > 3600) {
 			lag2 = 3600;

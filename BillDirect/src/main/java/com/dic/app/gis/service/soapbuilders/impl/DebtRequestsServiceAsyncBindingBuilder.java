@@ -263,6 +263,9 @@ public class DebtRequestsServiceAsyncBindingBuilder {
 
                     // статус запроса в ГИС
                     debSubRequest.setStatusGis(DebtSubRequestStatuses.getByName(requestInfo.getStatus().value()).getId());
+                    if (debSubRequest.getProcUk()==null) {
+                        debSubRequest.setProcUk(task.getProcUk());
+                    }
 
                     if (isNew) {
                         // по умолчанию поля, на новой записи
@@ -338,8 +341,8 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         req.setId("foo");
         req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
-        List<DebSubRequest> reqs = debSubRequestDAO.getAllByStatusInAndHouseId(
-                List.of(DebtSubRequestInnerStatuses.SENT.getId()), task.getEolink().getId());
+        List<DebSubRequest> reqs = debSubRequestDAO.getAllByStatusInAndHouseIdAndProcUkId(
+                List.of(DebtSubRequestInnerStatuses.SENT.getId()), task.getEolink().getId(), task.getProcUk().getId());
 
 
         boolean existsForSending = false;

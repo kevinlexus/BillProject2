@@ -12,5 +12,5 @@ public interface DebSubRequestDAO extends JpaRepository<DebSubRequest, Integer> 
 
     Optional<DebSubRequest> getByTguid(String guid);
 
-    List<DebSubRequest> getAllByStatusInAndHouseId(List<Integer> statuses, Integer houseId);
+    List<DebSubRequest> getAllByStatusInAndHouseIdAndProcUkId(List<Integer> statuses, Integer houseId, Integer procUkId);
 }

@@ -121,7 +121,7 @@ public class TaskController implements TaskControllers {
                 } catch (InterruptedException e) {
                     log.error("Ошибка отправки задачи в очередь", e);
                 }
-                log.info("Задача id={}, ушла в очередь", taskId);
+                log.trace("Задача id={}, ушла в очередь", taskId);
             });
             return taskId;
         });
