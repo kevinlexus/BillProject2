@@ -454,6 +454,8 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                 String tguid = commonResultType.getTransportGUID();
                 Optional<DebSubRequest> debSubRequestOpt = debSubRequestDAO.getByTguid(tguid);
                 debSubRequestOpt.ifPresent(t -> t.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId()));
+                debSubRequestOpt.ifPresent(t -> t.setResult(null));
+                debSubRequestOpt.ifPresent(t -> t.setIsErrorOnResponse(false));
 
                 for (CommonResultType.Error error : commonResultType.getError()) {
                     debSubRequestOpt.ifPresent(t -> {

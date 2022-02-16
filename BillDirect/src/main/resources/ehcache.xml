@@ -42,7 +42,7 @@
 
     <cache-template name="defaultCache">
         <expiry>
-            <ttl unit="minutes">10</ttl>
+            <ttl unit="minutes">5</ttl>
         </expiry>
         <resources>
             <heap unit="entries">5000</heap>
@@ -54,7 +54,7 @@
         <key-type>java.lang.Object</key-type>
         <value-type>java.lang.Object</value-type>
         <expiry>
-            <ttl unit="minutes">60</ttl>
+            <ttl unit="minutes">5</ttl>
         </expiry>
         <resources>
             <heap unit="entries">5000</heap>
