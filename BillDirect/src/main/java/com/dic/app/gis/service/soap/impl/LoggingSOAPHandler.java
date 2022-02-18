@@ -135,11 +135,10 @@ public class LoggingSOAPHandler implements SOAPHandler<SOAPMessageContext> {
                 } catch (SOAPException e1) {
                     e1.printStackTrace();
                 }
-/* отключил отображение исходящего, подписанного запроса - загромождает лог трассировки ред.11.02.22
+/* отключил отображение исходящего, подписанного запроса - загромождает лог трассировки ред.11.02.22 - включил обратно */
                 if (trace) {
                     dumpSOAPMessage(soapMsg);
                 }
-*/
             }
         }
         return true;

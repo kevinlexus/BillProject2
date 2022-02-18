@@ -112,7 +112,7 @@ public class DebSubRequest implements java.io.Serializable {
     @Column(name = "DESCRIPTION")
     private String description;
 
-    // статус загрузки в ГИС (0-принято УК от ГИС, 1-изменено и отправлено в ГИС, 2- принято в ГИС, 3-отозвано УК, 4-отзыв принят ГИС)
+    // статус загрузки в ГИС (0-принято УК от ГИС, 1-изменено и отправлено в ГИС, 2-выполнение отправки в ГИС)
     @Column(name = "STATUS")
     private Integer status;
 

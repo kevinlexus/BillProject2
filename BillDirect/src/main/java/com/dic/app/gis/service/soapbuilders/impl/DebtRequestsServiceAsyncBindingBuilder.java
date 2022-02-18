@@ -102,68 +102,69 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         return new SoapPar(port, sb, reqProp);
     }
 
+    @Getter
+    @Setter
+    private static class State {
+        private ru.gosuslugi.dom.schema.integration.drs.GetStateResult stateResult = null;
+        private boolean isErrExist = false;
+        private String errorMessage = "";
+        private boolean processed = false;
+    }
 
     /**
      * Получить состояние запроса
      *
      * @param task - задание
-     * @return
      */
-    private GetStateResult getState(Task task) throws CantPrepSoap, CantSendSoap {
+    private State getState(Task task) throws CantPrepSoap, CantSendSoap {
         // Признак ошибки
-        boolean err = false;
+        State state = new State();
         // Признак ошибки в CommonResult
-        String errStr = null;
-        ru.gosuslugi.dom.schema.integration.drs.GetStateResult state = null;
 
         GetStateRequest gs = new GetStateRequest();
         gs.setMessageGUID(task.getMsgGuid());
         SoapPar par = setUp(task);
         par.sb.setSign(false); // не подписывать запрос состояния!
 
-        String errMsg = null;
         try {
-            state = par.port.getState(gs);
+            state.setStateResult(par.port.getState(gs));
         } catch (ru.gosuslugi.dom.schema.integration.drs_service_async.Fault e) {
-            errMsg = e.getFaultInfo().getErrorCode();
+            state.setErrorMessage(e.getFaultInfo().getErrorCode());
+            state.setErrExist(true);
             e.printStackTrace();
-            err = true;
-            errStr = "Запрос вернул ошибку!";
         }
 
-        if (state != null && state.getRequestState() != 3) {
+        if (state.getStateResult() != null && state.getStateResult().getRequestState() != 3) {
             // вернуться, если задание всё еще не выполнено
-            log.info("Статус запроса={}, Task.id={}", state.getRequestState(), task.getId());
+            log.info("Статус запроса={}, Task.id={}", state.getStateResult().getRequestState(), task.getId());
 
-            if (state.getRequestState() == 1) {
+            if (state.getStateResult().getRequestState() == 1) {
                 // статус запроса - ACK - увеличить время ожидания
                 taskMng.alterDtNextStart(task);
             }
-            return null;
+            return state;
         }
+
+        state.setProcessed(true);
 
         // Показать ошибки, если есть
-        if (err) {
+        if (state.isErrExist) {
             // Ошибки во время выполнения
-            log.info(errStr);
             task.setState("ERR");
-            task.setResult(errStr);
-            task.setResult(errMsg);
-            log.error("Task.id={}, ОШИБКА выполнения запроса = {}", task.getId(), errStr);
+            log.error("Task.id={}, ОШИБКА выполнения запроса = {}", task.getId(), state.getErrorMessage());
         } else {
-            if (state == null) {
-                log.error("ОШИБКА! state==null");
-            } else if (state.getErrorMessage() != null && state.getErrorMessage().getErrorCode() != null) {
+            if (state.getStateResult() == null) {
+                log.error("ОШИБКА! stateResult==null");
+            } else if (state.getStateResult().getErrorMessage() != null && state.getStateResult().getErrorMessage().getErrorCode() != null) {
                 // Ошибки контролей или бизнес-процесса
-                errStr = state.getErrorMessage().getDescription();
-                log.info("Ошибка выполнения запроса = {}", errStr);
+                state.setErrExist(true);
+                state.setErrorMessage(state.getStateResult().getErrorMessage().getDescription());
+                log.info("Ошибка выполнения запроса = {}", state.getErrorMessage());
                 task.setState("ERR");
-                task.setResult(errStr);
+                task.setResult(state.getErrorMessage());
             }
         }
-
         return state;
-
     }
 
 
@@ -238,87 +239,87 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         setUp(task);
 
         // получить состояние
-        GetStateResult retState = getState(task);
-        if (retState == null) {
-            // не обработано
-        } else if (!task.getState().equals("ERR")) {
-            // Ошибок нет, обработка
-            ExportDSRsResultType exportDSRsResult = retState.getExportDSRsResult();
+        State state = getState(task);
+        if (state.processed) {
+            if (!task.getState().equals("ERR")) {
+                // Ошибок нет, обработка
+                ExportDSRsResultType exportDSRsResult = state.getStateResult().getExportDSRsResult();
 
-            ExportDSRsResultType.PagedOutput pagedOutput = exportDSRsResult.getPagedOutput(); // todo подумать!
-            for (DSRType subrequest : exportDSRsResult.getSubrequestData()) {
-                DSRType.RequestInfo requestInfo = subrequest.getRequestInfo();
-                if (requestInfo != null) {
-                    ExportHousingFundObjectInfoType housingFundObject = requestInfo.getHousingFundObject();
+                ExportDSRsResultType.PagedOutput pagedOutput = exportDSRsResult.getPagedOutput(); // todo подумать!
+                for (DSRType subrequest : exportDSRsResult.getSubrequestData()) {
+                    DSRType.RequestInfo requestInfo = subrequest.getRequestInfo();
+                    if (requestInfo != null) {
+                        ExportHousingFundObjectInfoType housingFundObject = requestInfo.getHousingFundObject();
 
-                    DebSubRequest debSubRequest;
-                    Optional<DebSubRequest> requestOpt = debSubRequestDAO.getByRequestGuid(subrequest.getSubrequestGUID());
-                    boolean isNew = false;
-                    if (requestOpt.isEmpty()) {
-                        debSubRequest = new DebSubRequest();
-                        isNew = true;
-                    } else {
-                        debSubRequest = requestOpt.get();
-                    }
+                        DebSubRequest debSubRequest;
+                        Optional<DebSubRequest> requestOpt = debSubRequestDAO.getByRequestGuid(subrequest.getSubrequestGUID());
+                        boolean isNew = false;
+                        if (requestOpt.isEmpty()) {
+                            debSubRequest = new DebSubRequest();
+                            isNew = true;
+                        } else {
+                            debSubRequest = requestOpt.get();
+                        }
 
-                    // статус запроса в ГИС
-                    debSubRequest.setStatusGis(DebtSubRequestStatuses.getByName(requestInfo.getStatus().value()).getId());
-                    if (debSubRequest.getProcUk()==null) {
-                        debSubRequest.setProcUk(task.getProcUk());
-                    }
+                        // статус запроса в ГИС
+                        debSubRequest.setStatusGis(DebtSubRequestStatuses.getByName(requestInfo.getStatus().value()).getId());
+                        if (debSubRequest.getProcUk() == null) {
+                            debSubRequest.setProcUk(task.getProcUk());
+                        }
 
-                    if (isNew) {
-                        // по умолчанию поля, на новой записи
-                        debSubRequest.setHasDebt(false);
-                        debSubRequest.setIsRevoked(false);
-                        debSubRequest.setUk(task.getProcUk().getOrg());
+                        if (isNew) {
+                            // по умолчанию поля, на новой записи
+                            debSubRequest.setHasDebt(false);
+                            debSubRequest.setIsRevoked(false);
+                            debSubRequest.setUk(task.getProcUk().getOrg());
 
-                        debSubRequest.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId());
-                        debSubRequest.setRequestGuid(subrequest.getSubrequestGUID());
-                        debSubRequest.setRequestNumber(requestInfo.getRequestNumber());
+                            debSubRequest.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId());
+                            debSubRequest.setRequestGuid(subrequest.getSubrequestGUID());
+                            debSubRequest.setRequestNumber(requestInfo.getRequestNumber());
 
-                        Eolink house = eolinkDAO.getEolinkByGuid(housingFundObject.getFiasHouseGUID());
-                        debSubRequest.setHouse(house);
-                        debSubRequest.setAddress(housingFundObject.getAddress());
-                        debSubRequest.setAddressDetail(housingFundObject.getAddressDetails());
-                        debSubRequest.setSentDate(Utl.getDateFromXmlGregCal(requestInfo.getSentDate())); // отправлено
-                        debSubRequest.setResponseDate(Utl.getDateFromXmlGregCal(requestInfo.getResponseDate())); // крайняя дата ответа
+                            Eolink house = eolinkDAO.getEolinkByGuid(housingFundObject.getFiasHouseGUID());
+                            debSubRequest.setHouse(house);
+                            debSubRequest.setAddress(housingFundObject.getAddress());
+                            debSubRequest.setAddressDetail(housingFundObject.getAddressDetails());
+                            debSubRequest.setSentDate(Utl.getDateFromXmlGregCal(requestInfo.getSentDate())); // отправлено
+                            debSubRequest.setResponseDate(Utl.getDateFromXmlGregCal(requestInfo.getResponseDate())); // крайняя дата ответа
 
-                        // организация, направившая запрос
-                        OrganizationInfoType organization = requestInfo.getOrganization();
-                        debSubRequest.setOrgFromGuid(organization.getOrgRootGUID());
-                        debSubRequest.setOrgFromName(organization.getName());
-                        debSubRequest.setOrgFromPhone(organization.getTel());
-                        // исполнитель, направивший запрос
-                        debSubRequest.setExecutorGUID(requestInfo.getExecutorInfo().getGUID());
-                        debSubRequest.setExecutorFIO(requestInfo.getExecutorInfo().getFio());
+                            // организация, направившая запрос
+                            OrganizationInfoType organization = requestInfo.getOrganization();
+                            debSubRequest.setOrgFromGuid(organization.getOrgRootGUID());
+                            debSubRequest.setOrgFromName(organization.getName());
+                            debSubRequest.setOrgFromPhone(organization.getTel());
+                            // исполнитель, направивший запрос
+                            debSubRequest.setExecutorGUID(requestInfo.getExecutorInfo().getGUID());
+                            debSubRequest.setExecutorFIO(requestInfo.getExecutorInfo().getFio());
 
-                        // ответ
-                        DSRType.ResponseData responseData = subrequest.getResponseData();
-                        if (responseData != null) {
-                            debSubRequest.setHasDebt(responseData.isHasDebt());
-                            debSubRequest.setDescription(responseData.getDescription());
-                            ExecutorInfoType executorInfo = responseData.getExecutorInfo();
-                            if (executorInfo != null) {
-                                Optional<Tuser> executorOpt = tuserDAO.getByGuid(executorInfo.getGUID());
-                                if (debSubRequest.getUser() == null) {
-                                    executorOpt.ifPresent(debSubRequest::setUser);
+                            // ответ
+                            DSRType.ResponseData responseData = subrequest.getResponseData();
+                            if (responseData != null) {
+                                debSubRequest.setHasDebt(responseData.isHasDebt());
+                                debSubRequest.setDescription(responseData.getDescription());
+                                ExecutorInfoType executorInfo = responseData.getExecutorInfo();
+                                if (executorInfo != null) {
+                                    Optional<Tuser> executorOpt = tuserDAO.getByGuid(executorInfo.getGUID());
+                                    if (debSubRequest.getUser() == null) {
+                                        executorOpt.ifPresent(debSubRequest::setUser);
+                                    }
                                 }
                             }
                         }
+                        // статус ответа, как он отображен в ГИС
+                        if (subrequest.getResponseStatus() != null) {
+                            debSubRequest.setResponseStatus(DebtSubRequestResponseStatuses.getByName(subrequest.getResponseStatus().value()).getId());
+                        }
+                        debSubRequestDAO.save(debSubRequest);
+                    } else {
+                        log.error("DSRType.RequestInfo requestInfo - пустой");
                     }
-                    // статус ответа, как он отображен в ГИС
-                    if (subrequest.getResponseStatus() != null) {
-                        debSubRequest.setResponseStatus(DebtSubRequestResponseStatuses.getByName(subrequest.getResponseStatus().value()).getId());
-                    }
-                    debSubRequestDAO.save(debSubRequest);
-                } else {
-                    log.error("DSRType.RequestInfo requestInfo - пустой");
                 }
+                // Установить статус выполнения задания
+                task.setState("ACP");
+                taskMng.logTask(task, false, true);
             }
-            // Установить статус выполнения задания
-            task.setState("ACP");
-            taskMng.logTask(task, false, true);
         }
     }
 
@@ -354,6 +355,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                 debSubRequest.setTguid(tguid);
                 debSubRequest.setIsErrorOnResponse(false);
                 debSubRequest.setResult(null);
+                debSubRequest.setStatus(DebtSubRequestInnerStatuses.PROCESSING.getId());
                 action.setSubrequestGUID(debSubRequest.getRequestGuid());
 
                 DSRResponseActionType actionType;
@@ -408,14 +410,18 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         if (existsForSending) {
             try {
                 ack = par.port.importResponses(req);
-            } catch (ru.gosuslugi.dom.schema.integration.drs_service_async.Fault e1) {
+            } catch (Exception e1) {
                 e1.printStackTrace();
                 err = true;
-                errMainStr = e1.getFaultInfo().getErrorMessage();
+                errMainStr = e1.getMessage();
             }
             if (err) {
+                State state = new State();
+                state.setErrExist(true);
+                state.setErrorMessage("Ошибка при отправке XML: " + errMainStr);
+                markRequestsAsError(task, state);
                 task.setState("ERR");
-                task.setResult("Ошибка при отправке XML: " + errMainStr);
+                task.setResult(state.getErrorMessage());
                 taskMng.logTask(task, false, false);
             } else {
                 // Установить статус "Запрос статуса"
@@ -443,35 +449,48 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         setUp(task);
 
         // получить состояние
-        GetStateResult retState = getState(task);
-        if (retState == null) {
-            // не обработано
-        } else if (!task.getState().equals("ERR")) {
-            // Ошибок нет, обработка
-            List<CommonResultType> importResult = retState.getImportResult();
+        State state = getState(task);
+        if (state.processed) {
+            if (state.isErrExist) {
+                // есть ошибки отправки запроса (например 400, Bad request)
+                markRequestsAsError(task, state);
+            } else {
+                // Ошибок отправки нет, обработка
+                List<CommonResultType> importResult = state.getStateResult().getImportResult();
 
-            for (CommonResultType commonResultType : importResult) {
-                String tguid = commonResultType.getTransportGUID();
-                Optional<DebSubRequest> debSubRequestOpt = debSubRequestDAO.getByTguid(tguid);
-                debSubRequestOpt.ifPresent(t -> t.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId()));
-                debSubRequestOpt.ifPresent(t -> t.setResult(null));
-                debSubRequestOpt.ifPresent(t -> t.setIsErrorOnResponse(false));
+                for (CommonResultType commonResultType : importResult) {
+                    String tguid = commonResultType.getTransportGUID();
+                    Optional<DebSubRequest> debSubRequestOpt = debSubRequestDAO.getByTguid(tguid);
+                    debSubRequestOpt.ifPresent(t -> t.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId()));
+                    debSubRequestOpt.ifPresent(t -> t.setResult(null));
+                    debSubRequestOpt.ifPresent(t -> t.setIsErrorOnResponse(false));
 
-                for (CommonResultType.Error error : commonResultType.getError()) {
-                    debSubRequestOpt.ifPresent(t -> {
-                        t.setResult(error.getDescription());
-                        t.setIsErrorOnResponse(true);
-                    });
-                    if (debSubRequestOpt.isEmpty()) {
-                        log.error("Не найден DebSubRequest по tguid={}", tguid);
+                    for (CommonResultType.Error error : commonResultType.getError()) {
+                        debSubRequestOpt.ifPresent(t -> {
+                            t.setResult(error.getDescription());
+                            t.setIsErrorOnResponse(true);
+                        });
+                        if (debSubRequestOpt.isEmpty()) {
+                            log.error("Не найден DebSubRequest по tguid={}", tguid);
+                        }
                     }
                 }
-            }
 
-            // Установить статус выполнения задания
-            task.setState("ACP");
-            taskMng.logTask(task, false, true);
+                // Установить статус выполнения задания
+                task.setState("ACP");
+                taskMng.logTask(task, false, true);
+            }
         }
+    }
+
+    private void markRequestsAsError(Task task, State state) {
+        List<DebSubRequest> debSubRequests = debSubRequestDAO.getAllByStatusInAndHouseIdAndProcUkId(
+                List.of(DebtSubRequestInnerStatuses.PROCESSING.getId()), task.getEolink().getId(), task.getProcUk().getId());
+        debSubRequests.forEach(t -> {
+            t.setIsErrorOnResponse(true);
+            t.setResult(state.errorMessage);
+            t.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId());
+        });
     }
 
 

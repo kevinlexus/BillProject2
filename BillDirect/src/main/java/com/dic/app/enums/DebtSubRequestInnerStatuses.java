@@ -6,7 +6,8 @@ import lombok.Getter;
 @Getter
 public enum DebtSubRequestInnerStatuses {
     RECEIVED(0), // принято УК от ГИС
-    SENT(1); // изменено и подготовлено к отправке в ГИС
+    SENT(1), // изменено и подготовлено к отправке в ГИС
+    PROCESSING(2); // выполняется отправка
 
 
     private final int id;
