@@ -9,13 +9,13 @@ import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.gis.service.maintaners.impl.ReqProp;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.mm.ConfigApp;
-import com.dic.bill.dao.DebSubRequestDAO;
-import com.dic.bill.dao.EolinkDAO;
-import com.dic.bill.dao.TuserDAO;
+import com.dic.bill.dao.*;
 import com.dic.bill.model.exs.DebSubRequest;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
+import com.dic.bill.model.scott.Lst;
 import com.dic.bill.model.scott.Tuser;
+import com.dic.bill.model.scott.UserPerm;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.*;
 import lombok.AllArgsConstructor;
@@ -23,6 +23,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +64,8 @@ public class DebtRequestsServiceAsyncBindingBuilder {
     private final EolinkDAO eolinkDAO;
     private final DebSubRequestDAO debSubRequestDAO;
     private final TuserDAO tuserDAO;
+    private final UserPermDAO userPermDAO;
+    private final UlstDAO ulstDAO;
 
     @Getter
     @Setter
@@ -329,6 +332,8 @@ public class DebtRequestsServiceAsyncBindingBuilder {
     public void importDebtSubrequestResponse(Integer taskId) throws CantPrepSoap, CantSendSoap {
         Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
+
+        Lst lstTp = ulstDAO.getByCd("EXP_DEB_SUB_REQUEST");
         // Установить параметры SOAP
         SoapPar par = setUp(task);
         AckRequest ack = null;
@@ -348,63 +353,82 @@ public class DebtRequestsServiceAsyncBindingBuilder {
 
         boolean existsForSending = false;
         for (DebSubRequest debSubRequest : reqs) {
-            if (debSubRequest.getUser() != null) {
-                ImportDSRResponsesRequest.Action action = new ImportDSRResponsesRequest.Action();
-                String tguid = Utl.getRndUuid().toString();
-                action.setTransportGUID(tguid);
-                debSubRequest.setTguid(tguid);
-                debSubRequest.setIsErrorOnResponse(false);
-                debSubRequest.setResult(null);
-                debSubRequest.setStatus(DebtSubRequestInnerStatuses.PROCESSING.getId());
-                action.setSubrequestGUID(debSubRequest.getRequestGuid());
+            ImportDSRResponsesRequest.Action action = new ImportDSRResponsesRequest.Action();
+            String tguid = Utl.getRndUuid().toString();
+            action.setTransportGUID(tguid);
+            debSubRequest.setTguid(tguid);
+            debSubRequest.setIsErrorOnResponse(false);
+            debSubRequest.setResult(null);
+            debSubRequest.setStatus(DebtSubRequestInnerStatuses.PROCESSING.getId());
+            action.setSubrequestGUID(debSubRequest.getRequestGuid());
 
-                DSRResponseActionType actionType;
-                if (debSubRequest.getIsRevoked()) {
-                    actionType = DSRResponseActionType.REVOKE;
+            DSRResponseActionType actionType;
+            if (debSubRequest.getIsRevoked()) {
+                existsForSending = true;
+                actionType = DSRResponseActionType.REVOKE;
+            } else {
+                actionType = DSRResponseActionType.SEND;
+                ImportDSRResponseType responseData = new ImportDSRResponseType();
+                responseData.setHasDebt(debSubRequest.getHasDebt());
+                responseData.setDescription(debSubRequest.getDescription());
+                List<UserPerm> userPerm = userPermDAO.findByUkReuAndTpCd(debSubRequest.getUk().getReu(), lstTp.getCd());
+                if (userPerm.size() == 0) {
+                    debSubRequest.setIsErrorOnResponse(true);
+                    debSubRequest.setResult("Не определён пользователь, подписывающий документ, в справочнике пользователей");
+                    log.error("По DEBT_SUB_REQUEST.ID={}, не определён пользователь, подписывающий документ, в справочнике пользователей", debSubRequest.getId());
+                    continue;
+                } else if (userPerm.size() > 1) {
+                    debSubRequest.setIsErrorOnResponse(true);
+                    debSubRequest.setResult("Кол-во подписывающих документ > 1 в справочнике пользователей");
+                    log.error("По DEBT_SUB_REQUEST.ID={}, кол-во подписывающих документ > 1 в справочнике пользователей", debSubRequest.getId());
+                    continue;
                 } else {
-                    actionType = DSRResponseActionType.SEND;
-                    ImportDSRResponseType responseData = new ImportDSRResponseType();
-                    responseData.setHasDebt(debSubRequest.getHasDebt());
-                    responseData.setDescription(debSubRequest.getDescription());
-                    responseData.setExecutorGUID(debSubRequest.getUser().getGuid());
+                    Tuser userSigner = userPerm.get(0).getUser();
+                    if (StringUtils.isEmpty(userSigner.getGuid())) {
+                        debSubRequest.setIsErrorOnResponse(true);
+                        debSubRequest.setResult("У подписывающего документ пользователя, не заполнен GUID, в справочнике пользователей");
+                        log.error("По DEBT_SUB_REQUEST.ID={}, у подписывающего документ пользователя, не заполнен GUID, в справочнике пользователей", debSubRequest.getId());
+                        continue;
+                    } else {
+                        existsForSending = true;
+                        responseData.setExecutorGUID(userSigner.getGuid());
+                    }
+                }
 
-                    if (debSubRequest.getFirstName() != null) {
-                        // добавить задолжника
-                        DebtInfoType debtInfo = new DebtInfoType();
-                        DebtInfoType.Person person = new DebtInfoType.Person();
-                        person.setFirstName(debSubRequest.getFirstName());
-                        person.setLastName(debSubRequest.getLastName());
-                        person.setMiddleName(debSubRequest.getMiddleName());
-                        person.setSnils(debSubRequest.getSnils());
+                if (debSubRequest.getFirstName() != null) {
+                    // добавить задолжника
+                    DebtInfoType debtInfo = new DebtInfoType();
+                    DebtInfoType.Person person = new DebtInfoType.Person();
+                    person.setFirstName(debSubRequest.getFirstName());
+                    person.setLastName(debSubRequest.getLastName());
+                    person.setMiddleName(debSubRequest.getMiddleName());
+                    person.setSnils(debSubRequest.getSnils());
 
-                        if (debSubRequest.getDocTypeGUID() != null && debSubRequest.getDocNumber() != null && debSubRequest.getDocSeria() != null) {
-                            // документ должника (НСИ 95)
-                            DocumentType document = new DocumentType();
-                            document.setNumber(debSubRequest.getDocNumber());
-                            document.setSeries(debSubRequest.getDocSeria());
-                            NsiRef docType = new NsiRef();
-                            docType.setGUID(debSubRequest.getDocTypeGUID());
-                            // docType.setCode(); todo если свалится запрос, то попробовать заполнять эти поля
-                            // docType.setName();
+                    if (debSubRequest.getDocTypeGUID() != null && debSubRequest.getDocNumber() != null && debSubRequest.getDocSeria() != null) {
+                        // документ должника (НСИ 95)
+                        DocumentType document = new DocumentType();
+                        document.setNumber(debSubRequest.getDocNumber());
+                        document.setSeries(debSubRequest.getDocSeria());
+                        NsiRef docType = new NsiRef();
+                        docType.setGUID(debSubRequest.getDocTypeGUID());
+                        // docType.setCode(); todo если свалится запрос, то попробовать заполнять эти поля
+                        // docType.setName();
 
-                            document.setType(docType);
-                            person.setDocument(document);
-                        }
+                        document.setType(docType);
+                        person.setDocument(document);
+                    }
 
                         /* todo можно заполнять документ, подтверждающий задолженность (НСИ 358), пока не стал делать
                                                 DebtInfoType.Document doc;
                                                 debtInfo.getDocument().add(doc);
                         */
-                        debtInfo.setPerson(person);
-                        responseData.getDebtInfo().add(debtInfo);
-                    }
-                    action.setResponseData(responseData);
+                    debtInfo.setPerson(person);
+                    responseData.getDebtInfo().add(debtInfo);
                 }
-                action.setActionType(actionType);
-
-                req.getAction().add(action);
+                action.setResponseData(responseData);
             }
-            existsForSending = true;
+            action.setActionType(actionType);
+            req.getAction().add(action);
         }
 
         if (existsForSending) {
@@ -436,8 +460,6 @@ public class DebtRequestsServiceAsyncBindingBuilder {
             task.setResult(null);
             taskMng.logTask(task, false, true);
         }
-
-
     }
 
 

@@ -159,6 +159,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
             Optional<Selobj> lskRange = changesParam.getSelObjList().stream()
                     .filter(t -> t.getTp().equals(SelObjTypes.LSK))
                     .findAny();
+            lskRange.ifPresent(changesParam::setLskRange);
             if (isAllObj) {
                 // весь фонд. Выбрать все дома
                 kulNds = houseDAO.getAllKulNds();
@@ -274,6 +275,8 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
 
         log.info("Начало проверки на дубли nabor");
         boolean existsDuplicates = currentNabors.stream().anyMatch(t -> currentNabors.stream()
+                .filter(d -> changesParam.getLskRange() != null ||
+                        Utl.between(t.getLsk(), changesParam.getLskRange().getLskFrom(), changesParam.getLskRange().getLskTo()))
                 .anyMatch(d -> !t.equals(d) && d.getLsk().equals(t.getLsk()) && d.getMg().equals(t.getMg()) && d.getUslId().equals(t.getUslId())
                 ));
         if (existsDuplicates) {

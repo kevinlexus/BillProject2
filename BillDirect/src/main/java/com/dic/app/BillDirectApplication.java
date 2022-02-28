@@ -19,13 +19,13 @@ public class BillDirectApplication {
         log.info("****************************************************************");
         log.info("*                                                              *");
         log.info("*                                                              *");
-        log.info("*                    Версия модуля - 1.4.0                    *");
+        log.info("*                    Версия модуля - 1.4.1                     *");
         log.info("*                                                              *");
         log.info("*                                                              *");
         log.info("****************************************************************");
         log.info("");
 
-        ConfigurableApplicationContext app = SpringApplication.run(BillDirectApplication.class, args);
+        SpringApplication.run(BillDirectApplication.class, args);
     }
 
 

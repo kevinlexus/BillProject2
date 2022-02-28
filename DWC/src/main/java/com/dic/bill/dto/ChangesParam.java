@@ -18,6 +18,7 @@ public class ChangesParam {
     private Date dt; // дата перерасчета
     private String user; // пользователь
     private List<Selobj> selObjList; // выбранные объекты
+    Selobj lskRange; // диапазон лиц.счетов
     private String periodFrom; // начальный период
     private String periodTo; // конечный период
     @JsonIgnore

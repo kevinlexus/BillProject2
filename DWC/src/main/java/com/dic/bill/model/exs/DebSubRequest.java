@@ -157,7 +157,7 @@ public class DebSubRequest implements java.io.Serializable {
     @JoinColumn(name="FK_UK", referencedColumnName="ID")
     private Org uk;
 
-    // запрос задолженности для Eolink
+    // запрос задолженности для Eolink (УК)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="FK_PROC_UK", referencedColumnName="ID")
     private Eolink procUk;

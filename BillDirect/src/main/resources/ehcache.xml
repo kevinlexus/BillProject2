@@ -27,6 +27,7 @@
             <jsr107:cache name="BillDirectEntitiesCacheMeter" template="entityCache"/>
             <jsr107:cache name="BillDirectEntitiesCacheKo" template="entityCache"/>
             <jsr107:cache name="BillDirectEntitiesCacheHouse" template="entityCache"/>
+            <jsr107:cache name="BillDirectEntitiesCacheUserPerm" template="entityCache"/>
         </jsr107:defaults>
     </service>
 
