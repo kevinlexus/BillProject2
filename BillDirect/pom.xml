@@ -201,6 +201,11 @@
             <version>20050927</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>4.2.0</version>
+        </dependency>
     </dependencies>
 
 
@@ -256,6 +261,18 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <configuration>
+                    <locations>
+                        <location>filesystem:src/main/resources/db/migration</location>
+                    </locations>
+                    <url>jdbc:oracle:thin:@NOT_WORK_THIS_WAY:1521:ORCL</url>
+                    <user>NOT_WORK_THIS_WAY</user>
+                    <password>NOT_WORK_THIS_WAY</password>
+                </configuration>
             </plugin>
         </plugins>
     </build>
