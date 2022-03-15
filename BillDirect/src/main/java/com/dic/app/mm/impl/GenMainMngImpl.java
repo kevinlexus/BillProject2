@@ -295,7 +295,7 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
                             // найдены ошибки - выход
                             menuGenItg.setState("Найдены ошибки после формирования!");
                             log.error("Найдены ошибки после формирования!");
-                            return;
+                            // return; убрал выход из формирования - иначе при наличии ошибки, не происходит формирование ЛК
                         }
                         if (markExecuted(menuGenItg, itm, 0.99D, dt1)) return;
                         break;

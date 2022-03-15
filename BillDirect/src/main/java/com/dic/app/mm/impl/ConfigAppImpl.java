@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
+import java.io.File;
 import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -80,6 +81,8 @@ public class ConfigAppImpl implements ConfigApp {
     private String gisVersion;
     @Value("${hostIp}")
     private String hostIp;
+    // запускать ли потоки ГИС на старте
+    private boolean isGisWorkOnStart;
 
 
     @PostConstruct
@@ -90,6 +93,18 @@ public class ConfigAppImpl implements ConfigApp {
 
         // блокировщик процессов
         setLock(new Lock());
+
+        setUpGisParameters();
+    }
+
+    private void setUpGisParameters() {
+        File tempFile = new File("stopGis");
+        boolean exists = tempFile.exists();
+        if (exists) {
+            isGisWorkOnStart=false;
+        } else {
+            isGisWorkOnStart=true;
+        }
     }
 
     @Override
@@ -210,8 +225,9 @@ public class ConfigAppImpl implements ConfigApp {
         mapUslRound =
                 uslRoundDAO.findAll().stream().collect(Collectors.groupingBy(UslRound::getReu,
                         Collectors.mapping(t -> t.getUsl().getId(), Collectors.toSet())));
-        mapReuOrg = orgDAO.getAllUk().stream().collect(Collectors.toMap(Org::getReu, t->t));
+        mapReuOrg = orgDAO.getAllUk().stream().collect(Collectors.toMap(Org::getReu, t -> t));
 
     }
+
 
 }

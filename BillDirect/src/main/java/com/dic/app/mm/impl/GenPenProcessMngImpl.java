@@ -87,7 +87,6 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
      * @param kart    лиц.счет
      */
     private void genDebitPenKart(RequestConfigDirect reqConf, Kart kart) throws ErrorWhileChrgPen {
-        // метод в разработке с 09.12.20
         Integer period = Integer.parseInt(configApp.getPeriod());
         Integer periodBack = Integer.parseInt(configApp.getPeriodBack());
 
@@ -113,7 +112,6 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
         // преобразовать String код reu в int, для ускорения фильтров
         localStore.setReuId(Integer.parseInt(kart.getUk().getReu()));
 
-        // версия расчета в целом по лиц.счету
         debitByLskThrMng.genDebPen(kart, reqConf, localStore);
     }
 

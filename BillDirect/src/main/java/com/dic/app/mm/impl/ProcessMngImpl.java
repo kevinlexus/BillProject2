@@ -143,11 +143,14 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
     public int processChanges(ChangesParam changesParam) throws ExecutionException, InterruptedException, ErrorWhileGen, JsonProcessingException, WrongParamPeriod, WrongParam {
         if (Integer.parseInt(changesParam.getPeriodTo()) > Integer.parseInt(config.getPeriod())) {
             throw new WrongParamPeriod("Замыкающий период перерасчета " + Utl.getPeriodYear(changesParam.getPeriodTo()) + "-" + Utl.getPeriodMonth(changesParam.getPeriodTo())
-                    + " не может быть позже текущего" + Utl.getPeriodYear(config.getPeriod()) + "-" + Utl.getPeriodMonth(config.getPeriod()));
+                    + " не может быть позже текущего " + Utl.getPeriodYear(config.getPeriod()) + "-" + Utl.getPeriodMonth(config.getPeriod()));
         }
         if (Integer.parseInt(changesParam.getPeriodFrom()) > Integer.parseInt(changesParam.getPeriodTo())) {
             throw new WrongParamPeriod("Некорректный период перерасчета");
         }
+        ObjectMapper objectMapper = new ObjectMapper();
+        log.info("Параметры перерасчета: {}", objectMapper.writeValueAsString(changesParam));
+
         int changeDocId = 0;
 
         List<ResultChange> resultChanges = new ArrayList<>();
@@ -221,7 +224,6 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                 changeDoc.setMgchange(changesParam.getPeriodFrom()); // todo убрать период - на фиг не нужен
                 changeDoc.setUserId(user.getId());
                 changeDoc.setText(changesParam.getComment());
-                ObjectMapper objectMapper = new ObjectMapper();
                 changeDoc.setParamJson(objectMapper.writeValueAsString(changesParam));
                 changeDocDAO.save(changeDoc);
                 changeDocId = changeDoc.getId();

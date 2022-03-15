@@ -1,6 +1,7 @@
 package com.dic.app.gis.service.maintaners.impl;
 
 import com.dic.app.gis.service.maintaners.TaskControllers;
+import com.dic.app.mm.ConfigApp;
 import com.dic.bill.dao.TaskDAO2;
 import com.dic.bill.model.exs.Task;
 import com.ric.cmn.Utl;
@@ -39,33 +40,37 @@ public class TaskController implements TaskControllers {
     private final LinkedBlockingQueue<Integer> queueTask = new LinkedBlockingQueue<>();
     @Getter
     private static final Map<Integer, Integer> taskInWork = new ConcurrentHashMap<>();
-
     private final List<Thread> threads;
+    private final ConfigApp configApp;
 
 
     @PostConstruct
     public void init() {
-        log.info("Начало создания потоков обработки Task");
-        for (int i = 1; i <= COUNT_OF_THREADS; i++) {
-            Thread thread = new Thread(new TaskThreadProcessor(queueTask, context));
-            threads.add(thread);
-            thread.start();
+        if (configApp.isGisWorkOnStart()) {
+            log.info("Начало создания потоков обработки Task");
+            for (int i = 1; i <= COUNT_OF_THREADS; i++) {
+                Thread thread = new Thread(new TaskThreadProcessor(queueTask, context));
+                threads.add(thread);
+                thread.start();
+            }
+            log.info("Окончание создания потоков обработки Task");
         }
-        log.info("Окончание создания потоков обработки Task");
     }
 
     @PreDestroy
     public void destroy() {
         // если не закрывать таким образом потоки - приложение будет повисать, при попытке shutdown
-        log.info("Начало закрытия потоков обработки Task");
-        for (Thread thread : threads) {
-            try {
-                thread.stop(); //todo переделать
-            } catch (Exception e) {
-                log.error("Ошибка во время закрытия потоков обработки Task");
+        if (configApp.isGisWorkOnStart()) {
+            log.info("Начало закрытия потоков обработки Task");
+            for (Thread thread : threads) {
+                try {
+                    thread.stop(); //todo переделать
+                } catch (Exception e) {
+                    log.error("Ошибка во время закрытия потоков обработки Task");
+                }
             }
+            log.info("Окончание закрытия потоков обработки Task");
         }
-        log.info("Окончание закрытия потоков обработки Task");
     }
 
     /**

@@ -1,22 +1,14 @@
 package com.dic.app.mm.impl;
 
 import com.dic.app.gis.service.maintaners.TaskControllers;
-import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.gis.service.soap.impl.SoapConfig;
-import com.dic.bill.model.exs.Eolink;
-import com.dic.bill.model.exs.Task;
-import com.dic.bill.model.scott.Ko;
-import com.ric.cmn.Utl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
 import java.io.File;
 
 @Slf4j

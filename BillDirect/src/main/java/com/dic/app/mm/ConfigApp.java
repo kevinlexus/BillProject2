@@ -65,5 +65,6 @@ public interface ConfigApp {
 
     String getHostIp();
 
+    boolean isGisWorkOnStart();
 
 }
