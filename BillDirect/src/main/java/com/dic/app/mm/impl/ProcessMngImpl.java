@@ -277,7 +277,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
 
         log.info("Начало проверки на дубли nabor");
         boolean existsDuplicates = currentNabors.stream().anyMatch(t -> currentNabors.stream()
-                .filter(d -> changesParam.getLskRange() != null ||
+                .filter(d -> changesParam.getLskRange() == null ||
                         Utl.between(t.getLsk(), changesParam.getLskRange().getLskFrom(), changesParam.getLskRange().getLskTo()))
                 .anyMatch(d -> !t.equals(d) && d.getLsk().equals(t.getLsk()) && d.getMg().equals(t.getMg()) && d.getUslId().equals(t.getUslId())
                 ));

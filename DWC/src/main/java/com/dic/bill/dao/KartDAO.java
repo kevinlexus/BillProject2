@@ -76,9 +76,9 @@ public interface KartDAO extends JpaRepository<Kart, String> {
             "from scott.kart k " +
             "left join scott.v_lsk_tp tp on k.fk_tp=tp.id " +
             "join scott.params p on 1=1 " +
-            "left join scott.nabor a on k.lsk=a.lsk and to_date(p.period||'01', 'YYYYMMDD') between a.dt1 and a.dt2 " +
+            "left join scott.nabor a on k.lsk=a.lsk and to_date(p.period||'01', 'YYYYMMDD') between a.dt1 and a.dt2 and a.usl in (:uslIds) " +
             "join scott.usl u on a.usl=u.usl " +
-            "where k.kul||k.nd in (:kulNds) and a.usl in (:uslIds) " +
+            "where k.kul||k.nd in (:kulNds) " +
             "and (:psch = 0 or :psch=1 and k.psch in (8,9) " +
             "         or :psch=2 and k.psch not in (8,9)) " +
             "and (:woKpr=1 and k.kpr=0 or :woKpr=0) " +
@@ -103,9 +103,9 @@ public interface KartDAO extends JpaRepository<Kart, String> {
             "from scott.kart k " +
             "left join scott.v_lsk_tp tp on k.fk_tp=tp.id " +
             "join scott.params p on 1=1 " +
-            "left join scott.nabor a on k.lsk=a.lsk and to_date(p.period||'01', 'YYYYMMDD') between a.dt1 and a.dt2 " +
+            "left join scott.nabor a on k.lsk=a.lsk and to_date(p.period||'01', 'YYYYMMDD') between a.dt1 and a.dt2 and a.usl in (:uslIds) " +
             "join scott.usl u on a.usl=u.usl " +
-            "where k.k_lsk_id in (:klskIds) and a.usl in (:uslIds) " +
+            "where k.k_lsk_id in (:klskIds) " +
             "and (:psch = 0 or :psch=1 and k.psch in (8,9) " +
             "         or :psch=2 and k.psch not in (8,9)) " +
             "and (:woKpr=1 and k.kpr=0 or :woKpr=0) " +
@@ -129,9 +129,9 @@ public interface KartDAO extends JpaRepository<Kart, String> {
     @Query(value = "select k.k_lsk_id as klskId, k.lsk as lsk, k.mg as mg, a.usl as uslId, a.org as orgId " +
             "from scott.arch_kart k " +
             "left join scott.v_lsk_tp tp on k.fk_tp=tp.id " +
-            "left join scott.a_nabor2 a on k.lsk=a.lsk and k.mg between a.mgFrom and a.mgTo and to_date(k.mg||'01', 'YYYYMMDD') between a.dt1 and a.dt2 " +
+            "left join scott.a_nabor2 a on k.lsk=a.lsk and k.mg between a.mgFrom and a.mgTo and to_date(k.mg||'01', 'YYYYMMDD') between a.dt1 and a.dt2 and a.usl in (:uslIds) " +
             "join scott.usl u on a.usl=u.usl " +
-            "where k.kul||k.nd in (:kulNds) and a.usl in (:uslIds) " +
+            "where k.kul||k.nd in (:kulNds) " +
             "and k.mg between :periodFrom and :periodTo " +
             "and (:psch = 0 or :psch=1 and k.psch in (8,9) " +
             "         or :psch=2 and k.psch not in (8,9)) " +
@@ -158,9 +158,9 @@ public interface KartDAO extends JpaRepository<Kart, String> {
     @Query(value = "select k.k_lsk_id as klskId, k.lsk as lsk, k.mg as mg, a.usl as uslId, a.org as orgId " +
             "from scott.arch_kart k " +
             "left join scott.v_lsk_tp tp on k.fk_tp=tp.id " +
-            "left join scott.a_nabor2 a on k.lsk=a.lsk and k.mg between a.mgFrom and a.mgTo and to_date(k.mg||'01', 'YYYYMMDD') between a.dt1 and a.dt2 " +
+            "left join scott.a_nabor2 a on k.lsk=a.lsk and k.mg between a.mgFrom and a.mgTo and to_date(k.mg||'01', 'YYYYMMDD') between a.dt1 and a.dt2 and a.usl in (:uslIds)" +
             "join scott.usl u on a.usl=u.usl " +
-            "where k.k_lsk_id in (:klskIds) and a.usl in (:uslIds) " +
+            "where k.k_lsk_id in (:klskIds) " +
             "and k.mg between :periodFrom and :periodTo " +
             "and (:psch = 0 or :psch=1 and k.psch in (8,9) " +
             "         or :psch=2 and k.psch not in (8,9)) " +
