@@ -18,4 +18,6 @@ public interface RegistryMng {
     int unloadFileMeterVal(String fileName, String codePage, String strUk) throws IOException;
 
     void loadApprovedKartExt(Integer orgId) throws WrongParam;
+
+    void saveDBF(String tableName, String tableOutName) throws FileNotFoundException;
 }

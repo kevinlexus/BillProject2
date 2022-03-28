@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import java.io.FileNotFoundException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -759,6 +760,18 @@ public class WebController implements CommonConstants {
         log.info("GOT /putTaskToWork with ids={}", ids);
         return taskMng.putTaskToWorkByDebtRequestId(Arrays.stream(ids.split(","))
                 .map(Integer::valueOf).collect(Collectors.toList()));
+    }
+
+    @RequestMapping("/saveDBF/{tableInName}/{tableOutName}")
+    public String saveDbf(@PathVariable String tableInName, @PathVariable String tableOutName) {
+        log.info("GOT /saveDBF with tableInName={}, tableOutName={}", tableInName, tableOutName);
+        try {
+            registryMng.saveDBF(tableInName, tableOutName);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return "ERROR";
+        }
+        return "OK";
     }
 
 }

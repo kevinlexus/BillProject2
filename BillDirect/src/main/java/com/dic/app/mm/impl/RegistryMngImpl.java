@@ -6,15 +6,21 @@ import com.dic.bill.UlistDAO;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.*;
 import com.dic.app.gis.service.maintaners.EolinkMng;
+import com.dic.bill.dto.cursor.AllTabColumns;
 import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.NaborMng;
 import com.dic.app.gis.service.maintaners.impl.EolinkMngImpl;
 import com.dic.bill.model.scott.*;
+import com.linuxense.javadbf.DBFDataType;
+import com.linuxense.javadbf.DBFField;
+import com.linuxense.javadbf.DBFWriter;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileLoad;
 import com.ric.cmn.excp.WrongParam;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,10 +29,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.ParameterMode;
 import javax.persistence.PersistenceContext;
 import javax.persistence.StoredProcedureQuery;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
@@ -44,6 +47,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class RegistryMngImpl implements RegistryMng {
 
     private final int EXT_APPROVED_BY_USER = 0; // одобрено на загрузку в БД пользователем
@@ -78,27 +82,8 @@ public class RegistryMngImpl implements RegistryMng {
     private final AkwtpDAO akwtpDAO;
     private final HouseDAO houseDAO;
     private final UlistDAO ulistDAO;
-
-    public RegistryMngImpl(EntityManager em,
-                           PenyaDAO penyaDAO, OrgDAO orgDAO, EolinkMng eolinkMng,
-                           KartMng kartMng, MeterMng meterMng, NaborMng naborMng, KartDAO kartDAO, ConfigApp configApp,
-                           LoadKartExtDAO loadKartExtDAO, KartExtDAO kartExtDAO,
-                           AkwtpDAO akwtpDAO, HouseDAO houseDAO, UlistDAO ulistDAO) {
-        this.em = em;
-        this.penyaDAO = penyaDAO;
-        this.orgDAO = orgDAO;
-        this.eolinkMng = eolinkMng;
-        this.kartMng = kartMng;
-        this.meterMng = meterMng;
-        this.naborMng = naborMng;
-        this.kartDAO = kartDAO;
-        this.configApp = configApp;
-        this.loadKartExtDAO = loadKartExtDAO;
-        this.kartExtDAO = kartExtDAO;
-        this.akwtpDAO = akwtpDAO;
-        this.houseDAO = houseDAO;
-        this.ulistDAO = ulistDAO;
-    }
+    private final SysDAO sysDAO;
+    private final JdbcTemplate jdbcTemplate;
 
     /**
      * Сформировать реест задолженности по лиц.счетам для Сбербанка
@@ -1296,8 +1281,43 @@ public class RegistryMngImpl implements RegistryMng {
         int b = 1;
 
         return Optional.empty();
+    }
 
+    @Override
+    public void saveDBF(String tableName, String tableOutName) throws FileNotFoundException {
+        List<AllTabColumns> fields = sysDAO.getAllTabColumns(tableName);
+        int i=0;
+        DBFField[] dbfFields = new DBFField[fields.size()];
+        for (AllTabColumns field : fields) {
+            dbfFields[i] = new DBFField();
+            dbfFields[i].setName(field.getColumnName());
+            switch (field.getDataType()) {
+                case "CHAR", "VARCHAR2" -> {
+                    dbfFields[i].setType(DBFDataType.CHARACTER);
+                    dbfFields[i].setLength(field.getDataLength());
+                }
+                case "NUMBER" -> {
+                    dbfFields[i].setType(DBFDataType.NUMERIC);
+                    dbfFields[i].setLength(field.getDataLength());
+                    if (field.getDataScale()!=null) {
+                        dbfFields[i].setDecimalCount(field.getDataScale());
+                    }
+                }
+                case "DATE" -> dbfFields[i].setType(DBFDataType.DATE);
+                default -> throw new RuntimeException("Неподдерживаемый тип данных "+ field.getDataType());
+            }
+            i++;
+        }
 
+        List<Object[]> rowData = jdbcTemplate.query("select * from " + tableName, new RegistryMapper(fields, true));
+
+        DBFWriter writer = new DBFWriter(new FileOutputStream("c:\\temp\\"+tableOutName), Charset.forName("cp866"));
+        writer.setFields(dbfFields);
+        for (Object[] row : rowData) {
+            writer.addRecord(row);
+        }
+
+        writer.close();
     }
 
 }
