@@ -1283,8 +1283,14 @@ public class RegistryMngImpl implements RegistryMng {
         return Optional.empty();
     }
 
+    /**
+     *
+     * @param tableName наименование таблицы в БД
+     * @param tableOutNameWithPath путь выгрузки файла DBF без разширения
+     */
     @Override
-    public void saveDBF(String tableName, String tableOutName) throws FileNotFoundException {
+    public void saveDBF(String tableName, String tableOutNameWithPath) throws FileNotFoundException {
+        tableOutNameWithPath=tableOutNameWithPath+".dbf";
         List<AllTabColumns> fields = sysDAO.getAllTabColumns(tableName);
         int i=0;
         DBFField[] dbfFields = new DBFField[fields.size()];
@@ -1311,7 +1317,7 @@ public class RegistryMngImpl implements RegistryMng {
 
         List<Object[]> rowData = jdbcTemplate.query("select * from " + tableName, new RegistryMapper(fields, true));
 
-        DBFWriter writer = new DBFWriter(new FileOutputStream("c:\\temp\\"+tableOutName), Charset.forName("cp866"));
+        DBFWriter writer = new DBFWriter(new FileOutputStream(tableOutNameWithPath), Charset.forName("cp866"));
         writer.setFields(dbfFields);
         for (Object[] row : rowData) {
             writer.addRecord(row);

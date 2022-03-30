@@ -35,6 +35,9 @@ import org.springframework.web.bind.annotation.*;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.io.FileNotFoundException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -762,11 +765,12 @@ public class WebController implements CommonConstants {
                 .map(Integer::valueOf).collect(Collectors.toList()));
     }
 
-    @RequestMapping("/saveDBF/{tableInName}/{tableOutName}")
-    public String saveDbf(@PathVariable String tableInName, @PathVariable String tableOutName) {
-        log.info("GOT /saveDBF with tableInName={}, tableOutName={}", tableInName, tableOutName);
+    @RequestMapping("/saveDBF/{tableInName}/{tableOutNameWithPath}")
+    public String saveDbf(@PathVariable String tableInName, @PathVariable String tableOutNameWithPath) {
         try {
-            registryMng.saveDBF(tableInName, tableOutName);
+            tableOutNameWithPath = URLDecoder.decode(tableOutNameWithPath, StandardCharsets.UTF_8);
+            log.info("GOT /saveDBF with tableInName={}, tableOutNameWithPath={}", tableInName, tableOutNameWithPath);
+            registryMng.saveDBF(tableInName, tableOutNameWithPath);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             return "ERROR";
