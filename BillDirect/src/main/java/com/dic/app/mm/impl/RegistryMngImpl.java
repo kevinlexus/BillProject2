@@ -319,7 +319,7 @@ public class RegistryMngImpl implements RegistryMng {
             if (org.getExtLskFormatTp().equals(0)) {
                 cityName = "г Полысаево";
             } else {
-                cityName = "г.Полысаево";
+                cityName = "г. Полысаево";
             }
         } else if ("г.Киселевск".equals(city)) {
             cityName = "г.Киселевск";
