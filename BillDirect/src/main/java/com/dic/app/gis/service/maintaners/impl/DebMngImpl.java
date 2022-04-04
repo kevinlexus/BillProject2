@@ -72,24 +72,4 @@ public class DebMngImpl implements DebMng {
 		return sal;
 	}
 
-	/**
-	 * Получить всю пеню по лиц.счету (основные услуги + дополнительные)
-	 * @param lsk - лиц.счет (необязательно для новой разраб.)
-	 * @param period - период выборки
-	 *
-	 */
-	@Override
-	public BigDecimal getPenAmnt(String lsk, String period) throws ParseException {
-		// пеня по основным услугам
-		BigDecimal penMain;
-		// пеня по капремонту
-		Date lastDate = Utl.getLastDate(Utl.getDateFromPeriod(period));
-		// получить всю пеню по лиц.счету
-		penMain = apenyaDao.getPenAmnt(lsk, lastDate);
-
-		return penMain;
-	}
-
-
-
 }

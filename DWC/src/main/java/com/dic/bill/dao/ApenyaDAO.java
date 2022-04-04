@@ -24,22 +24,31 @@ public interface ApenyaDAO extends JpaRepository<Apenya, Integer> {
 
 	/**
 	 * Получить все элементы по lsk
-	 *
-	 * @param lsk - лиц.счет
+	 * @param lsk лиц.счет
+	 * @param mg период
 	 */
 	@Query("select t from Apenya t "
-			+ "where t.kart.id = :lsk and t.mg = :mg "
+			+ "where t.kart.lsk = :lsk and t.mg = :mg "
 			+ "order by t.mg1")
 	List<Apenya> getByLsk(@Param("lsk") String lsk, @Param("mg") String mg);
 
 	/**
-	 * Получить совокупную пеню по основным услугам
-	 * @param lsk - лиц.счет
-	 * @param dt - дата, на которую пеня
-	 * @return
+	 * Получить совокупную пеню
+	 * @param lsk лиц.счет
+	 * @param mg период
 	 */
 	@Query(value = "select sum(t.penya) from Apenya t "
-			+ "where t.kart.id = ?1 and t.mg = TO_CHAR(?2,'YYYYMM')")
-	BigDecimal getPenAmnt(String lsk, Date dt);
+			+ "where t.kart.lsk = :lsk and t.mg = :mg")
+	BigDecimal getPenAmnt(@Param("lsk") String lsk, @Param("mg") String mg);
+
+	/**
+	 * Получить совокупную пеню по периоду задолженности
+	 * @param lsk лиц.счет
+	 * @param mg период
+	 * @param mg1 период задолженности
+	 */
+	@Query(value = "select sum(t.penya) from Apenya t "
+			+ "where t.kart.lsk = :lsk and t.mg = :mg and t.mg1 = :mg1")
+	BigDecimal getPenAmntPeriod(@Param("lsk") String lsk, @Param("mg") String mg, @Param("mg1") String mg1);
 
 }

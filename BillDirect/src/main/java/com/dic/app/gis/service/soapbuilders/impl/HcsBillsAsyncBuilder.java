@@ -1,6 +1,7 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
 
+import com.dic.app.gis.dto.PaymentDocumentPar;
 import com.dic.app.gis.service.maintaners.*;
 import com.dic.app.gis.service.maintaners.impl.ReqProp;
 import com.dic.app.gis.service.maintaners.impl.UlistMng;
@@ -16,10 +17,7 @@ import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Pdoc;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.Ulist;
-import com.dic.bill.model.scott.Akwtp;
-import com.dic.bill.model.scott.Kart;
-import com.dic.bill.model.scott.Kwtp;
-import com.dic.bill.model.scott.KwtpMg;
+import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.*;
 import com.ric.dto.SumSaldoRecDTO;
@@ -89,6 +87,7 @@ public class HcsBillsAsyncBuilder {
     private final TaskMng taskMng;
     private final ConfigApp config;
     private final EolinkMng eolinkMng;
+    private final ApenyaDAO apenyaDAO;
 
 
     @AllArgsConstructor
@@ -754,7 +753,8 @@ public class HcsBillsAsyncBuilder {
                     break;
                 }
                 log.info("Добавление платежного документа, Pdoc.id={}", t.getId());
-                boolean isAdd = addPaymentDocument(uk, t, req, tguidPay, ukReference);
+                PaymentDocumentPar paymentDocumentPar = PaymentDocumentPar.builder().uk(uk).pdoc(t).req(req).tguidPay(tguidPay).ukReference(ukReference).build();
+                boolean isAdd = addPaymentDocument(paymentDocumentPar);
                 t.setIsConfirmCorrect(true);
                 if (isAdd) {
                     // если хотя бы один документ добавлен - загружать
@@ -833,24 +833,20 @@ public class HcsBillsAsyncBuilder {
     /**
      * Добавление платежного документа
      *
-     * @param uk          организация
-     * @param pdoc        ПД
-     * @param req         запрос
-     * @param tguidPay    транспортный GUID платежных реквизитов
-     * @param ukReference УК, по которой используется справочник услуг для ПД
-     * @return добавлен ли документ
+     *
+     * @param paymentDocumentPar@return добавлен ли документ
      * @throws CantPrepSoap невозможно создать SOAP
      */
-    private Boolean addPaymentDocument(Eolink uk, Pdoc pdoc,
-                                       ImportPaymentDocumentRequest req,
-                                       String tguidPay,
-                                       Eolink ukReference)
+    private Boolean addPaymentDocument(PaymentDocumentPar paymentDocumentPar)
             throws CantPrepSoap, ParseException {
         PaymentDocument pd = new PaymentDocument();
         // оступ
         log.info("");
         // услуги повыш коэфф, уже добавленные в ПД (чтобы избежать повторного добавления)
-        List lstOverServ = new ArrayList<Integer>(0);
+        List<Integer> lstOverServ = new ArrayList<>(0);
+        Pdoc pdoc = paymentDocumentPar.getPdoc();
+        Org org = paymentDocumentPar.getUkReference().getOrg();
+
         // лицевой счет
         Eolink acc = pdoc.getEolink();
         // GUID лицевого счета
@@ -882,7 +878,7 @@ public class HcsBillsAsyncBuilder {
         if (pdoc.getCd() == null) {
             // если не проставлен № документа в биллинге
             // старая и эксперементальная разработка
-            cd = "ПД_".concat(uk.getOrg().getReu().concat("_").concat(period).concat("_").concat(String.valueOf(pdoc.getId())));
+            cd = "ПД_".concat(paymentDocumentPar.getUk().getOrg().getReu().concat("_").concat(period).concat("_").concat(String.valueOf(pdoc.getId())));
             pdoc.setCd(cd);
             log.info("-------------------------------------------------------------------------------------------");
             log.info("ПД: проставлен № документа cd={}", cd);
@@ -900,7 +896,7 @@ public class HcsBillsAsyncBuilder {
         pd.setPaymentDocumentNumber(pdoc.getCd());
         List<SumChrgRec> lstSum
                 =
-                chrgMng.getChrgGrp(acc.getKart().getLsk(), period, ukReference).stream()
+                chrgMng.getChrgGrp(acc.getKart().getLsk(), period, paymentDocumentPar.getUkReference()).stream()
                         .map(t -> new SumChrgRecAlter
                                 (t.getUlistId(), t.getChrg(), t.getChng(),
                                         t.getVol(),
@@ -965,7 +961,17 @@ public class HcsBillsAsyncBuilder {
         //- Штрафы
         //- Государственные пошлины
         //- Судебные издержки.
-        BigDecimal pen = Utl.nvl(debMng.getPenAmnt(acc.getKart().getLsk(), period), BigDecimal.ZERO);
+        BigDecimal pen;
+        if (org.getVarDebPenPdGis()==0) {
+            // общая сумма пени
+            pen = Utl.nvl(apenyaDAO.getPenAmnt(acc.getKart().getLsk(), period), BigDecimal.ZERO);
+        } else if (org.getVarDebPenPdGis()==1) {
+            // начисленная пеня загружаемого периода ПД
+            pen = Utl.nvl(apenyaDAO.getPenAmntPeriod(acc.getKart().getLsk(), period, period), BigDecimal.ZERO);
+        } else {
+            throw new RuntimeException("Некорректный параметр ORG.VAR_DEB_PEN_PD_GIS="+org.getVarDebPenPdGis());
+        }
+
         if (pen.compareTo(BigDecimal.ZERO) != 0) {
             // добавить только в случае суммы <> 0, иначе НЕ сквитируется ПД
             NsiRef servType = ulistMng.getNsiElem("NSI", 329, "Вид начисления", "Пени");
@@ -1007,6 +1013,31 @@ public class HcsBillsAsyncBuilder {
         if (salAmnt.compareTo(BigDecimal.ZERO) > 0) {
             debt = salAmnt;
         }
+
+        if (org.getVarDebPenPdGis()==0) {
+            // итого к оплате по неустойкам и судебным издержкам, руб. (итого по всем неустойкам и судебным издержкам).
+            // заполняется только для ПД с типом = Текущий
+            if (pen.compareTo(BigDecimal.ZERO) != 0) {
+                log.info("ПД: итого к оплате по неустойкам и судебным издержкам={}", pen);
+                pd.setTotalByPenaltiesAndCourtCosts(pen);
+            }
+        } else if (org.getVarDebPenPdGis()==1) {
+            // общая сумма пени
+            BigDecimal penAmnt = Utl.nvl(apenyaDAO.getPenAmnt(acc.getKart().getLsk(), period), BigDecimal.ZERO);
+            debt = debt.add(penAmnt);
+            log.info("ПД: начисленная пеня загружаемого периода={}", penAmnt);
+
+            // итого к оплате по неустойкам и судебным издержкам, руб. (итого по всем неустойкам и судебным издержкам).
+            // заполняется только для ПД с типом = Текущий
+            if (penAmnt.compareTo(BigDecimal.ZERO) != 0) {
+                log.info("ПД: итого к оплате по неустойкам и судебным издержкам={}", penAmnt);
+                pd.setTotalByPenaltiesAndCourtCosts(penAmnt);
+            }
+
+        } else {
+            throw new RuntimeException("Некорректный параметр ORG.VAR_DEB_PEN_PD_GIS="+org.getVarDebPenPdGis());
+        }
+
         log.info("ПД: задолженность за предыдущие периоды={}", debt);
         pd.setDebtPreviousPeriods(debt);
 
@@ -1023,11 +1054,6 @@ public class HcsBillsAsyncBuilder {
         // учтены платежи, поступившие до указанного числа расчетного периода включительно
         pd.setPaymentsTaken(day);
 
-        // итого к оплате по неустойкам и судебным издержкам, руб. (итого по всем неустойкам и судебным издержкам).
-        // заполняется только для ПД с типом = Текущий
-        if (pen.compareTo(BigDecimal.ZERO) != 0) {
-            pd.setTotalByPenaltiesAndCourtCosts(pen);
-        }
 
         // по приказу Минстроя РФ от 26.01.2018 N 43/пр следующая информация:
         /*PaymentDocument.PaymentInformationDetails pinf = new PaymentDocument.PaymentInformationDetails();
@@ -1053,34 +1079,30 @@ public class HcsBillsAsyncBuilder {
         pd.setTransportGUID(tguid);
         pdoc.setTguid(tguid);
 
-        req.getPaymentDocument().add(pd);
-        req.setMonth(month);
-        req.setYear(year);
+        paymentDocumentPar.getReq().getPaymentDocument().add(pd);
+        paymentDocumentPar.getReq().setMonth(month);
+        paymentDocumentPar.getReq().setYear(year);
 
         // сослаться на TGUID платежных реквизитов
-        pd.setPaymentInformationKey(tguidPay);
+        pd.setPaymentInformationKey(paymentDocumentPar.getTguidPay());
         return true;
     }
 
     /**
      * добавить запись о капремонте
      *
-     * @param pd  - ПД
-     * @param rec - строка начисления
+     * @param pd  ПД
+     * @param rec строка начисления
      */
     private void addCapitalRepair(PaymentDocument pd, SumChrgRec rec) {
         BigDecimal priceBd = BigDecimal.valueOf(rec.getPrice());
         BigDecimal chrgBd = BigDecimal.valueOf(rec.getChrg());
         BigDecimal chngBd = BigDecimal.valueOf(rec.getChng());
-        chrgBd = chrgBd.setScale(2, BigDecimal.ROUND_HALF_UP);
-        priceBd = priceBd.setScale(2, BigDecimal.ROUND_HALF_UP);
+        chrgBd = chrgBd.setScale(2, RoundingMode.HALF_UP);
+        priceBd = priceBd.setScale(2, RoundingMode.HALF_UP);
         log.info("ПД: Капремонт цена={}, начисление={}, перерасчет={}", priceBd, chrgBd, chngBd);
         // Итого к оплате за расчетный период, руб.
-        BigDecimal total = chrgBd;
-        // перерасчет
-        BigDecimal chng = chngBd;
-        // добавить перерасчет
-        total = chrgBd.add(chngBd);
+        BigDecimal total = chrgBd.add(chngBd);
 
         PaymentDocumentType.CapitalRepairCharge capRepChrg = new PaymentDocumentType.CapitalRepairCharge();
         // размер взноса на кв.м, руб (расценка)

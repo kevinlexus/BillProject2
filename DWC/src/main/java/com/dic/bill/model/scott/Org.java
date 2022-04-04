@@ -120,6 +120,10 @@ public class Org implements java.io.Serializable {
 	@Column(name = "EXT_LSK_LOAD_PAY", updatable = false)
 	private Boolean isExtLskLoadPay;
 
+	// вариант заполнения задолженности и пени в ПД (0-обычный, 1-ГисЖкхЭкоТек (Кис.))
+	@Column(name = "VAR_DEB_PEN_PD_GIS")
+	private Integer varDebPenPdGis;
+
 	@Transient
 	public boolean isUO() {
 		if (orgTpGis == null) {
