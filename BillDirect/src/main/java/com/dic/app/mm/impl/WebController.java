@@ -85,7 +85,7 @@ public class WebController implements CommonConstants {
      *              2 - распр.кредит по 003 орг - выполняется 31 числа или позже, до перехода)
      * @param strDt - дата корректировки (T_CORRECTS_PAYMENTS.DAT)
      */
-    @RequestMapping("/correct")
+    @RequestMapping(value ="/correct", method = RequestMethod.GET)
     public String correct(
             @RequestParam(value = "var") int var,
             @RequestParam(value = "strDt") String strDt,
@@ -115,7 +115,7 @@ public class WebController implements CommonConstants {
      * @param strDtek  - дата платежа
      * @param strDtInk - дата инкассации
      */
-    @RequestMapping("/distKwtpMg")
+    @RequestMapping(value ="/distKwtpMg", method = RequestMethod.GET)
     public String distKwtpMg(
             @RequestParam(value = "kwtpMgId") int kwtpMgId,
             @RequestParam(value = "lsk") String lsk,
@@ -169,7 +169,7 @@ public class WebController implements CommonConstants {
     @CacheEvict(value = {"KartMng.getKartMainLsk", // чистить кэш каждый раз, перед выполнением
             "PriceMng.multiplyPrice",
             "ReferenceMng.getUslOrgRedirect"}, allEntries = true)
-    @RequestMapping("/gen")
+    @RequestMapping(value ="/gen", method = RequestMethod.GET)
     public String gen(
             @RequestParam(value = "tp", defaultValue = "0") int tp,
             @RequestParam(value = "houseId", defaultValue = "0", required = false) int houseId,
@@ -324,7 +324,7 @@ public class WebController implements CommonConstants {
     /**
      * Начать итоговое формирование
      */
-    @RequestMapping("/startGen")
+    @RequestMapping(value ="/startGen", method = RequestMethod.GET)
     @ResponseBody
     public String startGen() {
         // почистить % выполнения
@@ -352,7 +352,7 @@ public class WebController implements CommonConstants {
     /**
      * Остановить итоговое формирование
      */
-    @RequestMapping("/stopGen")
+    @RequestMapping(value ="/stopGen", method = RequestMethod.GET)
     @ResponseBody
     public String stopGen() {
         // установить статус - остановить формирование
@@ -365,7 +365,7 @@ public class WebController implements CommonConstants {
     /**
      * Остановить приложение
      */
-    @RequestMapping("/terminateApp")
+    @RequestMapping(value ="/terminateApp", method = RequestMethod.GET)
     public void terminateApp() {
         log.info("ВНИМАНИЕ! ЗАПРОШЕНА ОСТАНОВКА ПРИЛОЖЕНИЯ!");
         SpringApplication.exit(ctx, () -> 0);
@@ -380,7 +380,7 @@ public class WebController implements CommonConstants {
         return config.getProgress();
     }
 
-    @RequestMapping("/migrate")
+    @RequestMapping(value ="/migrate", method = RequestMethod.GET)
     public String migrate(
             @RequestParam(value = "lskFrom", defaultValue = "0") String lskFrom,
             @RequestParam(value = "lskTo", defaultValue = "0") String lskTo,
@@ -418,7 +418,7 @@ public class WebController implements CommonConstants {
         return key.equals(str);
     }
 
-    @RequestMapping("/checkCache")
+    @RequestMapping(value ="/checkCache", method = RequestMethod.GET)
     @ResponseBody
     public String checkCache() throws ParseException {
         log.info("check1={}",
@@ -435,7 +435,7 @@ public class WebController implements CommonConstants {
         return "cached";
     }
 
-    @RequestMapping("/checkCache2")
+    @RequestMapping(value ="/checkCache2", method = RequestMethod.GET)
     @ResponseBody
     public void checkCache2() {
         Nabor nabor = em.find(Nabor.class, 41);
@@ -449,7 +449,7 @@ public class WebController implements CommonConstants {
      * Выполнение очистки L2 кэша Hibernate, содержащего сущности
      * Вызывать из Direct, из триггеров обновления справочников в Oracle
      */
-    @RequestMapping("/evictL2C")
+    @RequestMapping(value ="/evictL2C", method = RequestMethod.GET)
     @ResponseBody
     public String evictL2C() {
         SessionFactory sessionFactory = em.getEntityManagerFactory().unwrap(SessionFactory.class);
@@ -458,7 +458,7 @@ public class WebController implements CommonConstants {
         return "OK";
     }
 
-    @RequestMapping("/evictL2CEntity/{fullEntityClassName}/{id}")
+    @RequestMapping(value ="/evictL2CEntity/{fullEntityClassName}/{id}", method = RequestMethod.GET)
     @ResponseBody
     public String evictEolink(@PathVariable("fullEntityClassName") String fullEntityClassName, @PathVariable("id") String id) {
         Class<?> foundClass;
@@ -477,7 +477,7 @@ public class WebController implements CommonConstants {
         }
     }
 
-    @RequestMapping("/evictL2CRegion/{regionName}")
+    @RequestMapping(value ="/evictL2CRegion/{regionName}", method = RequestMethod.GET)
     @ResponseBody
     public String evictRegion(@PathVariable("regionName") String regionName) {
         SessionFactory sessionFactory = em.getEntityManagerFactory().unwrap(SessionFactory.class);
@@ -489,7 +489,7 @@ public class WebController implements CommonConstants {
     /**
      * Перезагрузить сущность Params
      */
-    @RequestMapping("/reloadParams")
+    @RequestMapping(value ="/reloadParams", method = RequestMethod.GET)
     @ResponseBody
     @Transactional
     public String reloadParams() throws ParseException {
@@ -501,7 +501,7 @@ public class WebController implements CommonConstants {
     /**
      * Перезагрузить справочники по пене
      */
-    @RequestMapping("/reloadSprPen")
+    @RequestMapping(value ="/reloadSprPen", method = RequestMethod.GET)
     @ResponseBody
     @Transactional
     public String reloadSprPen() {
@@ -651,7 +651,7 @@ public class WebController implements CommonConstants {
      * @param tableName имя таблицы, если "all", то взять все
      * @param key       - ключ для выполнения
      */
-    @RequestMapping("/fullCompress")
+    @RequestMapping(value ="/fullCompress", method = RequestMethod.GET)
     public String fullCompress(
             @RequestParam(value = "tableName") String tableName,
             @RequestParam(value = "key", defaultValue = "", required = false) String key,
@@ -765,7 +765,7 @@ public class WebController implements CommonConstants {
                 .map(Integer::valueOf).collect(Collectors.toList()));
     }
 
-    @RequestMapping("/saveDBF/{tableInName}/{tableOutNameWithPath}")
+    @RequestMapping(value ="/saveDBF/{tableInName}/{tableOutNameWithPath}", method = RequestMethod.GET)
     public String saveDbf(@PathVariable String tableInName, @PathVariable String tableOutNameWithPath) {
         try {
             tableOutNameWithPath = URLDecoder.decode(tableOutNameWithPath, StandardCharsets.UTF_8);
