@@ -47,6 +47,9 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
     // признак добавления информации по льготе по капремонту
     boolean isCapPrivAdded = false;
 
+    // признак добавления информации по кол-ву проживающих, для ведомости субсидирования
+    Set<String> kprByTp1Added = new HashSet<>();
+
     /**
      * сгруппировать объемы для распределения по вводам
      *

@@ -35,6 +35,7 @@ public class ChargePrep {
     // 7 - просто, наличие счетчика 8-детализация льготы, 9 - наличие льготы (используется совместно с dt1,dt2)
     // NOTE ИСПОЛЬЗОВАТЬ В JAVA только 4! Решил использовать только данный тип, так как остальные - не нужны в
     // NOTE Java - начислении ред.16.01.2019
+    // note 16.05.2022 Всё таки для ТСЖ пришлось добавить тип=1, так как не обновлялась инфа в ведомости по отоплению
     @Column(name = "TP", nullable = false)
     private Integer tp;
 
@@ -46,6 +47,10 @@ public class ChargePrep {
     // объем
     @Column(name = "VOL")
     private BigDecimal vol;
+
+    // кол-во проживающих
+    @Column(name = "KPR")
+    private Integer kpr;
 
     // наличие счетчика
     @Type(type= "org.hibernate.type.NumericBooleanType")

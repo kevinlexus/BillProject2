@@ -112,10 +112,10 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             List<UslMeterDateVol> lstDayMeterVol = meterMng.getPartDayMeterVol(lstMeterVol,
                     reqConf.getCurDt1(), reqConf.getCurDt2());
 
-            // очистить информационные строки по льготам
+            // очистить информационные строки по льготам, по инф.для отопления
             List<Nabor> lstNabor = naborMng.getActualNabor(ko, null);
             lstNabor.stream().map(Nabor::getKart).distinct().forEach(t ->
-                    t.getChargePrep().removeIf(chargePrep -> chargePrep.getTp().equals(9)));
+                    t.getChargePrep().removeIf(chargePrep -> chargePrep.getTp().equals(1) || chargePrep.getTp().equals(9)));
 
             // РАСЧЕТ по блокам:
 

@@ -79,6 +79,7 @@ public class GenPartImpl implements GenPart {
         Map<String, UslPriceVolKart> mapUslPriceVol = new HashMap<>(30);
 
         for (Nabor nabor : lstNabor) {
+            String uslId = nabor.getUsl().getId();
             // получить основной лиц счет по связи klsk помещения
             Kart kartMainByKlsk = em.getReference(Kart.class, kartMng.getKartMainLsk(nabor.getKart()));
 
@@ -137,11 +138,22 @@ public class GenPartImpl implements GenPart {
                     // х.в.,г.в узнать, работал ли хоть один счетчик в данном дне
                     isMeterExist = meterMng.isExistAnyMeter(lstMeterVol, factUslVol.getId(), curDt);
                 }
-                CountPers countPers = null;
+                CountPers countPers;
                 if (!configApp.getMapParams().get("isDetChrg") && Utl.in(fkCalcTp, 55, 56)) {
                     // ТСЖ расчет до 15 числа и после, по выборочным услугам
                     countPers = getCountPersAmount(parVarCntKpr, parCapCalcKprTp, configApp.getDtMiddleMonth(),
                             nabor, kartMain, isMeterExist);
+
+                    if (!chrgCountAmountLocal.getKprByTp1Added().contains(uslId)) {
+                        ChargePrep chargePrep = new ChargePrep();
+                        nabor.getKart().getChargePrep().add(chargePrep);
+                        chargePrep.setKart(nabor.getKart());
+                        chargePrep.setUsl(nabor.getUsl());
+                        chargePrep.setKpr(countPers.kpr);
+                        chargePrep.setIsExistMeter(isMeterExist);
+                        chrgCountAmountLocal.getKprByTp1Added().add(uslId);
+                        chargePrep.setTp(1);
+                    }
                 } else {
                     countPers = getCountPersAmount(parVarCntKpr, parCapCalcKprTp, curDt,
                             nabor, kartMain, isMeterExist);
@@ -269,12 +281,12 @@ public class GenPartImpl implements GenPart {
 
                         } else {
                             log.error("Для дочерней услуги USL.USL={}, не найдена запись набора с NABOR.LSK={} и NABOR.USL={}",
-                                    nabor.getUsl().getId(), nabor.getKart().getLsk(),
+                                    uslId, nabor.getKart().getLsk(),
                                     uslParentOpt.get().getId());
                         }
                     } else {
                         log.error("Для дочерней услуги USL.USL={}, не найдена услуга по USL.CD=\"COMPHW\"",
-                                nabor.getUsl().getId());
+                                uslId);
                     }
                 } else if (Utl.in(fkCalcTp, 19)) {
                     // Водоотведение без уровня соцнормы/свыше
@@ -457,7 +469,7 @@ public class GenPartImpl implements GenPart {
                             isMeterExist = uslPriceVolKart != null && uslPriceVolKart.isMeter();
                         } else {
                             log.error("Пустая главная услуга в поле PARENT_USL, в справочнике услуг, по услуге: usl={}",
-                                    nabor.getUsl().getId());
+                                    uslId);
                         }
                     }
                     dayVol = naborVolAdd.multiply(reqConf.getPartDayMonth());
@@ -466,7 +478,7 @@ public class GenPartImpl implements GenPart {
                     if (nabor.getUsl().getParentUsl() != null) {
                         dayVol = reqConf.getPartDayMonth().multiply(naborNorm);
                     } else {
-                        throw new ErrorWhileChrg("ОШИБКА! По услуге usl.id=" + nabor.getUsl().getId() +
+                        throw new ErrorWhileChrg("ОШИБКА! По услуге usl.id=" + uslId +
                                 " отсутствует PARENT_USL");
                     }
                 } else if (Utl.in(fkCalcTp, 44)) {
@@ -508,7 +520,7 @@ public class GenPartImpl implements GenPart {
                         }
                     } else {
                         log.error("Для дочерней услуги USL.USL={}, не найдена услуга по USL.CD=\"х.в. для гвс\"",
-                                nabor.getUsl().getId());
+                                uslId);
                     }
                 } else if (fkCalcTp.equals(6) && countPers.kpr > 0) {
                     // Очистка выгр.ям (Полыс.) (при наличии проживающих)
@@ -545,7 +557,7 @@ public class GenPartImpl implements GenPart {
                     if (nabor.getUsl().isBaseWaterCalc2()) {
                         // по х.в., г.в., эл.эн.
                         // сохранить расчитанный объем по расчетному дню, (используется для услуги Повыш коэфф.)
-                        mapUslPriceVol.put(nabor.getUsl().getId(), uslPriceVolKart);
+                        mapUslPriceVol.put(uslId, uslPriceVolKart);
                     }
                     // сгруппировать по лиц.счету, услуге, для распределения по вводу
                     chrgCountAmountLocal.groupUslVol(uslPriceVolKart);
