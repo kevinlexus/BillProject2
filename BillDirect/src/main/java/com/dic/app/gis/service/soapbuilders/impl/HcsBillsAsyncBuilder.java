@@ -88,6 +88,7 @@ public class HcsBillsAsyncBuilder {
     private final ConfigApp config;
     private final EolinkMng eolinkMng;
     private final ApenyaDAO apenyaDAO;
+    private final Xitog3LskDAO xitog3LskDAO;
 
 
     @AllArgsConstructor
@@ -740,60 +741,62 @@ public class HcsBillsAsyncBuilder {
             // Транспортный GUID платежных реквизитов
             String tguidPay = Utl.getRndUuid().toString();
 
-            // обрабатывать ПД только первой выбранной УК, в следующую загрузку - другой УК и так далее
-            // на случай необходимости загрузки ПД от РСО
-            // получить список незагруженных, действующих ПД в ГИС по Дому
-            int i = 0;
+            // сперва найди ПД на отмену
+            // получить список недействующих ПД, направленных на отмену в ГИС по Дому
             for (Pdoc t : lstPdoc.stream()
-                    .filter(t -> t.getV().equals(1)) // действующие
+                    .filter(t -> t.getV().equals(0)) // недействующие
                     .collect(Collectors.toList())) {
-                i++;
-                if (i > 500) {
-                    // добавить не более 500 вхождений ПД
-                    break;
-                }
-                log.info("Добавление платежного документа, Pdoc.id={}", t.getId());
-                PaymentDocumentPar paymentDocumentPar = PaymentDocumentPar.builder().uk(uk).pdoc(t).req(req).tguidPay(tguidPay).ukReference(ukReference).build();
-                boolean isAdd = addPaymentDocument(paymentDocumentPar);
-                t.setIsConfirmCorrect(true);
-                if (isAdd) {
-                    // если хотя бы один документ добавлен - загружать
-                    isExistJob = true;
-                }
+                // добавить не более 1000 вхождений ПД
+                log.info("Отмена платежного документа, Pdoc.id={}", t.getId());
+                // сохранить транспортный GUID ПД
+                String tguid = Utl.getRndUuid().toString();
+                t.setTguid(tguid);
 
-            }
-            if (isExistJob) {
-                // cчитать корректными значения сумм документов, если они расходятся с автоматически рассчитанными
-                req.setConfirmAmountsCorrect(true);
-                // добавить платежные реквизиты, если была загрузка ПД
-                PaymentInformation payInfo = new PaymentInformation();
-                req.getPaymentInformation().add(payInfo);
-
-                OrgDTO orgDto = orgMng.getOrgDTO(uk);
-                log.info("ПД: BIK=#{}#", orgDto.getBik());
-                payInfo.setBankBIK(orgDto.getBik());
-                log.info("ПД: OperAccount=#{}#", orgDto.getOperAccGis());
-                payInfo.setOperatingAccountNumber(orgDto.getOperAccGis());
-                payInfo.setTransportGUID(tguidPay);
+                WithdrawPaymentDocument wdPd = new WithdrawPaymentDocument();
+                wdPd.setPaymentDocumentID(t.getUn());
+                wdPd.setTransportGUID(tguid);
+                req.getWithdrawPaymentDocument().add(wdPd);
+                isExistJob = true;
             }
 
             if (!isExistJob) {
-                // не было документов на добавление, найти на отмену
-                // получить список недействующих ПД, направленных на отмену в ГИС по Дому
+                // не найдено ПД на отмену, искать на загрузку
+                // обрабатывать ПД только первой выбранной УК, в следующую загрузку - другой УК и так далее
+                // на случай необходимости загрузки ПД от РСО
+                // получить список незагруженных, действующих ПД в ГИС по Дому
+                int i = 0;
                 for (Pdoc t : lstPdoc.stream()
-                        .filter(t -> t.getV().equals(0)) // недействующие
+                        .filter(t -> t.getV().equals(1)) // действующие
                         .collect(Collectors.toList())) {
-                    // добавить не более 1000 вхождений ПД
-                    log.info("Отмена платежного документа, Pdoc.id={}", t.getId());
-                    // сохранить транспортный GUID ПД
-                    String tguid = Utl.getRndUuid().toString();
-                    t.setTguid(tguid);
+                    i++;
+                    if (i > 500) {
+                        // добавить не более 500 вхождений ПД
+                        break;
+                    }
+                    log.info("Добавление платежного документа, Pdoc.id={}", t.getId());
+                    PaymentDocumentPar paymentDocumentPar = PaymentDocumentPar.builder().uk(uk).pdoc(t).req(req).tguidPay(tguidPay).ukReference(ukReference).build();
+                    boolean isAdd = addPaymentDocument(paymentDocumentPar);
+                    t.setIsConfirmCorrect(true);
+                    if (isAdd) {
+                        // если хотя бы один документ добавлен - загружать
+                        isExistJob = true;
+                    }
 
-                    WithdrawPaymentDocument wdPd = new WithdrawPaymentDocument();
-                    wdPd.setPaymentDocumentID(t.getUn());
-                    wdPd.setTransportGUID(tguid);
-                    req.getWithdrawPaymentDocument().add(wdPd);
-                    isExistJob = true;
+                }
+
+                if (isExistJob) {
+                    // cчитать корректными значения сумм документов, если они расходятся с автоматически рассчитанными
+                    req.setConfirmAmountsCorrect(true);
+                    // добавить платежные реквизиты, если была загрузка ПД
+                    PaymentInformation payInfo = new PaymentInformation();
+                    req.getPaymentInformation().add(payInfo);
+
+                    OrgDTO orgDto = orgMng.getOrgDTO(uk);
+                    log.info("ПД: BIK=#{}#", orgDto.getBik());
+                    payInfo.setBankBIK(orgDto.getBik());
+                    log.info("ПД: OperAccount=#{}#", orgDto.getOperAccGis());
+                    payInfo.setOperatingAccountNumber(orgDto.getOperAccGis());
+                    payInfo.setTransportGUID(tguidPay);
                 }
             }
         }
@@ -832,7 +835,6 @@ public class HcsBillsAsyncBuilder {
 
     /**
      * Добавление платежного документа
-     *
      *
      * @param paymentDocumentPar@return добавлен ли документ
      * @throws CantPrepSoap невозможно создать SOAP
@@ -962,14 +964,14 @@ public class HcsBillsAsyncBuilder {
         //- Государственные пошлины
         //- Судебные издержки.
         BigDecimal pen;
-        if (org.getVarDebPenPdGis()==0) {
+        if (org.getVarDebPenPdGis() == 0) {
             // общая сумма пени
             pen = Utl.nvl(apenyaDAO.getPenAmnt(acc.getKart().getLsk(), period), BigDecimal.ZERO);
-        } else if (org.getVarDebPenPdGis()==1) {
-            // начисленная пеня загружаемого периода ПД
-            pen = Utl.nvl(apenyaDAO.getPenAmntPeriod(acc.getKart().getLsk(), period, period), BigDecimal.ZERO);
+        } else if (org.getVarDebPenPdGis() == 1) {
+            // начисленная, текущая пеня
+            pen = Utl.nvl(xitog3LskDAO.getPenCurPeriod(acc.getKart().getLsk(), period), BigDecimal.ZERO);
         } else {
-            throw new RuntimeException("Некорректный параметр ORG.VAR_DEB_PEN_PD_GIS="+org.getVarDebPenPdGis());
+            throw new RuntimeException("Некорректный параметр ORG.VAR_DEB_PEN_PD_GIS=" + org.getVarDebPenPdGis());
         }
 
         if (pen.compareTo(BigDecimal.ZERO) != 0) {
@@ -1014,28 +1016,27 @@ public class HcsBillsAsyncBuilder {
             debt = salAmnt;
         }
 
-        if (org.getVarDebPenPdGis()==0) {
-            // итого к оплате по неустойкам и судебным издержкам, руб. (итого по всем неустойкам и судебным издержкам).
-            // заполняется только для ПД с типом = Текущий
+        // итого к оплате по неустойкам и судебным издержкам, руб. (итого по всем неустойкам и судебным издержкам).
+        // заполняется только для ПД с типом = Текущий
+        if (org.getVarDebPenPdGis() == 0) {
             if (pen.compareTo(BigDecimal.ZERO) != 0) {
                 log.info("ПД: итого к оплате по неустойкам и судебным издержкам={}", pen);
                 pd.setTotalByPenaltiesAndCourtCosts(pen);
             }
-        } else if (org.getVarDebPenPdGis()==1) {
-            // общая сумма пени
-            BigDecimal penAmnt = Utl.nvl(apenyaDAO.getPenAmnt(acc.getKart().getLsk(), period), BigDecimal.ZERO);
-            debt = debt.add(penAmnt);
-            log.info("ПД: начисленная пеня загружаемого периода={}", penAmnt);
+        } else if (org.getVarDebPenPdGis() == 1) {
+            if (pen.compareTo(BigDecimal.ZERO) != 0) { // итого пени может быть заполнено, если добавлено выше getPenaltiesAndCourtCosts.add(penCourtCost);
+                String periodBack = Utl.addMonths(period, -1);
+                BigDecimal penAmnt = Utl.nvl(apenyaDAO.getPenAmnt(acc.getKart().getLsk(), periodBack), BigDecimal.ZERO);
+                debt = debt.add(penAmnt);
+                log.info("ПД: начисленная пеня загружаемого периода={}", penAmnt);
 
-            // итого к оплате по неустойкам и судебным издержкам, руб. (итого по всем неустойкам и судебным издержкам).
-            // заполняется только для ПД с типом = Текущий
-            if (penAmnt.compareTo(BigDecimal.ZERO) != 0) {
-                log.info("ПД: итого к оплате по неустойкам и судебным издержкам={}", penAmnt);
-                pd.setTotalByPenaltiesAndCourtCosts(penAmnt);
+                if (penAmnt.compareTo(BigDecimal.ZERO) != 0) {
+                    log.info("ПД: итого к оплате по неустойкам и судебным издержкам={}", penAmnt);
+                    pd.setTotalByPenaltiesAndCourtCosts(penAmnt);
+                }
             }
-
         } else {
-            throw new RuntimeException("Некорректный параметр ORG.VAR_DEB_PEN_PD_GIS="+org.getVarDebPenPdGis());
+            throw new RuntimeException("Некорректный параметр ORG.VAR_DEB_PEN_PD_GIS=" + org.getVarDebPenPdGis());
         }
 
         log.info("ПД: задолженность за предыдущие периоды={}", debt);
