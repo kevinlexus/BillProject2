@@ -225,12 +225,17 @@ public class NsiServiceAsyncBindingBuilder {
             String prefix = ulistMng.getPrefixedCD(String.valueOf(tp), grp);
             if (ulistTp == null) {
                 // не найден заголовок, создать новый
-                ulistTp = new UlistTp(prefix, tp, "Внутренний справочник организации",
-                        new Date(), grp, null, eolink);
+                ulistTp = new UlistTp();
+                ulistTp.setCd(prefix);
+                ulistTp.setFkExt(tp);
+                ulistTp.setName("Внутренний справочник организации");
+                ulistTp.setDt1(new Date());
+                ulistTp.setGrp(grp);
+                ulistTp.setEolink(eolink);
+
                 em.persist(ulistTp);
-                log.info("Создан заголовочный элемент ListTp :{}", prefix);
+                log.info("Создан заголовочный элемент U_LIST_TP Id={}, prefix={}", ulistTp.getId(), prefix);
             }
-            // String org = ulistTp.getEolink().getReu();
             String org = ulistTp.getEolink().getOrg().getReu();
 
             // загрузить полученные элементы

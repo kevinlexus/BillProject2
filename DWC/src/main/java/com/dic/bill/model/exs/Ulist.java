@@ -36,7 +36,6 @@ public class Ulist implements java.io.Serializable  {
 			Boolean actual, UlistTp ulistTp, Integer npp, String value, Ulist parent,
 			String refCode, String refGuid, String valTp) {
 		super();
-		//this.cd = cd;
 		this.name = name;
 		this.guid = guid;
 		this.dt1 = dt1;
@@ -51,67 +50,55 @@ public class Ulist implements java.io.Serializable  {
 		this.valTp = valTp;
 	}
 
-	// CD элемента
-	//@Column(name = "CD", updatable = true, nullable = true)
-	//private String cd;
-
 	// наименование элемента
-	@Column(name = "NAME", updatable = true, nullable = true)
+	@Column(name = "NAME")
 	private String name;
 
 	// значение элемента
-	@Column(name = "S1", updatable = true, nullable = true)
+	@Column(name = "S1")
 	private String s1;
 
 	// ИЗ ГИС ЖКХ: GUID элемента
-	@Column(name = "GUID", updatable = true, nullable = true)
+	@Column(name = "GUID")
 	private String guid;
 
 	// ИЗ ГИС ЖКХ: Дата начала действия значения
-	@Column(name = "DT1", updatable = true, nullable = true)
+	@Column(name = "DT1")
 	private Date dt1;
 
 	// ИЗ ГИС ЖКХ: Дата окончания действия значения
-	@Column(name = "DT2", updatable = true, nullable = true)
+	@Column(name = "DT2")
 	private Date dt2;
 
 	// ИЗ ГИС ЖКХ: Признак актуальности элемента справочника
 	@Type(type= "org.hibernate.type.NumericBooleanType")
-	@Column(name = "ACTUAL", nullable = true)
+	@Column(name = "ACTUAL")
 	private Boolean actual;
 
 	// тип справочника
-	@ManyToOne(fetch = FetchType.LAZY)
+	@ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	@JoinColumn(name="FK_LISTTP", referencedColumnName="ID", nullable = false)
 	private UlistTp ulistTp;
 
 	// номер порядковый
-	@Column(name = "NPP", updatable = true, nullable = false)
+	@Column(name = "NPP", nullable = false)
 	private Integer npp;
 
 	// ref code
-	@Column(name = "REF_CODE", updatable = true, nullable = true)
+	@Column(name = "REF_CODE")
 	private String refCode;
 
 	// ref GUID
-	@Column(name = "REF_GUID", updatable = true, nullable = true)
+	@Column(name = "REF_GUID")
 	private String refGuid;
 
 	// ИЗ ГИС ЖКХ: [(NM)number;  (ST)string;  (DT)date;  (BL) boolean (RF) reference (OK) OkeiRefFieldType]
-	@Column(name = "VAL_TP", updatable = true, nullable = true)
+	@Column(name = "VAL_TP")
 	private String valTp;
-
-	// НЕ ИСПОЛЬЗОВАТЬ! ПЕРЕШЕЛ НА U_LIST.FK_EXT! ред.12.07.2018
-	// ЗАПОЛНЯТЬ ТОЛЬКО У УСЛУГ С GUID<>null! Тип услуги 0-жилищная, 1-коммунальная (напр.Х.В.),
-	// 2-дополнительная (напр Замок), 3 - в т.ч. усл.на ОИ, 4 - Капремонт
-/*
-	@Column(name = "TP", updatable = true, nullable = true)
-	private Integer tp;
-*/
 
 	// родительский элемент
 	@OneToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name="PARENT_ID", referencedColumnName="ID", insertable = true, updatable = true/*, nullable = true*/) // ред. 21.05.2019 - закомментировал nullable = true - выдавало: ibernate.PropertyValueException: not-null property references a null or transient value : com.dic.bill.model.exs.Ulist.parent
+	@JoinColumn(name="PARENT_ID", referencedColumnName="ID") // ред. 21.05.2019 - закомментировал nullable = true - выдавало: ibernate.PropertyValueException: not-null property references a null or transient value : com.dic.bill.model.exs.Ulist.parent
 	private Ulist parent;
 
 	// дочерние элементы
@@ -129,35 +116,10 @@ public class Ulist implements java.io.Serializable  {
 	@JoinColumn(name="PARENT_ID3", referencedColumnName="ID")
 	private Ulist parent3;
 
-
 	// не присоединять услугу к ПД непосредственно (обычно для Повыш.коэфф.)
 	@Type(type= "org.hibernate.type.NumericBooleanType")
-	@Column(name = "HIDE_IN_PD", nullable = true)
+	@Column(name = "HIDE_IN_PD")
 	private Boolean isHideInPd;
-
-	@Override
-	public boolean equals(Object o) {
-	    if (this == o) return true;
-	    if (o == null || !(o instanceof Ulist))
-	        return false;
-
-	    Ulist other = (Ulist)o;
-
-	    if (getId() == other.getId()) return true;
-	    if (getId() == null) return false;
-
-	    // equivalence by id
-	    return getId().equals(other.getId());
-	}
-
-	@Override
-	public int hashCode() {
-	    if (getId() != null) {
-	        return getId().hashCode();
-	    } else {
-	        return super.hashCode();
-	    }
-	}
 
 	public static final class UlistBuilder {
 		private Integer id;
@@ -282,7 +244,6 @@ public class Ulist implements java.io.Serializable  {
 		public Ulist build() {
 			Ulist ulist = new Ulist();
 			ulist.setId(id);
-			//ulist.setCd(cd);
 			ulist.setName(name);
 			ulist.setS1(s1);
 			ulist.setGuid(guid);
@@ -300,5 +261,7 @@ public class Ulist implements java.io.Serializable  {
 			return ulist;
 		}
 	}
+
+
 }
 

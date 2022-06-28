@@ -1,5 +1,7 @@
 package com.dic.bill.model.exs;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.DynamicUpdate;
 
@@ -7,169 +9,71 @@ import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Тип справочника
- * @author lev
  *
+ * @author lev
  */
 @SuppressWarnings("serial")
 @Entity
-@Table(name = "U_LISTTP", schema="EXS")
+@Table(name = "U_LISTTP", schema = "EXS")
+@Getter @Setter
 @DynamicUpdate
 @Cacheable // данная сущность не содержит триггеров evict кэша, поэтому её нельзя обновлять в БД через SQL (она может быть обновлена из Java, при загрузке справочников)
 @org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheReadWrite", usage = CacheConcurrencyStrategy.READ_WRITE)
-public class UlistTp implements java.io.Serializable  {
+public class UlistTp implements java.io.Serializable {
 
-	public UlistTp() {
-	}
+    public UlistTp() {
+    }
 
-	// конструктор
-	public UlistTp(String cd, Integer fkExt, String name, Date dt1, String grp,
-			List<Ulist> ulist) {
-		super();
-		this.cd = cd;
-		this.name = name;
-		this.dt1 = dt1;
-		this.grp = grp;
-		this.ulist = ulist;
-		this.fkExt = fkExt;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "SEQ_ULISTTP")
+    @SequenceGenerator(name = "SEQ_ULISTTP", sequenceName = "EXS.SEQ_BASE", allocationSize = 1)
+    @Column(name = "id", unique = true, updatable = false, nullable = false)
+    private Integer id;
 
-	// конструктор
-	public UlistTp(String cd, Integer fkExt, String name, Date dt1, String grp,
-			List<Ulist> ulist, Eolink eolink) {
-		super();
-		this.cd = cd;
-		this.name = name;
-		this.dt1 = dt1;
-		this.grp = grp;
-		this.ulist = ulist;
-		this.fkExt = fkExt;
-		this.eolink = eolink;
-	}
+    // CD элемента (ИЗ ГИС ЖКХ: С префиксом "GIS_" Реестровый номер справочника.)
+    @Column(name = "CD", updatable = false)
+    private String cd;
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "SEQ_ULISTTP")
-	@SequenceGenerator(name="SEQ_ULISTTP", sequenceName="EXS.SEQ_BASE", allocationSize=1)
-    @Column(name = "id", unique=true, updatable = false, nullable = false)
-	private Integer id;
+    // Наименование элемента (ИЗ ГИС ЖКХ: Наименование справочника.)
+    @Column(name = "NAME")
+    private String name;
 
-	// CD элемента (ИЗ ГИС ЖКХ: С префиксом "GIS_" Реестровый номер справочника.)
-	@Column(name = "CD", updatable = false)
-	private String cd;
+    // ИЗ ГИС ЖКХ: Дата и время последнего изменения справочника.
+    @Column(name = "DT1")
+    private Date dt1;
 
-	// Наименование элемента (ИЗ ГИС ЖКХ: Наименование справочника.)
-	@Column(name = "NAME")
-	private String name;
+    // ИЗ ГИС ЖКХ: Группа справочника: NSI - (по умолчанию) общесистемный NSIRAO - ОЖФ
+    @Column(name = "GRP")
+    private String grp;
 
-	// ИЗ ГИС ЖКХ: Дата и время последнего изменения справочника.
-	@Column(name = "DT1")
-	private Date dt1;
+    // ID элемента во внешней системе (ИЗ ГИС ЖКХ: Реестровый номер справочника.)
+    @Column(name = "FK_EXT", updatable = false)
+    private Integer fkExt;
 
-	// ИЗ ГИС ЖКХ: Группа справочника: NSI - (по умолчанию) общесистемный NSIRAO - ОЖФ
-	@Column(name = "GRP")
-	private String grp;
+    // Элементы соответствующие типу
+    @OneToMany(mappedBy = "ulistTp", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Ulist> ulist = new ArrayList<>(0);
 
-	// ID элемента во внешней системе (ИЗ ГИС ЖКХ: Реестровый номер справочника.)
-	@Column(name = "FK_EXT", updatable = false)
-	private Integer fkExt;
+    // Организация, владеющая справочником
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "FK_EOLINK", referencedColumnName = "ID")
+    private Eolink eolink;
 
-	// Элементы соответствующие типу
-	@OneToMany(mappedBy = "ulistTp",fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval=true)
-	//@JoinColumn(name="FK_LISTTP", referencedColumnName="ID", updatable = false)
-	private List<Ulist> ulist = new ArrayList<Ulist>(0);
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UlistTp ulistTp = (UlistTp) o;
+        return id.equals(ulistTp.id);
+    }
 
-	// Организация, владеющая справочником
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name="FK_EOLINK", referencedColumnName="ID")
-	private Eolink eolink;
-
-	public Integer getId() {
-		return id;
-	}
-
-	public void setId(Integer id) {
-		this.id = id;
-	}
-
-	public String getCd() {
-		return cd;
-	}
-
-	public void setCd(String cd) {
-		this.cd = cd;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public Date getDt1() {
-		return dt1;
-	}
-
-	public void setDt1(Date dt1) {
-		this.dt1 = dt1;
-	}
-
-	public String getGrp() {
-		return grp;
-	}
-
-	public void setGrp(String grp) {
-		this.grp = grp;
-	}
-
-	public List<Ulist> getUlist() {
-		return ulist;
-	}
-
-	public void setUlist(List<Ulist> ulist) {
-		this.ulist = ulist;
-	}
-
-	public Integer getFkExt() {
-		return fkExt;
-	}
-
-	public void setFkExt(Integer fkExt) {
-		this.fkExt = fkExt;
-	}
-
-	public Eolink getEolink() {
-		return eolink;
-	}
-
-	public void setEolink(Eolink eolink) {
-		this.eolink = eolink;
-	}
-
-	public boolean equals(Object o) {
-	    if (this == o) return true;
-	    if (o == null || !(o instanceof UlistTp))
-	        return false;
-
-	    UlistTp other = (UlistTp)o;
-
-	    if (getId() == other.getId()) return true;
-	    if (getId() == null) return false;
-
-	    // equivalence by id
-	    return getId().equals(other.getId());
-	}
-
-	public int hashCode() {
-	    if (getId() != null) {
-	        return getId().hashCode();
-	    } else {
-	        return super.hashCode();
-	    }
-	}
-
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }
 
