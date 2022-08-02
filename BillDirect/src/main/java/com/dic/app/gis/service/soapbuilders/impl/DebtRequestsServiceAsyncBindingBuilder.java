@@ -282,6 +282,9 @@ public class DebtRequestsServiceAsyncBindingBuilder {
 
                             Eolink house = eolinkDAO.getEolinkByGuid(housingFundObject.getFiasHouseGUID());
                             debSubRequest.setHouse(house);
+                            if (house == null) {
+                                debSubRequest.setResult("Дом не найден в базе EOLINK, по GUID=" + housingFundObject.getFiasHouseGUID());
+                            }
                             debSubRequest.setAddress(housingFundObject.getAddress());
                             debSubRequest.setAddressDetail(housingFundObject.getAddressDetails());
                             debSubRequest.setSentDate(Utl.getDateFromXmlGregCal(requestInfo.getSentDate())); // отправлено
@@ -308,6 +311,12 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                                         executorOpt.ifPresent(debSubRequest::setUser);
                                     }
                                 }
+                            }
+                        } else {
+                            if (debSubRequest.getHouse() == null) {
+                                // не был проставлен дом, по причине отсутствия по GUID
+                                Eolink house = eolinkDAO.getEolinkByGuid(housingFundObject.getFiasHouseGUID());
+                                debSubRequest.setHouse(house);
                             }
                         }
                         // статус ответа, как он отображен в ГИС
@@ -381,6 +390,11 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                     debSubRequest.setIsErrorOnResponse(true);
                     debSubRequest.setResult("Кол-во подписывающих документ > 1 в справочнике пользователей");
                     log.error("По DEBT_SUB_REQUEST.ID={}, кол-во подписывающих документ > 1 в справочнике пользователей", debSubRequest.getId());
+                    continue;
+                } else if (debSubRequest.getHouse() == null) {
+                    debSubRequest.setIsErrorOnResponse(true);
+                    debSubRequest.setResult("Не установлен (не корректен) GUID дома, необходимо исправить и повторить отправку запроса");
+                    log.error("По DEBT_SUB_REQUEST.ID={}, не установлен FK_EOLINK_HOUSE, необходимо исправить EOLINK.GUID дома, и повторить выгрузку запросов", debSubRequest.getId());
                     continue;
                 } else {
                     Tuser userSigner = userPerm.get(0).getUser();
