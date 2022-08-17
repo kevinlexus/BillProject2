@@ -213,7 +213,7 @@ public class ConfigAppImpl implements ConfigApp {
      * Загрузка кодов услуг для перерасчетов
      */
     private void loadUslCodes() {
-        waterUslCodes = uslDAO.findByCdIn(Arrays.asList("х.вода", "х.вода/св.нор", "г.вода", "г.вода/св.нор", "г.вода, 0 рег.", "COMPHW", "COMPHW2"))
+        waterUslCodes = uslDAO.findByCdIn(Arrays.asList("х.вода", "х.вода 0 рег.", "х.вода/св.нор", "г.вода", "г.вода/св.нор", "г.вода, 0 рег.", "COMPHW", "COMPHW2"))
                 .stream().map(Usl::getId).collect(Collectors.toUnmodifiableSet());
         wasteUslCodes = uslDAO.findByCdIn(Arrays.asList("канализ", "канализ/св.нор", "канализ 0 рег."))
                 .stream().map(Usl::getId).collect(Collectors.toUnmodifiableSet());
