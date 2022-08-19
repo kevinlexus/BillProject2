@@ -224,7 +224,8 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                 changeDoc.setMgchange(changesParam.getPeriodFrom()); // todo убрать период - на фиг не нужен
                 changeDoc.setUserId(user.getId());
                 changeDoc.setText(changesParam.getComment());
-                changeDoc.setParamJson(objectMapper.writeValueAsString(changesParam));
+                String paramJson = objectMapper.writeValueAsString(changesParam);
+                changeDoc.setParamJson(paramJson.length() >= 4000 ? paramJson.substring(0, 1999) : "Слишком длинный json параметров");
                 changeDocDAO.save(changeDoc);
                 changeDocId = changeDoc.getId();
 
