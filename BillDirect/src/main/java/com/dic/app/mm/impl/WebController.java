@@ -742,12 +742,12 @@ public class WebController implements CommonConstants {
     @RequestMapping(value = "/genChanges", method = RequestMethod.POST)
     @ResponseBody
     public String genChanges(@RequestBody ChangesParam changesParam) {
-        log.info("GOT /processChanges");
+        log.info("GOT /genChanges");
         int changeDocId;
         try {
             changeDocId = processMng.processChanges(changesParam);
         } catch (WrongParamPeriod e) {
-            log.error("Некорректный период, при вызове метода /genChangesProc", e);
+            log.error("Некорректный период, при вызове метода /genChanges", e);
             return "ERROR " + e.getMessage();
         } catch (ErrorWhileGen | ExecutionException | InterruptedException | JsonProcessingException | WrongParam e) {
             log.error("Произошла ошибка в процессе перерасчета", e);

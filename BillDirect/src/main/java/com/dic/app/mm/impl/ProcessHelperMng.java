@@ -39,7 +39,20 @@ public class ProcessHelperMng {
             // убрать лишние лиц счета, так как getCurrentCharges выдаст все лс, без учета фильтра в параметрах перерасчета
             final List<LskNabor> currentNabors = new ArrayList<>();
             getCurrentNabors(currentNabors, changesParam, kulNds, klskIds);
-            currentCharges.removeIf(t-> currentNabors.stream().noneMatch(d->d.getLsk().equals(t.getLsk())));
+
+/*
+            if (changesParam.getIsAddUslWaste()) {
+                // не убирать услуги по водоотведению
+
+                if (uslListForQuery.stream().anyMatch(t -> config.getWaterUslCodes().contains(t))) {
+                    uslListForQuery.addAll(config.getWasteUslCodes());
+                } else if (uslListForQuery.stream().anyMatch(t -> config.getWaterOdnUslCodes().contains(t))) {
+                    uslListForQuery.addAll(config.getWasteOdnUslCodes());
+                }
+            }
+
+*/
+            currentCharges.removeIf(t-> currentNabors.stream().noneMatch(d->d.getLsk().equals(t.getLsk()) && d.getUslId().equals(t.getUslId())));
         }
 
         // Получить архивное начисление по объектам
@@ -59,6 +72,8 @@ public class ProcessHelperMng {
         Set<Long> klskIdsProcessed = new HashSet<>(); // для исключения дублей в наборах услуг
         Set<Long> klskIdsForProcess = new HashSet<>(klskIds);
 
+        addUslListForQuery(changesParam, uslListForQuery);
+
         if (kulNds.size() > 0) {
             nabors = kartDAO.getNaborsByKulNd(changesParam.getProcessStatus(), changesParam.getProcessMeter(),
                     changesParam.getProcessAccount(), changesParam.getProcessEmpty(),
@@ -76,6 +91,17 @@ public class ProcessHelperMng {
             nabors.addAll(klskIdNabors);
         }
         currentNabors.addAll(nabors);
+    }
+
+    private void addUslListForQuery(ChangesParam changesParam, List<String> uslListForQuery) {
+        if (changesParam.getIsAddUslWaste()) {
+            // добавить услуги по водоотведению
+            if (uslListForQuery.stream().anyMatch(t -> config.getWaterUslCodes().contains(t))) {
+                uslListForQuery.addAll(config.getWasteUslCodes());
+            } else if (uslListForQuery.stream().anyMatch(t -> config.getWaterOdnUslCodes().contains(t))) {
+                uslListForQuery.addAll(config.getWasteOdnUslCodes());
+            }
+        }
     }
 
 
@@ -121,14 +147,7 @@ public class ProcessHelperMng {
         List<String> uslListForQuery = changesParam.getUslListForQuery();
         Set<Long> klskIdsProcessed = new HashSet<>(); // для исключения дублей в наборах услуг
         Set<Long> klskIdsForProcess = new HashSet<>(klskIds);
-        if (changesParam.getIsAddUslWaste()) {
-            // добавить услуги по водоотведению
-            if (uslListForQuery.stream().anyMatch(t -> config.getWaterUslCodes().contains(t))) {
-                uslListForQuery.addAll(config.getWasteUslCodes());
-            } else if (uslListForQuery.stream().anyMatch(t -> config.getWaterOdnUslCodes().contains(t))) {
-                uslListForQuery.addAll(config.getWasteOdnUslCodes());
-            }
-        }
+        addUslListForQuery(changesParam, uslListForQuery);
 
         List<LskCharge> archCharges = new ArrayList<>();
         if (kulNds.size() > 0) {

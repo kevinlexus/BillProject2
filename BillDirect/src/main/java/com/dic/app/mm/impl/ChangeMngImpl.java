@@ -95,7 +95,7 @@ public class ChangeMngImpl implements ChangeMng {
                 }
 
                 // перебрать заданные в перерасчете услуги
-                if (changeUsl.getProc().compareTo(BigDecimal.ZERO) != 0) {
+                if (changeUsl.getProc() != null && changeUsl.getProc().compareTo(BigDecimal.ZERO) != 0) {
                     List<LskChargeUsl> charges = chargesByUsl.get(changeUsl.getUslId());
                     if (charges != null) {
                         for (LskChargeUsl lskCharge : charges) {
