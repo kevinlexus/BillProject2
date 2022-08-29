@@ -8,6 +8,7 @@ import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -105,8 +106,9 @@ public class Usl implements java.io.Serializable {
     private Integer fkCalcTp;
 
     // цены по услуге
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_ONLY)
     @OneToMany(mappedBy = "usl", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Price> price = new HashSet<>(0);
+    private Collection<Price> price = new HashSet<>(0);
 
     // порядок расчета услуг
     @Column(name = "USL_ORDER")

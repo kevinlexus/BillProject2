@@ -73,6 +73,8 @@ public class ConfigAppImpl implements ConfigApp {
     private Set<String> wasteUslCodes;
     private Set<String> waterOdnUslCodes;
     private Set<String> wasteOdnUslCodes;
+    // справочник услуг, по CD
+    private Map<String, Usl> mapUslByCd;
     // справочник кодов услуг, для округления начисления, для ГИС ЖКХ
     private Map<String, Set<String>> mapUslRound = new HashMap<>();
     private Map<String, Org> mapReuOrg = new HashMap<>();
@@ -101,9 +103,9 @@ public class ConfigAppImpl implements ConfigApp {
         File tempFile = new File("stopGis");
         boolean exists = tempFile.exists();
         if (exists) {
-            isGisWorkOnStart=false;
+            isGisWorkOnStart = false;
         } else {
-            isGisWorkOnStart=true;
+            isGisWorkOnStart = true;
         }
     }
 
@@ -213,6 +215,8 @@ public class ConfigAppImpl implements ConfigApp {
      * Загрузка кодов услуг для перерасчетов
      */
     private void loadUslCodes() {
+        mapUslByCd = uslDAO.findAll().stream().filter(t -> t.getCd() != null).collect(Collectors.toMap(Usl::getCd, t -> t));
+
         waterUslCodes = uslDAO.findByCdIn(Arrays.asList("х.вода", "х.вода 0 рег.", "х.вода/св.нор", "г.вода", "г.вода/св.нор", "г.вода, 0 рег.", "COMPHW", "COMPHW2"))
                 .stream().map(Usl::getId).collect(Collectors.toUnmodifiableSet());
         wasteUslCodes = uslDAO.findByCdIn(Arrays.asList("канализ", "канализ/св.нор", "канализ 0 рег."))

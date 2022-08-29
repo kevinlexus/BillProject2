@@ -54,17 +54,17 @@ public class GenPartImpl implements GenPart {
     /**
      * Расчет объема по услугам
      *
-     * @param chrgCountAmountLocal - локальное хранилище объемов, по помещению
-     * @param reqConf              - запрос
-     * @param parVarCntKpr         - параметр подсчета кол-во проживающих (0-для Кис, 1-Полыс., 1 - для ТСЖ (пока, может поправить)
-     * @param parCapCalcKprTp      - параметр учета проживающих для капремонта
-     * @param ko                   - объект Ko помещения
-     * @param lstMeterVol          - объемы по счетчикам
-     * @param lstSelUsl            - список услуг для расчета
-     * @param lstDayMeterVol       - хранилище объемов по счетчикам
-     * @param curDt                - дата расчета
-     * @param part                 - группа расчета (услуги рассчитываемые до(1) /после(2) рассчета ОДН
-     * @throws ErrorWhileChrg - ошибка во время расчета
+     * @param chrgCountAmountLocal локальное хранилище объемов, по помещению
+     * @param reqConf              запрос
+     * @param parVarCntKpr         параметр подсчета кол-во проживающих (0-для Кис, 1-Полыс., 1 для ТСЖ (пока, может поправить)
+     * @param parCapCalcKprTp      параметр учета проживающих для капремонта
+     * @param ko                   объект Ko помещения
+     * @param lstMeterVol          объемы по счетчикам
+     * @param lstSelUsl            список услуг для расчета
+     * @param lstDayMeterVol       хранилище объемов по счетчикам
+     * @param curDt                дата расчета
+     * @param part                 группа расчета (услуги рассчитываемые до(1) /после(2) расчета ОДН
+     * @throws ErrorWhileChrg ошибка во время расчета
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -254,7 +254,7 @@ public class GenPartImpl implements GenPart {
                     // Компонент на тепл энерг. для Г.В.
                     // получить объем по нормативу в доле на 1 день
                     // получить соцнорму
-                    Optional<Usl> uslParentOpt = uslDao.findByCd("COMPHW");
+                    Optional<Usl> uslParentOpt = Optional.ofNullable(configApp.getMapUslByCd().get("COMPHW")); //uslDao.findByCd("COMPHW");
                     if (uslParentOpt.isPresent()) {
                         // получить норматив, кол-во прож, объемы счетчика, от родительской услуги "COMPHW"
                         Optional<Nabor> naborParentOpt = naborDao.findByKartAndUsl(nabor.getKart(),
@@ -493,7 +493,7 @@ public class GenPartImpl implements GenPart {
                 } else if (fkCalcTp.equals(47)) {
                     // Тепл.энергия для нагрева ХВС (Кис.)
                     //area = kartArea;
-                    Optional<Usl> uslParentOpt = uslDao.findByCd("х.в. для гвс");
+                    Optional<Usl> uslParentOpt = Optional.ofNullable(configApp.getMapUslByCd().get("х.в. для гвс")); //uslDao.findByCd("х.в. для гвс");
                     // Usl uslLinked = uslDao.getTaskIdByCd("х.в. для гвс"); убрал 04.02.2021
                     if (uslParentOpt.isPresent()) {
                         Usl uslLinked = uslParentOpt.get();

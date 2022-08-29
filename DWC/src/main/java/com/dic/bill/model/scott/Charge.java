@@ -22,7 +22,7 @@ public class Charge implements java.io.Serializable  {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "SEQ_Charge_id")
-	@SequenceGenerator(name="SEQ_Charge_id", sequenceName="scott.c_charge_id", allocationSize=1)
+	@SequenceGenerator(name="SEQ_Charge_id", sequenceName="scott.c_charge_id", allocationSize=20)
 	@Column(name = "ID", updatable = false, nullable = false)
 	private Integer id;
 

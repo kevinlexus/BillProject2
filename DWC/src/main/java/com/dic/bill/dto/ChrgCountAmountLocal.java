@@ -1,11 +1,13 @@
 package com.dic.bill.dto;
 
 import ch.qos.logback.classic.Logger;
+import com.dic.bill.dao.ChargeDAO;
 import com.dic.bill.model.scott.*;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileChrg;
 import com.ric.dto.SumMeterVol;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 @Service
 @Scope("prototype")
 @Transactional
+@RequiredArgsConstructor
 public class ChrgCountAmountLocal extends ChrgCountAmountBase {
 
     @PersistenceContext
@@ -49,6 +52,8 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
 
     // признак добавления информации по кол-ву проживающих, для ведомости субсидирования
     Set<String> kprByTp1Added = new HashSet<>();
+
+    private final ChargeDAO chargeDAO;
 
     /**
      * сгруппировать объемы для распределения по вводам
@@ -531,11 +536,10 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
      */
     public List<LskChargeUsl> saveChargeAndRound(Ko ko, boolean isSaveResult, Map<String, Set<String>> mapUslRound, String period) throws ErrorWhileChrg {
         Map<String, List<LskChargeUsl>> chargeByLsk = new HashMap<>();
-        // удалить информацию по текущему начислению, по квартире, только по type=0,1
         for (Kart kart : ko.getKart()) {
-            kart.getCharge().removeIf(t -> t.getType().equals(0) || t.getType().equals(1));
             chargeByLsk.putIfAbsent(kart.getLsk(), new ArrayList<>());
         }
+        chargeDAO.deleteAllByKartLskInAndTypeIn(ko.getKart().stream().map(Kart::getLsk).collect(Collectors.toList()), List.of(0,1));
         log.trace("Сохранено в C_CHARGE:");
         int i = 0; // № п.п.
         for (UslVolCharge uslVolCharge : getLstUslVolCharge()) {

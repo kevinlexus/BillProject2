@@ -59,11 +59,11 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
     /**
      * Рассчитать начисление
      * Внимание! Расчет идёт по помещению (помещению), но информация группируется по лиц.счету(Kart)
-     * так как теоретически может быть одинаковая услуга на разных лиц.счетах, но на одной помещению!
+     * так как теоретически может быть одинаковая услуга на разных лиц.счетах, но на одном помещении!
      * ОПИСАНИЕ: https://docs.google.com/document/d/1mtK2KdMX4rGiF2cUeQFVD4HBcZ_F0Z8ucp1VNK8epx0/edit
      *
-     * @param reqConf - конфиг запроса
-     * @param klskId  - klskId помещения
+     * @param reqConf конфиг запроса
+     * @param klskId  klskId помещения
      * @return начисление по лиц.счетам
      */
     @Override

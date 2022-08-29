@@ -2,10 +2,7 @@ package com.dic.app.mm;
 
 import com.dic.bill.Lock;
 import com.dic.bill.dto.SprPenKey;
-import com.dic.bill.model.scott.Org;
-import com.dic.bill.model.scott.SprPen;
-import com.dic.bill.model.scott.Stavr;
-import com.dic.bill.model.scott.Tuser;
+import com.dic.bill.model.scott.*;
 import com.dic.bill.model.sec.User;
 
 import java.text.ParseException;
@@ -67,4 +64,5 @@ public interface ConfigApp {
 
     boolean isGisWorkOnStart();
 
+    Map<String, Usl> getMapUslByCd();
 }

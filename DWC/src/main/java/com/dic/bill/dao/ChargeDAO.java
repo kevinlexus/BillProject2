@@ -1,9 +1,9 @@
 package com.dic.bill.dao;
 
-import com.dic.bill.dto.SumRec;
 import com.dic.bill.dto.SumUslOrgRec;
 import com.dic.bill.model.scott.Charge;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
@@ -40,4 +40,8 @@ public interface ChargeDAO extends JpaRepository<Charge, Integer> {
 			+ "and coalesce(t.summa,0) <> 0 "
 			+ "group by t.usl.id, n.org.id")
 	List<SumUslOrgRec> getChargeByLskGrouped(@Param("lsk") String lsk);
+
+	@Modifying
+	@Query(value = "delete from Charge t where t.kart.lsk in (:lsk) and t.type in (:type)")
+	void deleteAllByKartLskInAndTypeIn(@Param("lsk") List<String> lsks, @Param("type") List<Integer> types);
 }

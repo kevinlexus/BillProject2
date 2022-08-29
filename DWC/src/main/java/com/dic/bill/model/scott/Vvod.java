@@ -2,6 +2,7 @@ package com.dic.bill.model.scott;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
@@ -19,6 +20,8 @@ import java.util.List;
 @Table(name = "C_VVOD", schema = "SCOTT")
 @Getter
 @Setter
+@Cacheable
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheNabor", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Vvod implements java.io.Serializable {
 
     public Vvod() {
