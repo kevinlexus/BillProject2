@@ -104,6 +104,9 @@ public class ChangeMngImpl implements ChangeMng {
                                 BigDecimal sumChange = lskCharge.getSumma()
                                         .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
                                         .multiply(changeUsl.getProc()).setScale(2, RoundingMode.HALF_UP);
+                                BigDecimal volChange = lskCharge.getVol()
+                                        .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
+                                        .multiply(changeUsl.getProc()).setScale(5, RoundingMode.HALF_UP);
                                 Integer orgId = getChangeOrgId(changeUsl, lskCharge);
                                 if (orgId == null) {
                                     log.error("Значение orgId должно быть либо задано пользователем, либо получено из начисления за период, или из наборов услуг");
@@ -117,7 +120,9 @@ public class ChangeMngImpl implements ChangeMng {
                                         .proc(changeUsl.getProc())
                                         .cntDays(changeUsl.getCntDays())
                                         .tp(ChangeTps.PROC)
-                                        .summa(sumChange).build();
+                                        .summa(sumChange)
+                                        .vol(volChange)
+                                        .build();
                                 resultChanges.add(resultChange);
                                 if (changesParam.getIsAddUslWaste()) {
                                     // добавить перерасчет по водоотведению или водоотведению ОДН
@@ -146,6 +151,9 @@ public class ChangeMngImpl implements ChangeMng {
                     BigDecimal sumChange = lskChargeWaste.getSumma()
                             .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
                             .multiply(procWaste).setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal volChange = lskChargeWaste.getVol()
+                            .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
+                            .multiply(procWaste).setScale(5, RoundingMode.HALF_UP);
                     Integer orgId = getChangeOrgId(changeUsl, lskChargeWaste);
                     ResultChange resultChange = ResultChange.builder()
                             .lsk(lskChargeWaste.getLsk())
@@ -153,6 +161,7 @@ public class ChangeMngImpl implements ChangeMng {
                             .uslId(lskChargeWaste.getUslId())
                             .orgId(orgId)
                             .proc(procWaste)
+                            .vol(volChange)
                             .cntDays(changeUsl.getCntDays())
                             .tp(ChangeTps.PROC)
                             .summa(sumChange).build();

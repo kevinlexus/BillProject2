@@ -48,6 +48,10 @@ public class Change implements java.io.Serializable  {
 	@Column(name = "SUMMA")
 	private BigDecimal summa;
 
+	// объем
+	@Column(name = "VOL")
+	private BigDecimal vol;
+
 	// процент перерасчета
 	@Column(name = "PROC")
 	private BigDecimal proc;
@@ -55,7 +59,6 @@ public class Change implements java.io.Serializable  {
 	// кол-во дней перерасчета
 	@Column(name = "CNT_DAYS")
 	private Integer cntDays;
-
 
 	// период за который перерасчет
 	@Column(name = "MGCHANGE")

@@ -252,6 +252,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                     change.setTp(resultChange.getTp());
                     change.setProc(resultChange.getProc());
                     change.setCntDays(resultChange.getCntDays());
+                    change.setVol(resultChange.getVol());
                     changeDoc.getChange().add(change);
 
                 }

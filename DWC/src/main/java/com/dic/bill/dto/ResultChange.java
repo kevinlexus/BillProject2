@@ -15,6 +15,7 @@ public class ResultChange {
     Integer orgId;
     BigDecimal proc;
     BigDecimal summa;
+    BigDecimal vol;
     Integer cntDays;
     ChangeTps tp;
 }
