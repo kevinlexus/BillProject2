@@ -253,6 +253,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                     change.setProc(resultChange.getProc());
                     change.setCntDays(resultChange.getCntDays());
                     change.setVol(resultChange.getVol());
+                    change.setType(0); // пока поставил 0, не уверен, правильно ли (если не поставить, то в счетах пропадёт строка перерасчета)
                     changeDoc.getChange().add(change);
 
                 }
