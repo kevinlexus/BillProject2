@@ -88,6 +88,10 @@ public class Change implements java.io.Serializable  {
 	@Column(name = "TP")
 	private ChangeTps tp;
 
+	// 0 -скидка, 1 - добор, 2 - возврат, 3 - корр.сальдо
+	@Column(name = "TYPE")
+	private Integer type;
+
 	// пользователь
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "USER_ID", referencedColumnName = "ID", nullable = false, insertable = false, updatable = false)
