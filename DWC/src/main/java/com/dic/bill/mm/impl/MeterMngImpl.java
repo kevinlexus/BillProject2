@@ -1,9 +1,11 @@
 package com.dic.bill.mm.impl;
 
 import com.dic.bill.dao.MeterDAO;
-import com.dic.bill.dto.CalcStore;
+import com.dic.bill.dao.TuserDAO;
+import com.dic.bill.dao.UserDAO;
 import com.dic.bill.dto.MeterData;
 import com.ric.dto.ListMeter;
+import com.ric.dto.MapMeter;
 import com.ric.dto.SumMeterVol;
 import com.dic.bill.dto.UslMeterDateVol;
 import com.dic.bill.mm.MeterMng;
@@ -12,6 +14,8 @@ import com.dic.bill.model.scott.*;
 import com.ric.cmn.CommonErrs;
 import com.ric.cmn.MeterValConsts;
 import com.ric.cmn.Utl;
+import com.ric.dto.SumMeterVolExt;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.procedure.ProcedureOutputs;
 import org.springframework.stereotype.Service;
@@ -34,17 +38,15 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class MeterMngImpl implements MeterMng {
 
     private final MeterDAO meterDao;
+    private final UserDAO userDAO;
+    private final TuserDAO tuserDAO;
 
     @PersistenceContext
     private EntityManager em;
-
-    public MeterMngImpl(MeterDAO meterDao) {
-        this.meterDao = meterDao;
-    }
-
 
     /**
      * Получить первый попавшийся актуальный счетчик по параметрам
@@ -433,6 +435,175 @@ public class MeterMngImpl implements MeterMng {
     @Override
     public ListMeter getListMeterByKlskId(Long koObjId, Date dt1, Date dt2) {
         return new ListMeter(meterDao.getMeterVolByKlskId(koObjId, dt1, dt2));
+    }
+
+    @Override
+    public MapMeter getMapMeterByKlskId(Long koObjId, Date dt1, Date dt2) {
+        List<SumMeterVolExt> lstMeter = meterDao.getMeterVolExtByKlskId(koObjId, dt1, dt2);
+        return new MapMeter(lstMeter.stream().collect(Collectors.toMap(SumMeterVolExt::getMeterId, v -> v)));
+    }
+
+    /**
+     * Сохранить показание счетчика в БД по klskId счетчика
+     *
+     *
+     * @param klskId klskId счетчика
+     * @param curVal текущее показание
+     * @return 0-успешно сохранено
+     *         3-показания меньше или равны предыдущим
+     *         4-не найден активный счетчик (на конец месяца)
+     *         5-превышено значение
+     */
+    @Override
+    public Integer saveMeterValByKLskId(Long klskId, Double curVal) {
+        StoredProcedureQuery query = em
+                .createStoredProcedureQuery(
+                        "scott.p_meter.ins_data_meter")
+                .registerStoredProcedureParameter(
+                        "p_met_klsk",
+                        Long.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_n1",
+                        Double.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_ts",
+                        Date.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_status",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_user",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_control",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_is_set_prev",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_doc_par_id",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_ret",
+                        Integer.class,
+                        ParameterMode.OUT
+                )
+                .setParameter("p_met_klsk", klskId)
+                .setParameter("p_n1", curVal)
+                .setParameter("p_is_set_prev", 0)
+                .setParameter("p_ts", new Date())
+                .setParameter("p_status", MeterValConsts.INSERT_FOR_LOAD_TO_GIS)
+                .setParameter("p_doc_par_id", null)
+                .setParameter("p_user", userDAO.getByCd("TLG").getId());
+        Integer ret;
+        try {
+            query.execute();
+
+            ret = (Integer) query
+                    .getOutputParameterValue("p_ret");
+
+        } finally {
+            query.unwrap(ProcedureOutputs.class).release();
+        }
+        return ret;
+    }
+
+    /**
+     * Сохранить показание счетчика в БД по Id счетчика
+     *
+     *
+     * @param meterId Id счетчика
+     * @param curVal текущее показание
+     * @return 0-успешно сохранено
+     *         3-показания меньше или равны предыдущим
+     *         4-не найден активный счетчик (на конец месяца)
+     *         5-превышено значение
+     */
+    @Override
+    @Transactional
+    public Integer saveMeterValByMeterId(int meterId, double curVal) {
+        StoredProcedureQuery query = em
+                .createStoredProcedureQuery(
+                        "scott.p_meter.ins_data_meter")
+                .registerStoredProcedureParameter(
+                        "p_meter_id",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_n1",
+                        Double.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_ts",
+                        Date.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_status",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_user",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_control",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_is_set_prev",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_doc_par_id",
+                        Integer.class,
+                        ParameterMode.IN
+                )
+                .registerStoredProcedureParameter(
+                        "p_ret",
+                        Integer.class,
+                        ParameterMode.OUT
+                )
+                .setParameter("p_meter_id", meterId)
+                .setParameter("p_n1", curVal)
+                .setParameter("p_is_set_prev", 0)
+                .setParameter("p_ts", new Date())
+                .setParameter("p_status", MeterValConsts.INSERT_FOR_LOAD_TO_GIS)
+                .setParameter("p_doc_par_id", null)
+                .setParameter("p_user", tuserDAO.findByCd("TLG").getId());
+        Integer ret;
+        try {
+            query.execute();
+
+            ret = (Integer) query
+                    .getOutputParameterValue("p_ret");
+
+        } finally {
+            query.unwrap(ProcedureOutputs.class).release();
+        }
+        return ret;
     }
 
 }

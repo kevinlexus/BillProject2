@@ -23,6 +23,8 @@ import com.ric.cmn.excp.WrongParam;
 import com.ric.cmn.excp.WrongParamPeriod;
 import com.ric.dto.ListKoAddress;
 import com.ric.dto.ListMeter;
+import com.ric.dto.MapKoAddress;
+import com.ric.dto.MapMeter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.SessionFactory;
@@ -776,6 +778,27 @@ public class WebController implements CommonConstants {
             return "ERROR";
         }
         return "OK";
+    }
+
+    @RequestMapping(value = "/getMapKoAddressByTelegramUserId/{userId}", method = RequestMethod.GET)
+    @ResponseBody
+    public MapKoAddress getListKoAddressByTelegramUserId(@PathVariable long userId) {
+        log.info("GOT /getMapKoAddressByTelegramUserId with userId={}", userId);
+        return objParMng.getMapKoAddressByObjPar("TelegramId", userId);
+    }
+
+    @RequestMapping(value = "/getMapMeterByKlskId/{klskId}", method = RequestMethod.GET)
+    @ResponseBody
+    public MapMeter getListMeterByKlskId(@PathVariable long klskId) {
+        log.info("GOT /getMapMeterByKlskId with klskId={}", klskId);
+        return meterMng.getMapMeterByKlskId(klskId, config.getCurDt1(), config.getCurDt2());
+    }
+
+    @RequestMapping(value = "/setMeterValByMeterId/{meterId}/{val}", method = RequestMethod.GET)
+    @ResponseBody
+    public Integer setMeterValByMeterId(@PathVariable int meterId, @PathVariable String val) {
+        log.info("GOT /setMeterValByMeterId with meterId={}, val={}", meterId, val);
+        return meterMng.saveMeterValByMeterId(meterId, Double.parseDouble(val));
     }
 
 }

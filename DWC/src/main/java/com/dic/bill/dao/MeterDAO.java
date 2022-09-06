@@ -3,6 +3,7 @@ package com.dic.bill.dao;
 import com.dic.bill.dto.MeterData;
 import com.ric.dto.SumMeterVol;
 import com.dic.bill.model.scott.Meter;
+import com.ric.dto.SumMeterVolExt;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -95,6 +96,17 @@ public interface MeterDAO extends JpaRepository<Meter, Integer> {
     @Query(value = "select t from Meter t "
             + "where t.id between ?1 and ?2")
     List<Meter> findMeter(int n1, int n2);
+
+    @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
+    @Query(value = "select new com.ric.dto.SumMeterVolExt(t.id as meterId, t.usl.id as uslId, t.dt1 as dtFrom, t.dt2 as dtTo, " +
+            "coalesce(sum(o.n1),0) as vol, coalesce(t.n1,0) as n1, t.usl.name as serviceName) " +
+            "from Meter t " +
+            "left join t.objPar o with o.lst.cd='ins_vol_sch' and o.mg = TO_CHAR(?2,'YYYYMM') "
+            + "where t.koObj.id = ?1 " +
+            "and ((?2 between t.dt1 and t.dt2 or ?3 between t.dt1 and t.dt2) or " +
+            "(t.dt1 between ?2 and ?3 or t.dt2 between ?2 and ?3)) " +
+            "group by t.id, t.usl.id, t.dt1, t.dt2, t.n1, t.usl.name ")
+    List<SumMeterVolExt> getMeterVolExtByKlskId(Long koObjId, Date dtFrom, Date dtTo);
 
 }
 

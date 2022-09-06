@@ -1,19 +1,18 @@
 package com.dic.bill.mm.impl;
 
-import com.dic.bill.dao.KartDAO;
 import com.dic.bill.dao.KoDAO;
 import com.dic.bill.dao.ObjParDAO;
 import com.dic.bill.dao.UlstDAO;
 import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.ObjParMng;
 import com.dic.bill.model.scott.Kart;
-import com.dic.bill.model.scott.Ko;
 import com.dic.bill.model.scott.Lst;
 import com.dic.bill.model.scott.ObjPar;
 import com.ric.cmn.excp.WrongGetMethod;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.dto.KoAddress;
 import com.ric.dto.ListKoAddress;
+import com.ric.dto.MapKoAddress;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -179,5 +178,18 @@ public class ObjParMngImpl implements ObjParMng {
                 .forEach(d -> addressMap.putIfAbsent(d.getKoKw().getId(),
                         new KoAddress(ord[0]++, d.getKoKw().getId(), kartMng.getAdrWithCity(d))));
         return new ListKoAddress(new ArrayList<>(addressMap.values()));
+    }
+
+    @Override
+    public MapKoAddress getMapKoAddressByObjPar(String cd, Long userId) {
+        Map<Long, KoAddress> mapAddress = new HashMap<>();
+        final int[] ord = {1};
+        objParDAO.getKoByObjPar(cd, new BigDecimal(userId)).stream()
+                .flatMap(t -> t.getKart().stream().filter(Kart::isActual))
+                .forEach(d ->
+                        mapAddress.put(d.getKoKw().getId(),
+                                new KoAddress(ord[0]++, d.getKoKw().getId(), kartMng.getAdrWithCity(d)))
+                );
+        return new MapKoAddress(mapAddress);
     }
 }
