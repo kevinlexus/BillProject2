@@ -78,7 +78,6 @@ public class WebController implements CommonConstants {
     private final MeterMng meterMng;
     private final MntBase mntBase;
     private final TaskMng taskMng;
-    private final TaskController taskController;
 
     /**
      * Корректировочная проводка по сальдо

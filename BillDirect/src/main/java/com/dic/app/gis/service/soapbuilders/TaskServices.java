@@ -8,6 +8,10 @@ public interface TaskServices {
 
     void activateRptTask(Task task) throws WrongGetMethod;
 
+    void loadTasksByTimer() throws WrongGetMethod;
+
+    void checkSchedule() throws java.text.ParseException;
+
     TaskPar getTrgTask(Task task);
 
     void setProcTask(TaskPar taskPar);

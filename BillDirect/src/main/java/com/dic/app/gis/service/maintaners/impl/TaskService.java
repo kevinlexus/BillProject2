@@ -120,6 +120,7 @@ public class TaskService implements TaskServices {
     /**
      * Загрузка списка запланированных задач
      */
+    @Override
     @Scheduled(fixedDelay = 20000)
     @Transactional
     public void loadTasksByTimer() throws WrongGetMethod {
@@ -129,6 +130,7 @@ public class TaskService implements TaskServices {
     /**
      * Определить статусы заданий
      */
+    @Override
     @Scheduled(fixedDelay = 1000)
     @Transactional
     public void checkSchedule() throws java.text.ParseException {
