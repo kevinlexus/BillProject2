@@ -67,9 +67,9 @@ public class ParMngImpl implements ParMng {
         Date dtLast = Date.from(localDtFirst.withDayOfMonth(localDtFirst.lengthOfMonth()).atStartOfDay(ZoneId.systemDefault()).toInstant());
         LocalDate localDtMiddle = localDtFirst.withDayOfMonth(15);
         Date dtMiddle = Date.from(localDtMiddle.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        mapDate.put("dtFirst", dtFirst);
-        mapDate.put("dtLast", dtLast);
-        mapDate.put("dtMiddle", dtMiddle);
+        mapDate.put("dtFirst", dtFirst); // дата 1 дня текущего периода
+        mapDate.put("dtLast", dtLast);   // дата последнего дня текущего периода
+        mapDate.put("dtMiddle", dtMiddle); // дата середины текущего периода
         log.info("Загружены даты текущего периода начало={}, окончание={}, середина={}",
                 Utl.getStrFromDate(dtFirst, "dd.MM.yyyy"),
                 Utl.getStrFromDate(dtLast, "dd.MM.yyyy"),

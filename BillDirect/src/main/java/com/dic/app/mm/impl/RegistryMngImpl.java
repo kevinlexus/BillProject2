@@ -36,6 +36,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -596,6 +597,7 @@ public class RegistryMngImpl implements RegistryMng {
 
     /**
      * Выгрузить файл платежей по внешними лиц.счетами
+     *
      * @param unloadPaymentParameter параметры выгрузки
      */
     @Override
@@ -609,11 +611,11 @@ public class RegistryMngImpl implements RegistryMng {
         int cntLoaded = 0;
         if (org.getExtLskFormatTp().equals(0)) {
             Org rkc = orgDAO.getByOrgTp("РКЦ");
-            unloadPaymentParameter.setFileName("c:\\temp\\"+rkc.getInn() + "_" + Utl.getStrFromDate(new Date(), "yyyyMMdd")
+            unloadPaymentParameter.setFileName("c:\\temp\\" + rkc.getInn() + "_" + Utl.getStrFromDate(new Date(), "yyyyMMdd")
                     + "_" + unloadPaymentParameter.getOrdNum() + ".txt");
             Path path = Paths.get(unloadPaymentParameter.getFileName());
             log.info("Начало выгрузки файла платежей по внешним лиц.счетам fileName={}, " +
-                    "по orgId={}, genDt1={} genDt2={}", unloadPaymentParameter.getFileName(),
+                            "по orgId={}, genDt1={} genDt2={}", unloadPaymentParameter.getFileName(),
                     unloadPaymentParameter.getOrgId(), unloadPaymentParameter.getGenDt1(), unloadPaymentParameter.getGenDt2());
 
             // ЧГК
@@ -640,19 +642,19 @@ public class RegistryMngImpl implements RegistryMng {
                     unloadPaymentParameter.getOrgId());
             BigDecimal amount = BigDecimal.ZERO;
             if (payment.size() > 0) {
-                unloadPaymentParameter.setFileName("c:\\temp\\"+ Utl.getStrFromDate(new Date(), "ddMMyy")
+                unloadPaymentParameter.setFileName("c:\\temp\\" + Utl.getStrFromDate(new Date(), "ddMMyy")
                         + "_0264_" + "212030000028.txt");
                 Path path = Paths.get(unloadPaymentParameter.getFileName());
                 try (BufferedWriter writer = Files.newBufferedWriter(path, Charset.forName("windows-1251"))) {
                     for (KartExtPaymentRec2 rec : payment) {
                         writer.write(Utl.getStrFromDate(rec.getDt(), "dd-MM-yyyy") + "|" +
-                                rec.getExtLsk() + "|" + rec.getFiasKw() + "|" + "|" + rec.getSumma().toString()+ "|"
+                                rec.getExtLsk() + "|" + rec.getFiasKw() + "|" + "|" + rec.getSumma().toString() + "|"
                                 + Utl.getStrFromDate(rec.getDt(), "MMyyyy") + "|" + "|" + rec.getAdr() + "|||"
                                 + rec.getRsch() + "\r\n");
                         amount = amount.add(rec.getSumma());
                         cntLoaded++;
                     }
-                    writer.write("=" + cntLoaded + "|" + amount+"|"+"1|"+Utl.getStrFromDate(new Date(), "ddMMyyyy"));
+                    writer.write("=" + cntLoaded + "|" + amount + "|" + "1|" + Utl.getStrFromDate(new Date(), "ddMMyyyy"));
                 }
             }
         } else {
@@ -1284,15 +1286,14 @@ public class RegistryMngImpl implements RegistryMng {
     }
 
     /**
-     *
-     * @param tableName наименование таблицы в БД
+     * @param tableName            наименование таблицы в БД
      * @param tableOutNameWithPath путь выгрузки файла DBF без разширения
      */
     @Override
     public void saveDBF(String tableName, String tableOutNameWithPath) throws FileNotFoundException {
-        tableOutNameWithPath=tableOutNameWithPath+".dbf";
+        tableOutNameWithPath = tableOutNameWithPath + ".dbf";
         List<AllTabColumns> fields = sysDAO.getAllTabColumns(tableName);
-        int i=0;
+        int i = 0;
         DBFField[] dbfFields = new DBFField[fields.size()];
         for (AllTabColumns field : fields) {
             dbfFields[i] = new DBFField();
@@ -1305,12 +1306,12 @@ public class RegistryMngImpl implements RegistryMng {
                 case "NUMBER" -> {
                     dbfFields[i].setType(DBFDataType.NUMERIC);
                     dbfFields[i].setLength(field.getDataLength());
-                    if (field.getDataScale()!=null) {
+                    if (field.getDataScale() != null) {
                         dbfFields[i].setDecimalCount(field.getDataScale());
                     }
                 }
                 case "DATE" -> dbfFields[i].setType(DBFDataType.DATE);
-                default -> throw new RuntimeException("Неподдерживаемый тип данных "+ field.getDataType());
+                default -> throw new RuntimeException("Неподдерживаемый тип данных " + field.getDataType());
             }
             i++;
         }
@@ -1325,5 +1326,81 @@ public class RegistryMngImpl implements RegistryMng {
 
         writer.close();
     }
+
+    private List<SumFinanceFlow> getFinanceFlowByKlskSincePeriod(Long klskId, String period) {
+        return penyaDAO.getFinanceFlowByKlskSincePeriod(klskId, period);
+    }
+
+    @Override
+    public StringBuilder getFlowFormatted(Long klskId, String periodBack) {
+        List<SumFinanceFlow> flowLst = getFinanceFlowByKlskSincePeriod(klskId, periodBack);
+        StringBuilder msg = getStrFormatted(flowLst);
+        return msg;
+    }
+
+    private StringBuilder getStrFormatted(List<SumFinanceFlow> flowLst) {
+/*
+        String preFormatted = "```\r\n" +
+                "| Период | Долг    | Пени  | Начисление| Оплата |\r\n" +
+                "| 10.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" +
+                "| 11.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" +
+                "| 12.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" +
+                "| 13.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" + "```";
+*/
+
+        Map<String, Integer> colSizes = new HashMap<>();
+        String pattern = "###,###,###.##";
+        colSizes.put("debt", 5);
+        colSizes.put("pen", 5);
+        colSizes.put("chrg", 11);
+        colSizes.put("pay", 7);
+        colSizes.put("paypen", 11);
+
+        for (SumFinanceFlow flow : flowLst) {
+            putFieldSize(colSizes, "chrg", flow.getChrg(), pattern);
+            putFieldSize(colSizes, "debt", flow.getDebt(), pattern);
+            putFieldSize(colSizes, "pay", flow.getPay(), pattern);
+            putFieldSize(colSizes, "pen", flow.getPen(), pattern);
+            putFieldSize(colSizes, "paypen", flow.getPayPen(), pattern);
+        }
+
+        StringBuilder msg = new StringBuilder();
+        msg.append("Движение по лицевому счету\r\n");
+        StringBuilder preFormatted = new StringBuilder("```\r\n");
+//        StringBuilder preFormatted = new StringBuilder("```\r\n" +
+//                "|Период |Долг   |Пени |Начисление |Оплата |В т.ч.пени \r\n");
+        String chrgHeader = Utl.getHeaderStr("Начисление", colSizes.get("chrg"), " ");
+        String debtHeader = Utl.getHeaderStr("Долг", colSizes.get("debt"), " ");
+        String payHeader = Utl.getHeaderStr("Оплата", colSizes.get("pay"), " ");
+        String penHeader = Utl.getHeaderStr("Пени", colSizes.get("pen"), " ");
+        String payPenHeader = Utl.getHeaderStr("В т.ч.пени", colSizes.get("paypen"), " ");
+
+        preFormatted.append(String.format("|Период |%s|%s|%s|%s|%s|\r\n", debtHeader, penHeader, chrgHeader, payHeader, payPenHeader));
+        for (SumFinanceFlow flow : flowLst) {
+            String debt = Utl.getMoneyStr(flow.getDebt(), colSizes.get("debt"), " ", pattern);
+            String pen = Utl.getMoneyStr(flow.getPen(), colSizes.get("pen"), " ", pattern);
+            String chrg = Utl.getMoneyStr(flow.getChrg(), colSizes.get("chrg"), " ", pattern);
+            String pay = Utl.getMoneyStr(flow.getPay(), colSizes.get("pay"), " ", pattern);
+            String paypen = Utl.getMoneyStr(flow.getPayPen(), colSizes.get("paypen"), " ", pattern);
+            preFormatted.append(String.format("|%s|%s|%s|%s|%s|%s|\r\n", flow.getMg() + " ", debt, pen, chrg, pay, paypen));
+        }
+        //Utl.replaceAll(preFormatted, ".", "\\.");
+        //Utl.replaceAll(preFormatted, "|","\\|");
+        preFormatted.append("```");
+        msg.append(preFormatted);
+        return msg;
+    }
+
+    private void putFieldSize(Map<String, Integer> colSizes, String fieldName, Double inputDouble, String pattern) {
+        if (inputDouble != null) {
+            DecimalFormat df = new DecimalFormat(pattern);
+            String formatted = df.format(inputDouble);
+            colSizes.putIfAbsent(fieldName, formatted.length());
+            colSizes.computeIfPresent(fieldName, (key, val) -> val = val < formatted.length() ? formatted.length() : val);
+        } else {
+            colSizes.putIfAbsent(fieldName, 0);
+        }
+    }
+
 
 }

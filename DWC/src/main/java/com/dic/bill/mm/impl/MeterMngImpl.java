@@ -54,7 +54,6 @@ public class MeterMngImpl implements MeterMng {
      * @param ko  - Ko объекта, где установлен счетчик
      * @param usl - код услуги
      * @param dt  - дата на которую получить
-     * @return
      */
 
     @Override

@@ -4,7 +4,8 @@ package com.dic.bill.dto;
  * Projection для хранения записи движения
  */
 public interface SumFinanceFlow {
-    Integer getPeriod();
+    // период задолженности
+    Integer getMg();
 
     // долг
     Double getDebt();

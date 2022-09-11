@@ -31,8 +31,10 @@ public class TestPenyaDAO {
     @Rollback(value = true)
     public void checkProjectionFinanceFlow() {
         log.info("-----------------Begin");
-        List<SumFinanceFlow> lst = penyaDAO.getFinanceFlowByKlskSincePeriod(104880, "201403");
-        System.out.println(lst);
+        List<SumFinanceFlow> lst = penyaDAO.getFinanceFlowByKlskSincePeriod(104880L, "201403");
+        for (SumFinanceFlow elem : lst) {
+            log.info("{}, {}, {}, {}, {}, {}",elem.getChrg(), elem.getDebt(), elem.getPay(), elem.getPen(), elem.getPayPen(), elem.getMg());
+        }
         log.info("-----------------End");
     }
 

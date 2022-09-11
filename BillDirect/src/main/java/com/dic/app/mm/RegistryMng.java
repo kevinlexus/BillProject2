@@ -1,5 +1,6 @@
 package com.dic.app.mm;
 
+import com.dic.bill.dto.SumFinanceFlow;
 import com.dic.bill.dto.UnloadPaymentParameter;
 import com.ric.cmn.excp.ErrorWhileLoad;
 import com.ric.cmn.excp.WrongParam;
@@ -20,4 +21,6 @@ public interface RegistryMng {
     void loadApprovedKartExt(Integer orgId) throws WrongParam;
 
     void saveDBF(String tableName, String tableOutName) throws FileNotFoundException;
+
+    StringBuilder getFlowFormatted(Long klskId, String periodBack);
 }

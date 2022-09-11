@@ -7,15 +7,12 @@ import org.apache.commons.lang3.StringUtils;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
-import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.*;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.text.*;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -973,6 +970,44 @@ public class Utl {
         calendar.setTime(dt);
         calendar.add(Calendar.DAY_OF_YEAR, nDays);
         return calendar.getTime();
+    }
+
+    /**
+     * Вернуть формат денежной строки, строгой длины. Например "65.23" -> "    65.23"
+     */
+    public static String getMoneyStr(Double inputDouble, int len, String prefix, String pattern) {
+        DecimalFormat df = new DecimalFormat(pattern, new DecimalFormatSymbols(Locale.ROOT));
+        String str;
+        if (inputDouble!=null) {
+            String formatted = df.format(inputDouble);
+            str = formatted;
+            if (formatted.length() < len) {
+                str = StringUtils.repeat(prefix, len - formatted.length()) + formatted;
+            }
+        } else {
+            str = StringUtils.repeat(prefix, len);
+        }
+        return str;
+    }
+
+    public static String getHeaderStr(String inputStr, int len, String prefix) {
+        String str = null;
+        if (inputStr.length() < len) {
+            str = StringUtils.repeat(prefix, len - inputStr.length()) + inputStr;
+        }
+        return str;
+    }
+
+    /**
+     * Заменить в StringBuilder символы
+     */
+    public static void replaceAll(StringBuilder builder, String from, String to) {
+        int index = builder.indexOf(from);
+        while (index != -1) {
+            builder.replace(index, index + from.length(), to);
+            index += to.length(); // Move to the end of the replacement
+            index = builder.indexOf(from, index);
+        }
     }
 
 }

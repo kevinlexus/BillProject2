@@ -1,7 +1,7 @@
 package com.dic.app.telegram.bot.mng.impl;
 
-import com.dic.app.config.Config;
 import com.dic.app.mm.ConfigApp;
+import com.dic.app.mm.RegistryMng;
 import com.dic.app.telegram.bot.message.SimpleMessage;
 import com.dic.app.telegram.bot.message.TelegramMessage;
 import com.dic.app.telegram.bot.message.UpdateMessage;
@@ -22,9 +22,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -40,6 +38,7 @@ public class UserInteractionImpl implements UserInteraction {
     private final ObjParMng objParMng;
     private final MeterMng meterMng;
     private final ConfigApp config;
+    private final RegistryMng registryMng;
     private final Map<Integer, MeterValSaveState> statusCode =
             Map.of(0, MeterValSaveState.SUCCESSFUL,
                     3, MeterValSaveState.VAL_SAME_OR_LOWER,
@@ -76,7 +75,7 @@ public class UserInteractionImpl implements UserInteraction {
     @Override
     public TelegramMessage selectMeter(Update update, long userId) {
         StringBuilder msg = new StringBuilder();
-        Long klskId = env.getUserCurrentKo().get(userId) != null ? env.getUserCurrentKo().get(userId).getKlskId() : null;
+        Long klskId = getCurrentKlskId(userId);
 
         if (update.getCallbackQuery() != null) {
             // присвоить адрес, если не установлен
@@ -118,6 +117,10 @@ public class UserInteractionImpl implements UserInteraction {
         return createMessage(update, msg, inlineKeyboardMarkup);
     }
 
+    private Long getCurrentKlskId(long userId) {
+        return env.getUserCurrentKo().get(userId) != null ? env.getUserCurrentKo().get(userId).getKlskId() : null;
+    }
+
     @Override
     public TelegramMessage wrongInput(Update update, long userId) {
         List<InlineKeyboardButton> buttons = new ArrayList<>();
@@ -137,20 +140,14 @@ public class UserInteractionImpl implements UserInteraction {
         addButton(BILLING_CHARGES, buttons);
         addButton(BILLING_PAYMENTS, buttons);
         addButton(BILLING_BACK, buttons);
+        String periodBack = config.getPeriodBackByMonth(12);
+        Long klskId = getCurrentKlskId(userId);
 
-        StringBuilder msg = new StringBuilder();
-        msg.append("Движение по лицевому счету\r\n");
-        String preFormatted = "```\r\n" +
-                "| Период | Долг    | Пени  | Начисление| Оплата |\r\n" +
-                "| 10.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" +
-                "| 11.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" +
-                "| 12.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" +
-                "| 13.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" + "```";
-        msg.append(preFormatted.replace(".", "\\.").replace("|","\\|"));
+        StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
+
         msg.append("_Переверните экран смартфона, для лучшего чтения информации_");
         return createMessage(update, msg, inlineKeyboardMarkup);
     }
-
 
     private TelegramMessage createMessage(Update update, StringBuilder msg, InlineKeyboardMarkup inlineKeyboardMarkup) {
         if (update.getMessage() == null) {
@@ -242,7 +239,7 @@ public class UserInteractionImpl implements UserInteraction {
      */
     @Override
     public int authenticateUser(long userId) {
-        MapKoAddress mapKoAddress = objParMng.getMapKoAddressByObjPar("TelegramId", userId);;
+        MapKoAddress mapKoAddress = objParMng.getMapKoAddressByObjPar("TelegramId", userId);
         if (mapKoAddress.getMapKoAddress().size() == 0) {
             // временный код, для регистрации
             return env.getUserTemporalCode().computeIfAbsent(userId, t -> {

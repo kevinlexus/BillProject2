@@ -146,6 +146,16 @@ public class ConfigAppImpl implements ConfigApp {
         }
     }
 
+    @Override
+    public String getPeriodBackByMonth(int month) {
+        try {
+            return Utl.addMonths(Utl.getPeriodFromDate(mapDate.get("dtFirst")), month);
+        } catch (ParseException e) {
+            log.error(Utl.getStackTraceString(e));
+            return null;
+        }
+    }
+
     /**
      * Получить первую дату текущего месяца
      */

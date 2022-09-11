@@ -22,6 +22,8 @@ public interface ConfigApp {
 
     String getPeriodBack();
 
+    String getPeriodBackByMonth(int month);
+
     Date getCurDt1();
 
     Date getCurDt2();
