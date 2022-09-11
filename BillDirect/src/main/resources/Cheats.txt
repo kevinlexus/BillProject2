@@ -349,6 +349,10 @@ public class VchangeDet implements java.io.Serializable {
         lst.add(new Employee(3,3,"Bill"));
         lst.add(new Employee(4,2,"Gates"));
 
+        // преобразование из List в Map
+        buildingLayerAddressesTypeEntityRepository.findAll().stream().collect(Collectors.toMap(BuildingLayerAddressesTypeEntity::getName,
+                BuildingLayerAddressesTypeEntity::getId));
+
         // группировка в Map, используя groupId в качестве key
         Map<Integer, List<Employee>> a = lst.stream()
         .collect(Collectors.groupingBy(Employee::getGroupId));
@@ -515,6 +519,18 @@ public interface ThreadMng<T> {
 
 // POSTGRESQL
 
+// анонимный блок с for loop курсором
+DO $$
+    DECLARE r record;
+    i integer;
+begin
 
+i:=1;
+for r in (select * from kmp.dict_elements t order by t.name)
+loop
+  --raise notice 'r.id=%', r.id;
+    update kmp.dict_elements set ord=i where id=r.id;
+    i:=i+1;
+end loop;
 
-
+END$$;
