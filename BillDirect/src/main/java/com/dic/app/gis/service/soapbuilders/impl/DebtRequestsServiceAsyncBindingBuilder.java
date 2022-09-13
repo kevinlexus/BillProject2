@@ -189,7 +189,8 @@ public class DebtRequestsServiceAsyncBindingBuilder {
 
 
         // дата начала - текущая дата - 2 месяца, дата окончания - текущая дата
-        XMLGregorianCalendar startDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.now().minusMonths(2).atStartOfDay(ZoneId.systemDefault()).toInstant()));
+        // брать не более 7 дней - иначе нужно дорабатывать обработчик возвращаемого в ответе идентификатора pagedOutput
+        XMLGregorianCalendar startDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.now().minusDays(7).atStartOfDay(ZoneId.systemDefault()).toInstant()));
         XMLGregorianCalendar endDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()));
 
         Period period = new Period();
@@ -247,7 +248,6 @@ public class DebtRequestsServiceAsyncBindingBuilder {
             if (!task.getState().equals("ERR")) {
                 // Ошибок нет, обработка
                 ExportDSRsResultType exportDSRsResult = state.getStateResult().getExportDSRsResult();
-
                 ExportDSRsResultType.PagedOutput pagedOutput = exportDSRsResult.getPagedOutput(); // todo подумать!
                 for (DSRType subrequest : exportDSRsResult.getSubrequestData()) {
                     DSRType.RequestInfo requestInfo = subrequest.getRequestInfo();
@@ -264,6 +264,10 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                             debSubRequest = requestOpt.get();
                         }
 
+                        if (!pagedOutput.isLastPage()) {
+                            log.error("Нужна обработка идентификатора pagedOutput, будуты выгружены не все результаты!");
+                            debSubRequest.setResult("Будут выгружены не все результаты!");
+                        }
                         // статус запроса в ГИС
                         debSubRequest.setStatusGis(DebtSubRequestStatuses.getByName(requestInfo.getStatus().value()).getId());
                         if (debSubRequest.getProcUk() == null) {
