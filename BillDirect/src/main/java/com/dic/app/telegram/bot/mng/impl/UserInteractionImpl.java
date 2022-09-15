@@ -2,9 +2,7 @@ package com.dic.app.telegram.bot.mng.impl;
 
 import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.RegistryMng;
-import com.dic.app.telegram.bot.message.SimpleMessage;
 import com.dic.app.telegram.bot.message.TelegramMessage;
-import com.dic.app.telegram.bot.message.UpdateMessage;
 import com.dic.app.telegram.bot.mng.UserInteraction;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.ObjParMng;
@@ -15,14 +13,14 @@ import com.ric.dto.SumMeterVolExt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.ParseMode;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -47,8 +45,6 @@ public class UserInteractionImpl implements UserInteraction {
                     6, MeterValSaveState.RESTRICTED_BY_DAY_OF_MONTH
             );
 
-    //@Value("${bot.billHost}")
-    //private String billHost;
 
     @Override
     public TelegramMessage selectAddress(Update update, long userId, Map<Long, MapKoAddress> registeredKo) {
@@ -62,14 +58,12 @@ public class UserInteractionImpl implements UserInteraction {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboards = new ArrayList<>();
         inlineKeyboardMarkup.setKeyboard(keyboards);
-        List<InlineKeyboardButton> buttons = new ArrayList<>();
 
-        for (KoAddress koAddress : mapKoAddress.getMapKoAddress().values()) {
-            addButton(ADDRESS_KLSK.getCallBackData() + "_" + koAddress.getKlskId(), String.valueOf(koAddress.getOrd()), buttons);
-        }
-        addRowList(inlineKeyboardMarkup, buttons);
+        MessageStore messageStore = new MessageStore(update);
+        mapKoAddress.getMapKoAddress().values().stream().sorted(Comparator.comparing(KoAddress::getOrd))
+                .forEach(t -> messageStore.addButtonCallBack(ADDRESS_KLSK.getCallBackData() + "_" + t.getKlskId(), String.valueOf(t.getOrd())));
 
-        return createMessage(update, msg, inlineKeyboardMarkup);
+        return messageStore.buildUpdateMessage2(msg);
     }
 
     @Override
@@ -89,14 +83,9 @@ public class UserInteractionImpl implements UserInteraction {
         msg.append("_Выберите:_\r\n");
 
         // настройки, для выбора счетчиков
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        List<InlineKeyboardButton> buttons = new ArrayList<>();
-
+        MessageStore messageStore = new MessageStore(update);
         if (klskId != null) {
-            int i = 1;
             for (SumMeterVolExt sumMeterVol : env.getMetersByKlskId().get(klskId).getMapKoMeter().values()) {
-                msg.append(i);
-                msg.append("\\. ");
                 String serviceName = sumMeterVol.getServiceName();
                 msg.append(serviceName.replace(".", "\\."));
                 msg.append(", текущ\\.: показания:");
@@ -104,18 +93,34 @@ public class UserInteractionImpl implements UserInteraction {
                 msg.append(", расход:");
                 msg.append("*" + sumMeterVol.getVol().toString().replace(".", "\\.") + "*");
                 msg.append("\r\n");
-                addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(), ++i + "." + serviceName, buttons);
+                messageStore.addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(), serviceName);
             }
         } else {
             log.error("Не определен klskId");
         }
 
-        addButton(Buttons.BILLING, buttons);
-        addButton(Buttons.METER_BACK, buttons);
-        addRowList(inlineKeyboardMarkup, buttons);
-
-        return createMessage(update, msg, inlineKeyboardMarkup);
+        messageStore.addButton(Buttons.BILLING);
+        messageStore.addButton(Buttons.METER_BACK);
+        return messageStore.build(msg);
     }
+
+    @Override
+    public TelegramMessage showBilling(Update update, long userId) {
+        MessageStore messageStore = new MessageStore(update);
+        messageStore.addButton(Buttons.BILLING_CHARGES);
+        messageStore.addButton(Buttons.BILLING_PAYMENTS);
+        messageStore.addButton(Buttons.BILLING_BACK);
+
+        String periodBack = config.getPeriodBackByMonth(12);
+        Long klskId = getCurrentKlskId(userId);
+        klskId = 104880L;
+        periodBack = "201309";
+        StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
+
+        msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
+        return messageStore.build(msg);
+    }
+
 
     private Long getCurrentKlskId(long userId) {
         return env.getUserCurrentKo().get(userId) != null ? env.getUserCurrentKo().get(userId).getKlskId() : null;
@@ -123,60 +128,13 @@ public class UserInteractionImpl implements UserInteraction {
 
     @Override
     public TelegramMessage wrongInput(Update update, long userId) {
-        List<InlineKeyboardButton> buttons = new ArrayList<>();
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        addRowList(inlineKeyboardMarkup, buttons);
+        MessageStore messageStore = new MessageStore(update);
+        messageStore.addButton(Buttons.METER_BACK);
         StringBuilder msg = new StringBuilder();
         msg.append("Некорректный выбор\\!");
-
-        return createMessage(update, msg, inlineKeyboardMarkup);
+        return messageStore.build(msg);
     }
 
-    @Override
-    public TelegramMessage showBilling(Update update, long userId) {
-        List<InlineKeyboardButton> buttons = new ArrayList<>();
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        addRowList(inlineKeyboardMarkup, buttons);
-        addButton(BILLING_CHARGES, buttons);
-        addButton(BILLING_PAYMENTS, buttons);
-        addButton(BILLING_BACK, buttons);
-        String periodBack = config.getPeriodBackByMonth(12);
-        Long klskId = getCurrentKlskId(userId);
-
-        StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
-
-        msg.append("_Переверните экран смартфона, для лучшего чтения информации_");
-        return createMessage(update, msg, inlineKeyboardMarkup);
-    }
-
-    private TelegramMessage createMessage(Update update, StringBuilder msg, InlineKeyboardMarkup inlineKeyboardMarkup) {
-        if (update.getMessage() == null) {
-            EditMessageText em = new EditMessageText();
-            em.setText(msg.toString());
-            em.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
-            em.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
-            em.setReplyMarkup(inlineKeyboardMarkup);
-
-            em.setParseMode(ParseMode.MARKDOWNV2);
-            return new UpdateMessage(em);
-        } else {
-            SendMessage sm = new SendMessage();
-            sm.setText(msg.toString());
-
-            sm.setParseMode(ParseMode.MARKDOWNV2);
-
-            sm.setChatId(update.getMessage().getChatId());
-            sm.setReplyMarkup(inlineKeyboardMarkup);
-            return new SimpleMessage(sm);
-        }
-    }
-
-    /**
-     * Обновить показания счетчиков по klskId
-     *
-     * @param userId пользователь
-     * @param klskId klskId фин.лиц.
-     */
     @Override
     public void updateMapMeterByCurrentKlskId(long userId, long klskId) {
         MapKoAddress registeredKoByUser = env.getUserRegisteredKo().get(userId);
@@ -188,7 +146,6 @@ public class UserInteractionImpl implements UserInteraction {
     public TelegramMessage inputVol(Update update, long userId) {
         // присвоить счетчик
         Integer meterId = null;
-        EditMessageText em = new EditMessageText();
         if (update.getCallbackQuery() != null) {
             String callBackStr = update.getCallbackQuery().getData();
             if (callBackStr != null) {
@@ -198,16 +155,7 @@ public class UserInteractionImpl implements UserInteraction {
             meterId = env.getUserCurrentMeter().get(userId).getMeterId();
         }
 
-        // настройки для ввода показаний
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        //List<InlineKeyboardButton> buttons = new ArrayList<>();
-        String msgKeyb = "Назад";
-        if (update.getMessage() == null) {
-            em.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
-            em.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
-        } else {
-            em.setChatId(update.getMessage().getChatId());
-        }
+        String msg = "";
         if (meterId != null) {
             Long currKlskId = env.getUserCurrentKo().get(userId).getKlskId();
             MapMeter mapMeter = env.getMetersByKlskId().get(currKlskId);
@@ -217,19 +165,15 @@ public class UserInteractionImpl implements UserInteraction {
                     .getMapKoMeter();
             SumMeterVolExt sumMeterVolExt = mapKoMeter.get(meterId);
             env.getMeterVolExtByMeterId().put(meterId, sumMeterVolExt);
-            String msg = "Введите новое показание счетчика по услуге: " + sumMeterVolExt.getServiceName() + ", текущие показания="
+            msg = "Введите новое показание счетчика по услуге: " + sumMeterVolExt.getServiceName() + ", текущие показания="
                     + sumMeterVolExt.getN1() + ", расход=" + sumMeterVolExt.getVol();
 
-            em.setText(msg);
         } else {
             log.error("Не определен meterId");
         }
-        List<InlineKeyboardButton> buttons = new ArrayList<>();
-        addButton(INPUT_BACK.getCallBackData(), msgKeyb, buttons);
-        addRowList(inlineKeyboardMarkup, buttons);
-        em.setReplyMarkup(inlineKeyboardMarkup);
-
-        return new UpdateMessage(em);
+        MessageStore messageStore = new MessageStore(update);
+        messageStore.addButton(INPUT_BACK);
+        return messageStore.buildUpdateMessage(msg);
     }
 
 
@@ -277,26 +221,5 @@ public class UserInteractionImpl implements UserInteraction {
     public Env getEnv() {
         return env;
     }
-
-    private void addButton(String callBackData, String caption, List<InlineKeyboardButton> buttons) {
-        InlineKeyboardButton inlineKeyboardButton = new InlineKeyboardButton();
-        inlineKeyboardButton.setCallbackData(callBackData);
-        inlineKeyboardButton.setText(caption);
-        buttons.add(inlineKeyboardButton);
-    }
-
-    private void addButton(Buttons button, List<InlineKeyboardButton> buttons) {
-        InlineKeyboardButton inlineKeyboardButton = new InlineKeyboardButton();
-        inlineKeyboardButton.setCallbackData(button.getCallBackData());
-        inlineKeyboardButton.setText(button.toString());
-        buttons.add(inlineKeyboardButton);
-    }
-
-    private void addRowList(InlineKeyboardMarkup inlineKeyboardMarkup, List<InlineKeyboardButton> buttons) {
-        List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
-        rowList.add(buttons);
-        inlineKeyboardMarkup.setKeyboard(rowList);
-    }
-
 
 }

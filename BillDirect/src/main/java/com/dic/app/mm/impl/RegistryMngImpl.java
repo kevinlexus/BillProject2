@@ -51,6 +51,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RegistryMngImpl implements RegistryMng {
 
+    public static final String FLOW_MONEY_PATTERN = "###,###,###.##";
+    public static final String DEBT = "debt";
+    public static final String PEN = "pen";
+    public static final String CHRG = "chrg";
+    public static final String PAY = "pay";
+    public static final String PAYPEN = "paypen";
     private final int EXT_APPROVED_BY_USER = 0; // одобрено на загрузку в БД пользователем
     private final int EXT_LSK_NOT_USE = 1; // не обрабатывать (устанавливает пользователь)
     private final int EXT_LSK_DOUBLE = 2; // внешний лиц.сч. дублируется в файле
@@ -1327,15 +1333,10 @@ public class RegistryMngImpl implements RegistryMng {
         writer.close();
     }
 
-    private List<SumFinanceFlow> getFinanceFlowByKlskSincePeriod(Long klskId, String period) {
-        return penyaDAO.getFinanceFlowByKlskSincePeriod(klskId, period);
-    }
-
     @Override
     public StringBuilder getFlowFormatted(Long klskId, String periodBack) {
-        List<SumFinanceFlow> flowLst = getFinanceFlowByKlskSincePeriod(klskId, periodBack);
-        StringBuilder msg = getStrFormatted(flowLst);
-        return msg;
+        List<SumFinanceFlow> flowLst = penyaDAO.getFinanceFlowByKlskSincePeriod(klskId, periodBack);
+        return getStrFormatted(flowLst);
     }
 
     private StringBuilder getStrFormatted(List<SumFinanceFlow> flowLst) {
@@ -1349,43 +1350,43 @@ public class RegistryMngImpl implements RegistryMng {
 */
 
         Map<String, Integer> colSizes = new HashMap<>();
-        String pattern = "###,###,###.##";
-        colSizes.put("debt", 5);
-        colSizes.put("pen", 5);
-        colSizes.put("chrg", 11);
-        colSizes.put("pay", 7);
-        colSizes.put("paypen", 11);
+        String pattern = FLOW_MONEY_PATTERN;
+        // размеры заголовков (минимальные размеры столбцов)
+        colSizes.put(DEBT, 5);
+        colSizes.put(PEN, 5);
+        colSizes.put(CHRG, 11);
+        colSizes.put(PAY, 7);
+        colSizes.put(PAYPEN, 11);
 
+        // рассчитать размер столбцов
         for (SumFinanceFlow flow : flowLst) {
-            putFieldSize(colSizes, "chrg", flow.getChrg(), pattern);
-            putFieldSize(colSizes, "debt", flow.getDebt(), pattern);
-            putFieldSize(colSizes, "pay", flow.getPay(), pattern);
-            putFieldSize(colSizes, "pen", flow.getPen(), pattern);
-            putFieldSize(colSizes, "paypen", flow.getPayPen(), pattern);
+            putFieldSize(colSizes, CHRG, flow.getChrg(), pattern);
+            putFieldSize(colSizes, DEBT, flow.getDebt(), pattern);
+            putFieldSize(colSizes, PAY, flow.getPay(), pattern);
+            putFieldSize(colSizes, PEN, flow.getPen(), pattern);
+            putFieldSize(colSizes, PAYPEN, flow.getPayPen(), pattern);
         }
 
         StringBuilder msg = new StringBuilder();
         msg.append("Движение по лицевому счету\r\n");
         StringBuilder preFormatted = new StringBuilder("```\r\n");
-//        StringBuilder preFormatted = new StringBuilder("```\r\n" +
-//                "|Период |Долг   |Пени |Начисление |Оплата |В т.ч.пени \r\n");
-        String chrgHeader = Utl.getHeaderStr("Начисление", colSizes.get("chrg"), " ");
-        String debtHeader = Utl.getHeaderStr("Долг", colSizes.get("debt"), " ");
-        String payHeader = Utl.getHeaderStr("Оплата", colSizes.get("pay"), " ");
-        String penHeader = Utl.getHeaderStr("Пени", colSizes.get("pen"), " ");
-        String payPenHeader = Utl.getHeaderStr("В т.ч.пени", colSizes.get("paypen"), " ");
+        String chrgHeader = Utl.getHeaderStr("Начисление", colSizes.get(CHRG), " ");
+        String debtHeader = Utl.getHeaderStr("Долг", colSizes.get(DEBT), " ");
+        String payHeader = Utl.getHeaderStr("Оплата", colSizes.get(PAY), " ");
+        String penHeader = Utl.getHeaderStr("Пени", colSizes.get(PEN), " ");
+        String payPenHeader = Utl.getHeaderStr("В т.ч.пени", colSizes.get(PAYPEN), " ");
 
-        preFormatted.append(String.format("|Период |%s|%s|%s|%s|%s|\r\n", debtHeader, penHeader, chrgHeader, payHeader, payPenHeader));
+        preFormatted.append(String.format("|Период|%s|%s|%s|%s|%s|\r\n", debtHeader, penHeader, chrgHeader, payHeader, payPenHeader));
         for (SumFinanceFlow flow : flowLst) {
-            String debt = Utl.getMoneyStr(flow.getDebt(), colSizes.get("debt"), " ", pattern);
-            String pen = Utl.getMoneyStr(flow.getPen(), colSizes.get("pen"), " ", pattern);
-            String chrg = Utl.getMoneyStr(flow.getChrg(), colSizes.get("chrg"), " ", pattern);
-            String pay = Utl.getMoneyStr(flow.getPay(), colSizes.get("pay"), " ", pattern);
-            String paypen = Utl.getMoneyStr(flow.getPayPen(), colSizes.get("paypen"), " ", pattern);
+            String debt = Utl.getMoneyStr(flow.getDebt(), colSizes.get(DEBT), " ", pattern);
+            String pen = Utl.getMoneyStr(flow.getPen(), colSizes.get(PEN), " ", pattern);
+            String chrg = Utl.getMoneyStr(flow.getChrg(), colSizes.get(CHRG), " ", pattern);
+            String pay = Utl.getMoneyStr(flow.getPay(), colSizes.get(PAY), " ", pattern);
+            String paypen = Utl.getMoneyStr(flow.getPayPen(), colSizes.get(PAYPEN), " ", pattern);
             preFormatted.append(String.format("|%s|%s|%s|%s|%s|%s|\r\n", flow.getMg() + " ", debt, pen, chrg, pay, paypen));
         }
-        //Utl.replaceAll(preFormatted, ".", "\\.");
-        //Utl.replaceAll(preFormatted, "|","\\|");
+        Utl.replaceAll(preFormatted, ".", "\\.");
+        Utl.replaceAll(preFormatted, "|","\\|");
         preFormatted.append("```");
         msg.append(preFormatted);
         return msg;
