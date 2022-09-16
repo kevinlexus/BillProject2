@@ -1,16 +1,16 @@
 package com.dic.app.mm.impl;
 
+import com.dic.app.gis.service.maintaners.EolinkMng;
+import com.dic.app.gis.service.maintaners.impl.EolinkMngImpl;
 import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.RegistryMng;
 import com.dic.bill.UlistDAO;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.*;
-import com.dic.app.gis.service.maintaners.EolinkMng;
 import com.dic.bill.dto.cursor.AllTabColumns;
 import com.dic.bill.mm.KartMng;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.NaborMng;
-import com.dic.app.gis.service.maintaners.impl.EolinkMngImpl;
 import com.dic.bill.model.scott.*;
 import com.linuxense.javadbf.DBFDataType;
 import com.linuxense.javadbf.DBFField;
@@ -52,11 +52,17 @@ import java.util.stream.Collectors;
 public class RegistryMngImpl implements RegistryMng {
 
     public static final String FLOW_MONEY_PATTERN = "###,###,###.##";
+    public static final String PERIOD_NAME = "Период";
     public static final String DEBT = "debt";
+    public static final String DEBT_NAME = "Долг";
     public static final String PEN = "pen";
+    public static final String PEN_NAME = "Пени";
     public static final String CHRG = "chrg";
+    public static final String CHRG_NAME = "Начисление";
     public static final String PAY = "pay";
+    public static final String PAY_NAME = "Оплата";
     public static final String PAYPEN = "paypen";
+    public static final String PAYPEN_NAME = "Пени";
     private final int EXT_APPROVED_BY_USER = 0; // одобрено на загрузку в БД пользователем
     private final int EXT_LSK_NOT_USE = 1; // не обрабатывать (устанавливает пользователь)
     private final int EXT_LSK_DOUBLE = 2; // внешний лиц.сч. дублируется в файле
@@ -1340,23 +1346,14 @@ public class RegistryMngImpl implements RegistryMng {
     }
 
     private StringBuilder getStrFormatted(List<SumFinanceFlow> flowLst) {
-/*
-        String preFormatted = "```\r\n" +
-                "| Период | Долг    | Пени  | Начисление| Оплата |\r\n" +
-                "| 10.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" +
-                "| 11.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" +
-                "| 12.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" +
-                "| 13.2021| 2235.55 | 102.23| 150.22    | 250.85 |\r\n" + "```";
-*/
-
         Map<String, Integer> colSizes = new HashMap<>();
         String pattern = FLOW_MONEY_PATTERN;
         // размеры заголовков (минимальные размеры столбцов)
-        colSizes.put(DEBT, 5);
-        colSizes.put(PEN, 5);
-        colSizes.put(CHRG, 11);
-        colSizes.put(PAY, 7);
-        colSizes.put(PAYPEN, 11);
+        colSizes.put(DEBT, DEBT_NAME.length());
+        colSizes.put(PEN, PEN_NAME.length());
+        colSizes.put(CHRG, CHRG_NAME.length());
+        colSizes.put(PAY, PAY_NAME.length());
+        colSizes.put(PAYPEN, PAYPEN_NAME.length());
 
         // рассчитать размер столбцов
         for (SumFinanceFlow flow : flowLst) {
@@ -1370,13 +1367,13 @@ public class RegistryMngImpl implements RegistryMng {
         StringBuilder msg = new StringBuilder();
         msg.append("Движение по лицевому счету\r\n");
         StringBuilder preFormatted = new StringBuilder("```\r\n");
-        String chrgHeader = Utl.getHeaderStr("Начисление", colSizes.get(CHRG), " ");
-        String debtHeader = Utl.getHeaderStr("Долг", colSizes.get(DEBT), " ");
-        String payHeader = Utl.getHeaderStr("Оплата", colSizes.get(PAY), " ");
-        String penHeader = Utl.getHeaderStr("Пени", colSizes.get(PEN), " ");
-        String payPenHeader = Utl.getHeaderStr("В т.ч.пени", colSizes.get(PAYPEN), " ");
+        String chrgHeader = Utl.getHeaderStr(CHRG_NAME, colSizes.get(CHRG), " ");
+        String debtHeader = Utl.getHeaderStr(DEBT_NAME, colSizes.get(DEBT), " ");
+        String payHeader = Utl.getHeaderStr(PAY_NAME, colSizes.get(PAY), " ");
+        String penHeader = Utl.getHeaderStr(PEN_NAME, colSizes.get(PEN), " ");
+        String payPenHeader = Utl.getHeaderStr(PAYPEN_NAME, colSizes.get(PAYPEN), " ");
 
-        preFormatted.append(String.format("|Период|%s|%s|%s|%s|%s|\r\n", debtHeader, penHeader, chrgHeader, payHeader, payPenHeader));
+        preFormatted.append(String.format("|%s |%s|%s|%s|%s|%s|\r\n", PERIOD_NAME, debtHeader, penHeader, chrgHeader, payHeader, payPenHeader));
         for (SumFinanceFlow flow : flowLst) {
             String debt = Utl.getMoneyStr(flow.getDebt(), colSizes.get(DEBT), " ", pattern);
             String pen = Utl.getMoneyStr(flow.getPen(), colSizes.get(PEN), " ", pattern);
@@ -1386,7 +1383,7 @@ public class RegistryMngImpl implements RegistryMng {
             preFormatted.append(String.format("|%s|%s|%s|%s|%s|%s|\r\n", flow.getMg() + " ", debt, pen, chrg, pay, paypen));
         }
         Utl.replaceAll(preFormatted, ".", "\\.");
-        Utl.replaceAll(preFormatted, "|","\\|");
+        Utl.replaceAll(preFormatted, "|", "\\|");
         preFormatted.append("```");
         msg.append(preFormatted);
         return msg;

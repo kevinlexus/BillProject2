@@ -78,7 +78,7 @@ class MessageStore {
         return createMessage(update, msg, inlineKeyboardMarkup);
     }
 
-    public TelegramMessage buildUpdateMessage(String msg) {
+    public TelegramMessage buildUpdateMessage(String msg, boolean useMarkDown2) {
         inlineKeyboardMarkup.setKeyboard(rowList);
         EditMessageText em = new EditMessageText();
         if (update.getMessage() == null) {
@@ -89,30 +89,8 @@ class MessageStore {
         }
         em.setText(msg);
         em.setReplyMarkup(inlineKeyboardMarkup);
+        if (useMarkDown2) em.setParseMode(ParseMode.MARKDOWNV2);
         return new UpdateMessage(em);
-    }
-
-    public TelegramMessage buildUpdateMessage2(StringBuilder msg) {
-        inlineKeyboardMarkup.setKeyboard(rowList);
-        if (update.getMessage() == null) {
-            EditMessageText em = new EditMessageText();
-            em.setText(msg.toString());
-            em.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
-            em.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
-            em.setReplyMarkup(inlineKeyboardMarkup);
-
-            em.setParseMode(ParseMode.MARKDOWNV2);
-            return new UpdateMessage(em);
-        } else {
-            SendMessage sm = new SendMessage();
-            sm.setText(msg.toString());
-
-            sm.setParseMode(ParseMode.MARKDOWNV2);
-
-            sm.setChatId(update.getMessage().getChatId());
-            sm.setReplyMarkup(inlineKeyboardMarkup);
-            return new SimpleMessage(sm);
-        }
     }
 }
 

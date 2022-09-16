@@ -51,9 +51,6 @@ public class UserInteractionImpl implements UserInteraction {
         StringBuilder msg = new StringBuilder();
         MapKoAddress mapKoAddress = registeredKo.get(userId);
         msg.append("_Выберите адрес:_\r\n");
-        msg.append(String.join("\r\n",
-                mapKoAddress.getMapKoAddress().values().stream().map(t -> t.getOrd() + "\\. " + t.getAddress())
-                        .collect(Collectors.toSet())));
 
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboards = new ArrayList<>();
@@ -61,9 +58,9 @@ public class UserInteractionImpl implements UserInteraction {
 
         MessageStore messageStore = new MessageStore(update);
         mapKoAddress.getMapKoAddress().values().stream().sorted(Comparator.comparing(KoAddress::getOrd))
-                .forEach(t -> messageStore.addButtonCallBack(ADDRESS_KLSK.getCallBackData() + "_" + t.getKlskId(), String.valueOf(t.getOrd())));
+                .forEach(t -> messageStore.addButtonCallBack(ADDRESS_KLSK.getCallBackData() + "_" + t.getKlskId(), t.getAddress()));
 
-        return messageStore.buildUpdateMessage2(msg);
+        return messageStore.build(msg);
     }
 
     @Override
@@ -155,7 +152,7 @@ public class UserInteractionImpl implements UserInteraction {
             meterId = env.getUserCurrentMeter().get(userId).getMeterId();
         }
 
-        String msg = "";
+        StringBuilder msg = new StringBuilder();
         if (meterId != null) {
             Long currKlskId = env.getUserCurrentKo().get(userId).getKlskId();
             MapMeter mapMeter = env.getMetersByKlskId().get(currKlskId);
@@ -165,15 +162,19 @@ public class UserInteractionImpl implements UserInteraction {
                     .getMapKoMeter();
             SumMeterVolExt sumMeterVolExt = mapKoMeter.get(meterId);
             env.getMeterVolExtByMeterId().put(meterId, sumMeterVolExt);
-            msg = "Введите новое показание счетчика по услуге: " + sumMeterVolExt.getServiceName() + ", текущие показания="
-                    + sumMeterVolExt.getN1() + ", расход=" + sumMeterVolExt.getVol();
+            msg.append("Введите новое показание счетчика по услуге: ");
+            msg.append(sumMeterVolExt.getServiceName().replace(".", "\\."));
+            msg.append(", текущие показания:");
+            msg.append(sumMeterVolExt.getN1().toString().replace(".", "\\."));
+            msg.append(", расход:");
+            msg.append(sumMeterVolExt.getVol().toString().replace(".", "\\."));
 
         } else {
             log.error("Не определен meterId");
         }
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(INPUT_BACK);
-        return messageStore.buildUpdateMessage(msg);
+        return messageStore.build(msg);
     }
 
 
