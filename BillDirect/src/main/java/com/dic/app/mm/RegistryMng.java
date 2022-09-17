@@ -23,4 +23,6 @@ public interface RegistryMng {
     void saveDBF(String tableName, String tableOutName) throws FileNotFoundException;
 
     StringBuilder getFlowFormatted(Long klskId, String periodBack);
+
+    StringBuilder getChargeFormatted(Long klskId);
 }

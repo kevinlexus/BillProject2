@@ -4,7 +4,8 @@ import com.dic.app.gis.service.maintaners.EolinkMng;
 import com.dic.app.gis.service.maintaners.impl.EolinkMngImpl;
 import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.RegistryMng;
-import com.dic.bill.UlistDAO;
+import com.dic.app.mm.impl.bot.ChargeReport;
+import com.dic.app.mm.impl.bot.FlowReport;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.*;
 import com.dic.bill.dto.cursor.AllTabColumns;
@@ -29,14 +30,15 @@ import javax.persistence.EntityManager;
 import javax.persistence.ParameterMode;
 import javax.persistence.PersistenceContext;
 import javax.persistence.StoredProcedureQuery;
+import java.beans.IntrospectionException;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DecimalFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -51,18 +53,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RegistryMngImpl implements RegistryMng {
 
-    public static final String FLOW_MONEY_PATTERN = "###,###,###.##";
-    public static final String PERIOD_NAME = "Период";
-    public static final String DEBT = "debt";
-    public static final String DEBT_NAME = "Долг";
-    public static final String PEN = "pen";
-    public static final String PEN_NAME = "Пени";
-    public static final String CHRG = "chrg";
-    public static final String CHRG_NAME = "Начисление";
-    public static final String PAY = "pay";
-    public static final String PAY_NAME = "Оплата";
-    public static final String PAYPEN = "paypen";
-    public static final String PAYPEN_NAME = "Пени";
     private final int EXT_APPROVED_BY_USER = 0; // одобрено на загрузку в БД пользователем
     private final int EXT_LSK_NOT_USE = 1; // не обрабатывать (устанавливает пользователь)
     private final int EXT_LSK_DOUBLE = 2; // внешний лиц.сч. дублируется в файле
@@ -94,8 +84,10 @@ public class RegistryMngImpl implements RegistryMng {
     private final KartExtDAO kartExtDAO;
     private final AkwtpDAO akwtpDAO;
     private final HouseDAO houseDAO;
-    private final UlistDAO ulistDAO;
+    private final ChargeDAO chargeDAO;
     private final SysDAO sysDAO;
+    private final FlowReport flowReport;
+    private final ChargeReport chargeReport;
     private final JdbcTemplate jdbcTemplate;
 
     /**
@@ -1342,63 +1334,35 @@ public class RegistryMngImpl implements RegistryMng {
     @Override
     public StringBuilder getFlowFormatted(Long klskId, String periodBack) {
         List<SumFinanceFlow> flowLst = penyaDAO.getFinanceFlowByKlskSincePeriod(klskId, periodBack);
-        return getStrFormatted(flowLst);
-    }
 
-    private StringBuilder getStrFormatted(List<SumFinanceFlow> flowLst) {
-        Map<String, Integer> colSizes = new HashMap<>();
-        String pattern = FLOW_MONEY_PATTERN;
-        // размеры заголовков (минимальные размеры столбцов)
-        colSizes.put(DEBT, DEBT_NAME.length());
-        colSizes.put(PEN, PEN_NAME.length());
-        colSizes.put(CHRG, CHRG_NAME.length());
-        colSizes.put(PAY, PAY_NAME.length());
-        colSizes.put(PAYPEN, PAYPEN_NAME.length());
-
-        // рассчитать размер столбцов
-        for (SumFinanceFlow flow : flowLst) {
-            putFieldSize(colSizes, CHRG, flow.getChrg(), pattern);
-            putFieldSize(colSizes, DEBT, flow.getDebt(), pattern);
-            putFieldSize(colSizes, PAY, flow.getPay(), pattern);
-            putFieldSize(colSizes, PEN, flow.getPen(), pattern);
-            putFieldSize(colSizes, PAYPEN, flow.getPayPen(), pattern);
+        StringBuilder str;
+        try {
+            str = flowReport.getStrFlowFormatted(flowLst);
+        } catch (IntrospectionException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
 
-        StringBuilder msg = new StringBuilder();
-        msg.append("Движение по лицевому счету\r\n");
-        StringBuilder preFormatted = new StringBuilder("```\r\n");
-        String chrgHeader = Utl.getHeaderStr(CHRG_NAME, colSizes.get(CHRG), " ");
-        String debtHeader = Utl.getHeaderStr(DEBT_NAME, colSizes.get(DEBT), " ");
-        String payHeader = Utl.getHeaderStr(PAY_NAME, colSizes.get(PAY), " ");
-        String penHeader = Utl.getHeaderStr(PEN_NAME, colSizes.get(PEN), " ");
-        String payPenHeader = Utl.getHeaderStr(PAYPEN_NAME, colSizes.get(PAYPEN), " ");
-
-        preFormatted.append(String.format("|%s |%s|%s|%s|%s|%s|\r\n", PERIOD_NAME, debtHeader, penHeader, chrgHeader, payHeader, payPenHeader));
-        for (SumFinanceFlow flow : flowLst) {
-            String debt = Utl.getMoneyStr(flow.getDebt(), colSizes.get(DEBT), " ", pattern);
-            String pen = Utl.getMoneyStr(flow.getPen(), colSizes.get(PEN), " ", pattern);
-            String chrg = Utl.getMoneyStr(flow.getChrg(), colSizes.get(CHRG), " ", pattern);
-            String pay = Utl.getMoneyStr(flow.getPay(), colSizes.get(PAY), " ", pattern);
-            String paypen = Utl.getMoneyStr(flow.getPayPen(), colSizes.get(PAYPEN), " ", pattern);
-            preFormatted.append(String.format("|%s|%s|%s|%s|%s|%s|\r\n", flow.getMg() + " ", debt, pen, chrg, pay, paypen));
-        }
-        Utl.replaceAll(preFormatted, ".", "\\.");
-        Utl.replaceAll(preFormatted, "|", "\\|");
-        preFormatted.append("```");
-        msg.append(preFormatted);
-        return msg;
+        return str;
     }
 
-    private void putFieldSize(Map<String, Integer> colSizes, String fieldName, Double inputDouble, String pattern) {
-        if (inputDouble != null) {
-            DecimalFormat df = new DecimalFormat(pattern);
-            String formatted = df.format(inputDouble);
-            colSizes.putIfAbsent(fieldName, formatted.length());
-            colSizes.computeIfPresent(fieldName, (key, val) -> val = val < formatted.length() ? formatted.length() : val);
-        } else {
-            colSizes.putIfAbsent(fieldName, 0);
+    @Override
+    public StringBuilder getChargeFormatted(Long klskId) {
+        List<SumCharge> chargeLst = chargeDAO.getChargeByKlsk(klskId);
+        StringBuilder str;
+        try {
+            str = chargeReport.getStrChargeFormatted(chargeLst);
+        } catch (IntrospectionException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
+        return str;
     }
-
 
 }

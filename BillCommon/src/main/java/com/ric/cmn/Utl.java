@@ -978,7 +978,7 @@ public class Utl {
     public static String getMoneyStr(Double inputDouble, int len, String prefix, String pattern) {
         DecimalFormat df = new DecimalFormat(pattern, new DecimalFormatSymbols(Locale.ROOT));
         String str;
-        if (inputDouble!=null) {
+        if (inputDouble != null) {
             String formatted = df.format(inputDouble);
             str = formatted;
             if (formatted.length() < len) {
@@ -990,8 +990,8 @@ public class Utl {
         return str;
     }
 
-    public static String getHeaderStr(String inputStr, int len, String prefix) {
-        String str = null;
+    public static String getStrPrefixed(String inputStr, int len, String prefix) {
+        String str = inputStr;
         if (inputStr.length() < len) {
             str = StringUtils.repeat(prefix, len - inputStr.length()) + inputStr;
         }

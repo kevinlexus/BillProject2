@@ -33,6 +33,8 @@ public interface UserInteraction {
 
     Env getEnv();
 
+    TelegramMessage showCharge(Update update, long userId);
+
     TelegramMessage wrongInput(Update update, long userId);
 
     TelegramMessage showBilling(Update update, long userId);

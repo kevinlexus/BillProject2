@@ -1,5 +1,7 @@
 package com.dic.bill.dao;
 
+import com.dic.bill.dto.SumCharge;
+import com.dic.bill.dto.SumFinanceFlow;
 import com.dic.bill.dto.SumUslOrgRec;
 import com.dic.bill.model.scott.Charge;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,4 +46,14 @@ public interface ChargeDAO extends JpaRepository<Charge, Integer> {
 	@Modifying
 	@Query(value = "delete from Charge t where t.kart.lsk in (:lsk) and t.type in (:type)")
 	void deleteAllByKartLskInAndTypeIn(@Param("lsk") List<String> lsks, @Param("type") List<Integer> types);
+
+
+	@Query(value="select u.nm as name, t.test_opl as vol, t.test_cena as price, u.ed_izm as unit, t.summa\n" +
+			"      from scott.kart k\n" +
+			"      join scott.c_charge t on k.lsk=t.lsk and t.type=1\n" +
+			"      join scott.usl u on t.usl=u.usl\n" +
+			"      where k.k_lsk_id=?1\n" +
+			"order by u.npp", nativeQuery = true)
+	List<SumCharge> getChargeByKlsk(Long klskId);
+
 }

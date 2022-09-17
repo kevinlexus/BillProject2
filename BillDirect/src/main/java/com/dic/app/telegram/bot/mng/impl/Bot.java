@@ -78,7 +78,7 @@ public class Bot extends TelegramLongPollingBot {
                     } else if (callBackStr.equals(BILLING_BACK.getCallBackData())) {
                         menuPosition.put(userId, Menu.SELECT_METER);
                     } else if (callBackStr.equals(BILLING_CHARGES.getCallBackData())) {
-                        menuPosition.put(userId, Menu.SELECT_BILLING); // todo
+                        menuPosition.put(userId, Menu.SELECT_CHARGE);
                     } else if (callBackStr.equals(BILLING_PAYMENTS.getCallBackData())) {
                         menuPosition.put(userId, Menu.SELECT_BILLING); // todo
                     }
@@ -111,6 +111,7 @@ public class Bot extends TelegramLongPollingBot {
                 case INPUT_VOL -> tm = ui.inputVol(update, userId);
                 case INPUT_WRONG -> tm = ui.wrongInput(update, userId);
                 case SELECT_BILLING -> tm = ui.showBilling(update, userId);
+                case SELECT_CHARGE -> tm = ui.showCharge(update, userId);
             }
 
             if (tm instanceof PlainMessage) {

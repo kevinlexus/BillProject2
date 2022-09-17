@@ -22,7 +22,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 import static com.dic.app.telegram.bot.mng.impl.Buttons.*;
 
@@ -110,9 +109,23 @@ public class UserInteractionImpl implements UserInteraction {
 
         String periodBack = config.getPeriodBackByMonth(12);
         Long klskId = getCurrentKlskId(userId);
-        klskId = 104880L;
-        periodBack = "201309";
+        klskId = 104880L; // todo
+        periodBack = "201309"; // todo
         StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
+
+        msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
+        return messageStore.build(msg);
+    }
+    @Override
+    public TelegramMessage showCharge(Update update, long userId) {
+        MessageStore messageStore = new MessageStore(update);
+        messageStore.addButton(Buttons.BILLING_PAYMENTS);
+        messageStore.addButton(Buttons.BILLING_BACK);
+
+        String periodBack = config.getPeriodBackByMonth(12);
+        Long klskId = getCurrentKlskId(userId);
+        klskId = 104880L; // todo
+        StringBuilder msg = registryMng.getChargeFormatted(klskId);
 
         msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
         return messageStore.build(msg);
