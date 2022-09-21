@@ -1,4 +1,4 @@
-package com.dic.app.telegram.bot.mng.impl;
+package com.dic.app.telegram.bot.service.menu;
 
 public enum MeterValSaveState {
     SUCCESSFUL("Показания успешно переданы"),

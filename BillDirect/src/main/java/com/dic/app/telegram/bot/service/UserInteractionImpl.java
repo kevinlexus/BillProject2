@@ -1,9 +1,11 @@
-package com.dic.app.telegram.bot.mng.impl;
+package com.dic.app.telegram.bot.service;
 
 import com.dic.app.mm.ConfigApp;
 import com.dic.app.mm.RegistryMng;
 import com.dic.app.telegram.bot.message.TelegramMessage;
-import com.dic.app.telegram.bot.mng.UserInteraction;
+import com.dic.app.telegram.bot.service.client.Env;
+import com.dic.app.telegram.bot.service.menu.MeterValSaveState;
+import com.dic.app.telegram.bot.service.message.MessageStore;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.ObjParMng;
 import com.ric.dto.KoAddress;
@@ -13,6 +15,7 @@ import com.ric.dto.SumMeterVolExt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -23,15 +26,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static com.dic.app.telegram.bot.mng.impl.Buttons.*;
+import static com.dic.app.telegram.bot.service.menu.Buttons.*;
 
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UserInteractionImpl implements UserInteraction {
+@Transactional
+public class UserInteractionImpl {
 
-    private final Env env = new Env();
+    private final Env env;
     private final ObjParMng objParMng;
     private final MeterMng meterMng;
     private final ConfigApp config;
@@ -45,7 +49,6 @@ public class UserInteractionImpl implements UserInteraction {
             );
 
 
-    @Override
     public TelegramMessage selectAddress(Update update, long userId, Map<Long, MapKoAddress> registeredKo) {
         StringBuilder msg = new StringBuilder();
         MapKoAddress mapKoAddress = registeredKo.get(userId);
@@ -62,7 +65,7 @@ public class UserInteractionImpl implements UserInteraction {
         return messageStore.build(msg);
     }
 
-    @Override
+
     public TelegramMessage selectMeter(Update update, long userId) {
         StringBuilder msg = new StringBuilder();
         Long klskId = getCurrentKlskId(userId);
@@ -95,17 +98,26 @@ public class UserInteractionImpl implements UserInteraction {
             log.error("Не определен klskId");
         }
 
-        messageStore.addButton(Buttons.BILLING);
-        messageStore.addButton(Buttons.METER_BACK);
+        messageStore.addButton(REPORTS);
+        messageStore.addButton(METER_BACK);
         return messageStore.build(msg);
     }
 
-    @Override
-    public TelegramMessage showBilling(Update update, long userId) {
+
+    public TelegramMessage selectReport(Update update, long userId) {
         MessageStore messageStore = new MessageStore(update);
-        messageStore.addButton(Buttons.BILLING_CHARGES);
-        messageStore.addButton(Buttons.BILLING_PAYMENTS);
-        messageStore.addButton(Buttons.BILLING_BACK);
+        messageStore.addButton(BILLING_FLOW);
+        messageStore.addButton(BILLING_CHARGES);
+        messageStore.addButton(BILLING_PAYMENTS);
+        messageStore.addButton(BILLING_BACK);
+
+        StringBuilder msg = new StringBuilder("Выберите");
+        return messageStore.build(msg);
+    }
+
+    public TelegramMessage showFlow(Update update, long userId) {
+        MessageStore messageStore = new MessageStore(update);
+        messageStore.addButton(BILLING_BACK);
 
         String periodBack = config.getPeriodBackByMonth(12);
         Long klskId = getCurrentKlskId(userId);
@@ -116,11 +128,10 @@ public class UserInteractionImpl implements UserInteraction {
         msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
         return messageStore.build(msg);
     }
-    @Override
+
     public TelegramMessage showCharge(Update update, long userId) {
         MessageStore messageStore = new MessageStore(update);
-        messageStore.addButton(Buttons.BILLING_PAYMENTS);
-        messageStore.addButton(Buttons.BILLING_BACK);
+        messageStore.addButton(BILLING_BACK);
 
         String periodBack = config.getPeriodBackByMonth(12);
         Long klskId = getCurrentKlskId(userId);
@@ -136,23 +147,23 @@ public class UserInteractionImpl implements UserInteraction {
         return env.getUserCurrentKo().get(userId) != null ? env.getUserCurrentKo().get(userId).getKlskId() : null;
     }
 
-    @Override
+
     public TelegramMessage wrongInput(Update update, long userId) {
         MessageStore messageStore = new MessageStore(update);
-        messageStore.addButton(Buttons.METER_BACK);
+        messageStore.addButton(METER_BACK);
         StringBuilder msg = new StringBuilder();
         msg.append("Некорректный выбор\\!");
         return messageStore.build(msg);
     }
 
-    @Override
+
     public void updateMapMeterByCurrentKlskId(long userId, long klskId) {
         MapKoAddress registeredKoByUser = env.getUserRegisteredKo().get(userId);
         env.getUserCurrentKo().put(userId, registeredKoByUser.getMapKoAddress().get(klskId));
         env.getMetersByKlskId().put(klskId, meterMng.getMapMeterByKlskId(klskId, config.getCurDt1(), config.getCurDt2()));
     }
 
-    @Override
+
     public TelegramMessage inputVol(Update update, long userId) {
         // присвоить счетчик
         Integer meterId = null;
@@ -195,7 +206,7 @@ public class UserInteractionImpl implements UserInteraction {
      * @param userId Id пользователя в Telegram
      * @return код для процедуры сопоставления Id пользователя с Директ klskId
      */
-    @Override
+
     public int authenticateUser(long userId) {
         MapKoAddress mapKoAddress = objParMng.getMapKoAddressByObjPar("TelegramId", userId);
         if (mapKoAddress.getMapKoAddress().size() == 0) {
@@ -214,7 +225,7 @@ public class UserInteractionImpl implements UserInteraction {
         }
     }
 
-    @Override
+
     public MeterValSaveState saveMeterValByMeterId(int meterId, String strVal) {
         try {
             double val = Double.parseDouble(strVal.replace(",", "."));
@@ -229,11 +240,6 @@ public class UserInteractionImpl implements UserInteraction {
             e.printStackTrace();
             return MeterValSaveState.ERROR_WHILE_SENDING;
         }
-    }
-
-    @Override
-    public Env getEnv() {
-        return env;
     }
 
 }

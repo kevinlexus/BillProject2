@@ -1,12 +1,15 @@
-package com.dic.app.telegram.bot.mng.impl;
+package com.dic.app.telegram.bot.service.menu;
 
-enum Buttons {
+public enum Buttons {
     METER_BACK("selectedMeterBack", "Назад"),
     INPUT_BACK("selectedInputBack", "Назад"),
-    BILLING("selectedBilling", "Отчеты"),
+    BILLING_BACK("selectedBillingBack", "Назад"),
+    BACK("selectedBack", "Назад"),
+    REPORTS("selectedReport", "Отчеты"), //selectedBilling
+
+    BILLING_FLOW("selectedBillingFlow", "Движение средств"),
     BILLING_CHARGES("selectedBillingCurrentCharges", "Текущее начисление"),
     BILLING_PAYMENTS("selectedBillingPayments", "Поступление платежей"),
-    BILLING_BACK("selectedBillingBack", "Назад"),
     ADDRESS_KLSK("selectedKlsk", ""),
     METER("selectedMeter", "");
 

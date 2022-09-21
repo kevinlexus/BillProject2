@@ -1,10 +1,13 @@
-package com.dic.app.telegram.bot.mng.impl;
+package com.dic.app.telegram.bot.service;
 
 import com.dic.app.telegram.bot.message.PlainMessage;
 import com.dic.app.telegram.bot.message.SimpleMessage;
 import com.dic.app.telegram.bot.message.TelegramMessage;
 import com.dic.app.telegram.bot.message.UpdateMessage;
-import com.dic.app.telegram.bot.mng.UserInteraction;
+import com.dic.app.telegram.bot.service.client.Env;
+import com.dic.app.telegram.bot.service.menu.Buttons;
+import com.dic.app.telegram.bot.service.menu.Menu;
+import com.dic.app.telegram.bot.service.menu.MeterValSaveState;
 import com.ric.dto.SumMeterVolExt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +23,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.Map;
 
-import static com.dic.app.telegram.bot.mng.impl.Buttons.*;
+import static com.dic.app.telegram.bot.service.menu.Buttons.*;
 
 @Service
 @Slf4j
@@ -32,7 +35,8 @@ public class Bot extends TelegramLongPollingBot {
     @Value("${bot.token}")
     private String botToken;
 
-    private final UserInteraction ui;
+    private final UserInteractionImpl ui;
+    private final Env env;
 
 
     @Override
@@ -47,12 +51,15 @@ public class Bot extends TelegramLongPollingBot {
                 user = message.getFrom();
             }
             userId = user.getId();
-            Map<Long, Menu> menuPosition = ui.getEnv().getMenuPosition();
+            Map<Long, Menu> menuPosition = env.getMenuPosition();
             Menu curMenu = menuPosition.get(userId);
             if (curMenu == null) {
                 curMenu = Menu.UNDEFINED;
             }
-            if (!ui.getEnv().getUserRegisteredKo().containsKey(userId)) {
+            //Map<Long, Menu> menuPositionPrev = env.getMenuPositionPrev();
+            //menuPositionPrev.put(userId, curMenu);
+
+            if (!env.getUserRegisteredKo().containsKey(userId)) {
                 // аутентификация пользователя в системе
                 int code = ui.authenticateUser(userId);
                 if (code != 0) {
@@ -65,36 +72,40 @@ public class Bot extends TelegramLongPollingBot {
                 if (update.hasCallbackQuery()) {
                     // нажата кнопка (выбрано меню)
                     String callBackStr = update.getCallbackQuery().getData();
-                    if (callBackStr.startsWith(ADDRESS_KLSK.getCallBackData()+"_")) {
+                    if (callBackStr.startsWith(BACK.getCallBackData())) {
+
+                    } else if (callBackStr.startsWith(ADDRESS_KLSK.getCallBackData() + "_")) {
                         menuPosition.put(userId, Menu.SELECT_METER);
-                    } else if (callBackStr.startsWith(METER.getCallBackData()+"_")) {
+                    } else if (callBackStr.startsWith(METER.getCallBackData() + "_")) {
                         menuPosition.put(userId, Menu.INPUT_VOL);
                     } else if (callBackStr.equals(Buttons.METER_BACK.getCallBackData())) {
                         menuPosition.put(userId, Menu.SELECT_ADDRESS);
                     } else if (callBackStr.startsWith(INPUT_BACK.getCallBackData())) {
                         menuPosition.put(userId, Menu.SELECT_METER);
-                    } else if (callBackStr.equals(Buttons.BILLING.getCallBackData())) {
-                        menuPosition.put(userId, Menu.SELECT_BILLING);
+                    } else if (callBackStr.equals(REPORTS.getCallBackData())) {
+                        menuPosition.put(userId, Menu.SELECT_REPORT);
                     } else if (callBackStr.equals(BILLING_BACK.getCallBackData())) {
                         menuPosition.put(userId, Menu.SELECT_METER);
+                    } else if (callBackStr.equals(BILLING_FLOW.getCallBackData())) {
+                        menuPosition.put(userId, Menu.SELECT_FLOW);
                     } else if (callBackStr.equals(BILLING_CHARGES.getCallBackData())) {
                         menuPosition.put(userId, Menu.SELECT_CHARGE);
                     } else if (callBackStr.equals(BILLING_PAYMENTS.getCallBackData())) {
-                        menuPosition.put(userId, Menu.SELECT_BILLING); // todo
+                        menuPosition.put(userId, Menu.SELECT_REPORT); // todo
                     }
                 } else if (curMenu.equals(Menu.INPUT_VOL)) {
                     // введены показания
-                    MeterValSaveState status = ui.saveMeterValByMeterId(ui.getEnv()
+                    MeterValSaveState status = ui.saveMeterValByMeterId(env
                                     .getUserCurrentMeter().get(userId).getMeterId(),
                             message.getText());
-                    ui.updateMapMeterByCurrentKlskId(userId, ui.getEnv().getUserCurrentKo().get(userId).getKlskId());
-                    SumMeterVolExt sumMeterVolExt = ui.getEnv().getUserCurrentMeter().get(userId);
+                    ui.updateMapMeterByCurrentKlskId(userId, env.getUserCurrentKo().get(userId).getKlskId());
+                    SumMeterVolExt sumMeterVolExt = env.getUserCurrentMeter().get(userId);
                     if (status.equals(MeterValSaveState.SUCCESSFUL)) {
                         executeSendMessage(update, "Показания по услуге " + sumMeterVolExt.getServiceName() + ": "
                                 + message.getText() + " приняты");
                     } else {
                         log.error("Ошибка передачи показаний по счетчику, фин.лиц klskId={}, {}",
-                                ui.getEnv().getUserCurrentKo().get(userId).getKlskId(),
+                                env.getUserCurrentKo().get(userId).getKlskId(),
                                 status);
                         executeSendMessage(update, status.toString());
                     }
@@ -106,11 +117,12 @@ public class Bot extends TelegramLongPollingBot {
 
             TelegramMessage tm = null;
             switch (menuPosition.get(userId)) {
-                case SELECT_ADDRESS -> tm = ui.selectAddress(update, userId, ui.getEnv().getUserRegisteredKo());
+                case SELECT_ADDRESS -> tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
                 case SELECT_METER -> tm = ui.selectMeter(update, userId);
                 case INPUT_VOL -> tm = ui.inputVol(update, userId);
                 case INPUT_WRONG -> tm = ui.wrongInput(update, userId);
-                case SELECT_BILLING -> tm = ui.showBilling(update, userId);
+                case SELECT_REPORT -> tm = ui.selectReport(update, userId);
+                case SELECT_FLOW -> tm = ui.showFlow(update, userId);
                 case SELECT_CHARGE -> tm = ui.showCharge(update, userId);
             }
 

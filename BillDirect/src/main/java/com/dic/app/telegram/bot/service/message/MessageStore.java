@@ -1,8 +1,9 @@
-package com.dic.app.telegram.bot.mng.impl;
+package com.dic.app.telegram.bot.service.message;
 
 import com.dic.app.telegram.bot.message.SimpleMessage;
 import com.dic.app.telegram.bot.message.TelegramMessage;
 import com.dic.app.telegram.bot.message.UpdateMessage;
+import com.dic.app.telegram.bot.service.menu.Buttons;
 import lombok.Getter;
 import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -14,7 +15,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import java.util.ArrayList;
 import java.util.List;
 
-class MessageStore {
+public class MessageStore {
     private final Update update;
     private List<InlineKeyboardButton> buttons = new ArrayList<>();
     @Getter
