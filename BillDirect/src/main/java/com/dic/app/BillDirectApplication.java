@@ -20,7 +20,7 @@ public class BillDirectApplication {
         log.info("*                                                              *");
         log.info("*                                                              *");
         log.info("*                    Версия модуля - 1.4.17                    *");
-        log.info("*                                                              *");
+        log.info("*                    для старой разработки                     *");
         log.info("*                                                              *");
         log.info("****************************************************************");
         log.info("");
