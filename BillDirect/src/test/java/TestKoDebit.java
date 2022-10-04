@@ -1,5 +1,5 @@
 import com.dic.app.config.Config;
-import com.dic.app.mm.RegistryMng;
+import com.dic.app.service.registry.RegistryMngImpl;
 import com.ric.cmn.Utl;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 public class TestKoDebit {
 
     @Autowired
-    private RegistryMng registryMng;
+    private RegistryMngImpl registryMng;
 
     @PersistenceContext
     private EntityManager em;
@@ -56,11 +56,11 @@ public class TestKoDebit {
     public void printAllDebits() {
         log.info("Test printAllDebits Start");
 
-        int i=1;
+        int i = 1;
         try {
             i--;
             i = 1 / i;
-        }catch (ArithmeticException e) {
+        } catch (ArithmeticException e) {
             java.io.StringWriter sw = new java.io.StringWriter();
             e.printStackTrace(new java.io.PrintWriter(sw));
             String trace = sw.getBuffer().toString();

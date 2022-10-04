@@ -153,8 +153,8 @@ public class EolinkMngImpl implements EolinkMng {
 
     /**
      * Получить параметры объекта Eolink по основному лиц счету
-     * @param kart - лиц.счет
-     * @return - DTO с параметрами
+     * @param kart лиц.счет
+     * @return DTO с параметрами
      */
     @Override
     public EolinkParams getEolinkParamsOfKartMain(Kart kart) {

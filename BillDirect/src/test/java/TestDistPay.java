@@ -1,5 +1,5 @@
 import com.dic.app.config.Config;
-import com.dic.app.mm.DistPayMng;
+import com.dic.app.service.DistPayMng;
 import com.dic.bill.dao.AchargeDAO;
 import com.dic.bill.dao.SaldoUslDAO;
 import com.dic.bill.dto.SumUslOrgDTO;

@@ -4,7 +4,7 @@ import com.dic.app.gis.service.maintaners.EolinkParMng;
 import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.gis.service.maintaners.impl.ReqProp;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
-import com.dic.app.mm.ConfigApp;
+import com.dic.app.service.ConfigApp;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
 import com.ric.cmn.excp.CantPrepSoap;

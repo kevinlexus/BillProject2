@@ -1,7 +1,7 @@
 import com.dic.app.config.Config;
 import com.dic.app.RequestConfigDirect;
-import com.dic.app.mm.ConfigApp;
-import com.dic.app.mm.GenPenProcessMng;
+import com.dic.app.service.ConfigApp;
+import com.dic.app.service.GenPenProcessMng;
 import com.dic.bill.dao.AchargeDAO;
 import com.dic.bill.dao.PenCurDAO;
 import com.dic.bill.dao.RedirPayDAO;

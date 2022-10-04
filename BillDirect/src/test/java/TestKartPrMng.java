@@ -1,5 +1,5 @@
 import com.dic.app.config.Config;
-import com.dic.app.mm.ProcessMng;
+import com.dic.app.service.ProcessMng;
 import com.dic.bill.dao.StatesPrDAO;
 import com.dic.bill.mm.KartPrMng;
 import com.dic.bill.mm.TestDataBuilder;

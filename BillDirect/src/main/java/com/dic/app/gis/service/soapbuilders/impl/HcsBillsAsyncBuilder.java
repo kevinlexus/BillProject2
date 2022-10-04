@@ -6,7 +6,7 @@ import com.dic.app.gis.service.maintaners.*;
 import com.dic.app.gis.service.maintaners.impl.ReqProp;
 import com.dic.app.gis.service.maintaners.impl.UlistMng;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
-import com.dic.app.mm.ConfigApp;
+import com.dic.app.service.ConfigApp;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.HouseUkTaskRec;
 import com.dic.bill.dto.OrgDTO;

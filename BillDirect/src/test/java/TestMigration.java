@@ -10,8 +10,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.dic.app.config.Config;
-import com.dic.app.mm.ConfigApp;
-import com.dic.app.mm.MigrateMng;
+import com.dic.app.service.ConfigApp;
+import com.dic.app.service.MigrateMng;
 
 import lombok.extern.slf4j.Slf4j;
 

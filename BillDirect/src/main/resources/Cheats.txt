@@ -349,6 +349,10 @@ public class VchangeDet implements java.io.Serializable {
         lst.add(new Employee(3,3,"Bill"));
         lst.add(new Employee(4,2,"Gates"));
 
+        // конвертировать в Map из List, без вложенного List<>
+        Map<Integer, DictElementsEntity> dictMap = dictElements.stream()
+                .collect(Collectors.toMap(DictElementsEntity::getId, Function.identity()));
+
         // группировка в Map, используя groupId в качестве key
         Map<Integer, List<Employee>> a = lst.stream()
         .collect(Collectors.groupingBy(Employee::getGroupId));
