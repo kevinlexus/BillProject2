@@ -120,7 +120,6 @@ public class TaskService implements TaskServices {
     /**
      * Загрузка списка запланированных задач
      */
-    @Override
     @Scheduled(fixedDelay = 20000)
     @Override
     @Transactional
@@ -131,7 +130,6 @@ public class TaskService implements TaskServices {
     /**
      * Определить статусы заданий
      */
-    @Override
     @Scheduled(fixedDelay = 1000)
     @Override
     @Transactional

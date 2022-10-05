@@ -1,15 +1,13 @@
 package com.dic.app.service.registry;
 
+import com.dic.app.gis.service.maintaners.EolinkMng;
+import com.dic.app.gis.service.maintaners.impl.EolinkMngImpl;
+import com.dic.app.mm.impl.bot.ChargeReport;
+import com.dic.app.mm.impl.bot.FlowReport;
 import com.dic.app.service.ConfigApp;
 import com.dic.app.service.impl.DebitRegistryEls;
 import com.dic.app.service.impl.DebitRegistryRec;
 import com.dic.app.service.impl.RegistryMapper;
-import com.dic.app.gis.service.maintaners.EolinkMng;
-import com.dic.app.gis.service.maintaners.impl.EolinkMngImpl;
-import com.dic.app.mm.ConfigApp;
-import com.dic.app.mm.RegistryMng;
-import com.dic.app.mm.impl.bot.ChargeReport;
-import com.dic.app.mm.impl.bot.FlowReport;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.*;
 import com.dic.bill.dto.cursor.AllTabColumns;
@@ -103,7 +101,7 @@ public class RegistryMngImpl {
     /**
      * Сформировать реест задолженности по лиц.счетам для Сбербанка
      */
-     // метод readOnly - иначе вызывается масса hibernate.AutoFlush - тормозит в Полыс, ред.04.09.2019
+    // метод readOnly - иначе вызывается масса hibernate.AutoFlush - тормозит в Полыс, ред.04.09.2019
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true, rollbackFor = Exception.class)
     public void genDebitForSberbank() {
         log.info("Начало формирования реестра задолженности по лиц.счетам для Сбербанка");

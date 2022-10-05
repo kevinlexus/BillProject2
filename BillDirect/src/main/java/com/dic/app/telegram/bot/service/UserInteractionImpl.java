@@ -1,7 +1,7 @@
 package com.dic.app.telegram.bot.service;
 
-import com.dic.app.mm.ConfigApp;
-import com.dic.app.mm.RegistryMng;
+import com.dic.app.service.ConfigApp;
+import com.dic.app.service.registry.RegistryMngImpl;
 import com.dic.app.telegram.bot.message.TelegramMessage;
 import com.dic.app.telegram.bot.service.client.Env;
 import com.dic.app.telegram.bot.service.menu.MeterValSaveState;
@@ -39,7 +39,7 @@ public class UserInteractionImpl {
     private final ObjParMng objParMng;
     private final MeterMng meterMng;
     private final ConfigApp config;
-    private final RegistryMng registryMng;
+    private final RegistryMngImpl registryMng;
     private final Map<Integer, MeterValSaveState> statusCode =
             Map.of(0, MeterValSaveState.SUCCESSFUL,
                     3, MeterValSaveState.VAL_SAME_OR_LOWER,
