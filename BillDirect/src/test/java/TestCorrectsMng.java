@@ -1,5 +1,5 @@
 import com.dic.app.config.Config;
-import com.dic.app.mm.CorrectsMng;
+import com.dic.app.service.CorrectsMng;
 import com.dic.bill.mm.TestDataBuilder;
 import com.dic.bill.model.scott.House;
 import com.dic.bill.model.scott.Kart;

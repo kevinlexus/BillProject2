@@ -1,5 +1,5 @@
 import com.dic.app.config.Config;
-import com.dic.app.mm.RegistryMng;
+import com.dic.app.service.registry.RegistryMngImpl;
 import com.dic.bill.dao.OrgDAO;
 import com.dic.bill.dto.UnloadPaymentParameter;
 import com.dic.bill.model.scott.Org;
@@ -17,8 +17,6 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Scanner;
@@ -31,13 +29,10 @@ import java.util.Scanner;
 public class TestFileLoadingWithDelimiters {
 
 
-    @PersistenceContext
-    private EntityManager em;
     @Autowired
-    private RegistryMng registryMng;
+    private RegistryMngImpl registryMng;
     @Autowired
     private OrgDAO orgDAO;
-
 
     @Test
     public void testScanner() {
@@ -48,7 +43,7 @@ public class TestFileLoadingWithDelimiters {
             Scanner scannerAdr = new Scanner(adr);
             scannerAdr.useDelimiter(",");
             log.info("adr={}", adr);
-            int i=0;
+            int i = 0;
             while (scannerAdr.hasNext()) {
                 String adrPart = scannerAdr.next();
                 log.info("index={}, adrPart={}", i++, adrPart);
@@ -75,6 +70,7 @@ public class TestFileLoadingWithDelimiters {
         // загрузить успешно обработанные лиц.счета в таблицу внешних лиц.счетов
         registryMng.loadApprovedKartExt(12);
     }
+
     /**
      * Выгрузить файл платежей по внешними лиц.счетами
      */
@@ -93,6 +89,12 @@ public class TestFileLoadingWithDelimiters {
     public void fileLoadMeterVal() throws FileNotFoundException {
         registryMng.loadFileMeterVal("d:\\temp\\#46\\Форма для подачи показаний х.в,г.в. в элек.виде.csv",
                 "windows-1251", false);
+    }
+
+    @Test
+    @Rollback(false)
+    public void checkLoadFileSberRegistry() {
+        log.info("Итого загружено предварительно:"+registryMng.loadFileSberRegistry("17066_4211017025_40702810426200100859_001", "041"));
     }
 
 }

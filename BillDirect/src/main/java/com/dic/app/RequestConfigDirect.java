@@ -1,6 +1,6 @@
 package com.dic.app;
 
-import com.dic.app.mm.ConfigApp;
+import com.dic.app.service.ConfigApp;
 import com.dic.bill.SpringContext;
 import com.dic.bill.dao.KartDAO;
 import com.dic.bill.dao.SaldoUslDAO;

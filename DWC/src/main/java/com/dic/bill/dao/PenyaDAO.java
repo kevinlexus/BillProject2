@@ -36,7 +36,7 @@ public interface PenyaDAO extends JpaRepository<Penya, Integer> {
      * Получить лиц.счета, которые имеют задолженность или текущее начисление
      * @param ukId - Id УК
      */
-    @Query(value = "select distinct k from Kart k left join fetch k.penya p where k.uk.id=:ukId")
+    @Query(value = "select distinct k from Kart k left join fetch k.penya p left join fetch k.eolink e where k.uk.id=:ukId")
     List<Kart> getKartWithDebitByReu(@Param("ukId") Integer ukId);
 
     /**
