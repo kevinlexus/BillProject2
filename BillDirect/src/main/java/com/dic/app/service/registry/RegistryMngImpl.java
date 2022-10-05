@@ -4,7 +4,6 @@ import com.dic.app.service.ConfigApp;
 import com.dic.app.service.impl.DebitRegistryEls;
 import com.dic.app.service.impl.DebitRegistryRec;
 import com.dic.app.service.impl.RegistryMapper;
-import com.dic.bill.UlistDAO;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.*;
 import com.dic.app.gis.service.maintaners.EolinkMng;
@@ -36,8 +35,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -83,7 +86,7 @@ public class RegistryMngImpl {
     private final KartExtDAO kartExtDAO;
     private final AkwtpDAO akwtpDAO;
     private final HouseDAO houseDAO;
-    private final UlistDAO ulistDAO;
+    private final LoadBankDAO loadBankDAO;
     private final SysDAO sysDAO;
     private final JdbcTemplate jdbcTemplate;
     private final CsvReaderService csvReaderService;
@@ -817,13 +820,41 @@ public class RegistryMngImpl {
 
 
     @Transactional
-    public void loadFileSberRegistry(String filePath) throws IOException {
-        String strPath = "c:\\temp\\" + filePath + ".txt";
+    public String loadFileSberRegistry(String filePath, String nkom) {
+        String strPath = "c:\\temp\\" + filePath;
         Path path = Paths.get(strPath);
-        List<SberRegistryBean> lines = csvReaderService.read(path);
-        for (SberRegistryBean line : lines) {
-
+        List<SberRegistryBean> lines;
+        try {
+            lines = csvReaderService.read(path);
+        } catch (NoSuchFileException e) {
+            String msg = String.format("Отсутствует файл %s, для загрузки оплаты от Сбербанка, версия-2", strPath);
+            log.error(msg);
+            return "ERROR:" + msg;
+        } catch (IOException e) {
+            String msg = String.format("Ошибка загрузки файла оплаты %s, от Сбербанка, версия-2", strPath);
+            log.error(msg, e);
+            return "ERROR:" + msg;
         }
+
+        loadBankDAO.truncate();
+        int i = 0;
+        BigDecimal amount = BigDecimal.ZERO;
+        for (SberRegistryBean line : lines) {
+            if (++i < lines.size()) {
+                LoadBank loadBank = new LoadBank();
+                loadBank.setDtek(Date.from(LocalDate.parse(line.getDt(),
+                        DateTimeFormatter.ofPattern("dd-MM-yyyy")).atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                loadBank.setLsk(line.ls);
+                loadBank.setDopl(Utl.getMonthYearToPeriod(line.getPeriod()));
+                BigDecimal summa = new BigDecimal(line.payment.replace(",", "."));
+                loadBank.setSumma(summa);
+                amount = amount.add(summa);
+                loadBank.setNkom(nkom);
+                loadBank.setCode("01");
+                loadBankDAO.save(loadBank);
+            }
+        }
+        return "OK:" + amount;
     }
 
     /**

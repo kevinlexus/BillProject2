@@ -610,18 +610,14 @@ public class WebController implements CommonConstants {
 
     /**
      * Загрузить файл платежей от Сбера (версия -2, кис)
+     * Пример вызова: http://127.0.0.1:8100/load-file-sber-registry/17066_4211017025_40702810426200100859_001.txt/041
      */
-    @RequestMapping(value = "/load-file-sber-registry/{fileName}", method = RequestMethod.GET)
+    @RequestMapping(value = "/load-file-sber-registry/{fileName}/{nkom}", method = RequestMethod.GET)
     @ResponseBody
-    public String loadFileSberRegistry(@PathVariable String fileName) {
-        log.info("GOT /load-file-sber-registry/{}", fileName);
-        try {
-            registryMng.loadFileSberRegistry(fileName);
-            return "OK";
-        } catch (IOException e) {
-            log.error("Ошибка загрузки файла оплаты от Сбербанка, версия-2");
-            return "ERROR";
-        }
+    public String loadFileSberRegistry(@PathVariable String fileName, @PathVariable String nkom) {
+        log.info("GOT /load-file-sber-registry/{}/{}", fileName, nkom);
+            String result = registryMng.loadFileSberRegistry(fileName, nkom);
+            return result;
     }
 
     /**

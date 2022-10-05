@@ -488,7 +488,7 @@ public class Utl {
 
     /**
      * Преобразовать период из формата YYYYMM в MMYYYY
-     * @param period - период в формате YYYYMM
+     * @param period период в формате YYYYMM
      */
     public static String getPeriodToMonthYear(String period) {
         return getPeriodMonth(period)+getPeriodYear(period);
@@ -496,17 +496,18 @@ public class Utl {
 
     /**
      * Преобразовать период из формата MMYYYY в YYYYMM
-     * @param period - период в формате MMYYYY
+     *
+     * @param mmyyyy период в формате MMYYYY
      */
-    public static String getPeriodToYearMonth(String period) {
-        return getPeriodYear(period)+getPeriodMonth(period);
+    public static String getMonthYearToPeriod(String mmyyyy) {
+        return mmyyyy.substring(2, 6) + mmyyyy.substring(0, 2);
     }
 
     /**
      * Конвертировать период YYYYMM в наименование периода типа Апрель 2017, со склонением
      *
-     * @param period - период в формате YYYYMM
-     * @param tp     - 0 - нач.период, 1 - кон.период
+     * @param period период в формате YYYYMM
+     * @param tp     0 - нач.период, 1 - кон.период
      */
     public static String getPeriodName(String period, Integer tp) {
         return getMonthName(Integer.valueOf(period.substring(4, 6)), tp) + " " + period.substring(0, 4);

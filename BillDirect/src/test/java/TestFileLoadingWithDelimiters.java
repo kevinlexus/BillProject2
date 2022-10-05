@@ -93,8 +93,8 @@ public class TestFileLoadingWithDelimiters {
 
     @Test
     @Rollback(false)
-    public void checkLoadFileSberRegistry() throws Exception {
-        registryMng.loadFileSberRegistry("17066_4211017025_40702810426200100859_001");
+    public void checkLoadFileSberRegistry() {
+        log.info("Итого загружено предварительно:"+registryMng.loadFileSberRegistry("17066_4211017025_40702810426200100859_001", "041"));
     }
 
 }
