@@ -4,9 +4,9 @@ import com.dic.app.RequestConfigDirect;
 import com.dic.app.gis.service.maintaners.EolinkMng;
 import com.dic.app.gis.service.maintaners.impl.EolinkMngImpl;
 import com.dic.app.service.ConfigApp;
-import com.dic.app.service.GenChrgProcessMng;
 import com.dic.app.service.impl.DebitRegistryEls;
 import com.dic.app.service.impl.DebitRegistryRec;
+import com.dic.app.service.impl.GenChrgProcessMngImpl;
 import com.dic.app.service.impl.RegistryMapper;
 import com.dic.app.service.registry.bot.ChargeReport;
 import com.dic.app.service.registry.bot.FlowReport;
@@ -51,6 +51,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE;
 
 /**
  * Сервис работы с различными реестрами
@@ -103,7 +105,7 @@ public class RegistryMngImpl {
     private final PaymentReport paymentReport;
     private final JdbcTemplate jdbcTemplate;
     private final CsvReaderService csvReaderService;
-    private final GenChrgProcessMng genChrgProcessMng;
+    private final GenChrgProcessMngImpl genChrgProcessMng;
 
     /**
      * Сформировать реест задолженности по лиц.счетам для Сбербанка
@@ -1479,7 +1481,7 @@ public class RegistryMngImpl {
     public StringBuilder getChargeFormatted(Long klskId) {
         Ko ko = em.find(Ko.class, klskId);
         RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
-                .withTp(0)
+                .withTp(CHARGE)
                 .withGenDt(configApp.getCurDt2())
                 .withKo(ko)
                 .withCurDt1(configApp.getCurDt1())
@@ -1488,6 +1490,7 @@ public class RegistryMngImpl {
                 .withRqn(configApp.incNextReqNum())
                 .withIsMultiThreads(false)
                 .withStopMark("processMng.process")
+                .withsaveResult(false)
                 .build();
         reqConf.prepareChrgCountAmount();
         reqConf.prepareId();

@@ -23,6 +23,8 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_SINGLE_USL;
+
 @Slf4j
 @Service
 public class GenPartImpl implements GenPart {
@@ -32,18 +34,16 @@ public class GenPartImpl implements GenPart {
     private final NaborMng naborMng;
     private final KartPrMng kartPrMng;
     private final SprParamMng sprParamMng;
-    private final UslDAO uslDao;
     private final NaborDAO naborDao;
     private final ConfigApp configApp;
 
     public GenPartImpl(KartMng kartMng, MeterMng meterMng, NaborMng naborMng, KartPrMng kartPrMng,
-                       SprParamMng sprParamMng, UslDAO uslDao, NaborDAO naborDao, ConfigApp configApp) {
+                       SprParamMng sprParamMng, NaborDAO naborDao, ConfigApp configApp) {
         this.kartMng = kartMng;
         this.meterMng = meterMng;
         this.naborMng = naborMng;
         this.kartPrMng = kartPrMng;
         this.sprParamMng = sprParamMng;
-        this.uslDao = uslDao;
         this.naborDao = naborDao;
         this.configApp = configApp;
     }
@@ -224,7 +224,7 @@ public class GenPartImpl implements GenPart {
                                     isMeterExist || Utl.between(curDt, sprParamMng.getD1("MONTH_HEAT1"),// кран из системы отопления (не счетчик) -
                                     sprParamMng.getD1("MONTH_HEAT2")) // начислять только в отопительный период
                             ))) {
-                        if (reqConf.getTp() == 4) {
+                        if (reqConf.getTp() == CHARGE_SINGLE_USL) {
                             // начисление по выбранной услуге, по нормативу, для автоначисления
                             isMeterExist = false;
                         }
@@ -389,7 +389,7 @@ public class GenPartImpl implements GenPart {
                                     isMeterExist || Utl.between(curDt, sprParamMng.getD1("MONTH_HEAT1"),// кран из системы отопления (не счетчик) -
                                     sprParamMng.getD1("MONTH_HEAT2")) // начислять только в отопительный период
                             ))) {
-                        if (reqConf.getTp() == 4) {
+                        if (reqConf.getTp() == CHARGE_SINGLE_USL) {
                             // начисление по выбранной услуге, по нормативу, для автоначисления
                             isMeterExist = false;
                         }

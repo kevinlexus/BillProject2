@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE;
 import static java.util.stream.Collectors.groupingBy;
 
 @Service
@@ -190,7 +191,7 @@ public class ProcessHelperMng {
         if (kulNds.size() > 0) {
             // по списку домов
             RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
-                    .withTp(0)
+                    .withTp(CHARGE)
                     .withGenDt(config.getCurDt2())
                     .withCurDt1(config.getCurDt1())
                     .withCurDt2(config.getCurDt2())
@@ -217,7 +218,7 @@ public class ProcessHelperMng {
     private void genChargeByKlskIds(List<LskChargeUsl> lskChargeUsl, Set<Long> klskIds) throws ErrorWhileGen {
 
         RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
-                .withTp(0)
+                .withTp(CHARGE)
                 .withGenDt(config.getCurDt2())
                 .withCurDt1(config.getCurDt1())
                 .withCurDt2(config.getCurDt2())

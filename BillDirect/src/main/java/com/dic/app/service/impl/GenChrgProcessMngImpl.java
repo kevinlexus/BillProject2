@@ -2,7 +2,6 @@ package com.dic.app.service.impl;
 
 import com.dic.app.RequestConfigDirect;
 import com.dic.app.service.ConfigApp;
-import com.dic.app.service.GenChrgProcessMng;
 import com.dic.app.service.GenPart;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dto.*;
@@ -34,6 +33,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_FOR_DIST;
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_SINGLE_USL;
+
 /**
  * Сервис расчета начисления
  *
@@ -43,7 +45,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class GenChrgProcessMngImpl implements GenChrgProcessMng {
+public class GenChrgProcessMngImpl {
 
     @PersistenceContext
     private EntityManager em;
@@ -66,7 +68,6 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
      * @param klskId  klskId помещения
      * @return начисление по лиц.счетам
      */
-    @Override
     @Transactional(
             propagation = Propagation.REQUIRES_NEW,
             rollbackFor = Exception.class)
@@ -156,7 +157,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
             chrgCountAmountLocal.roundVol();
             //chrgCountAmountLocal.printVolAmntChrg();
 
-            if (reqConf.getTp() == 3) {
+            if (reqConf.getTp() == CHARGE_FOR_DIST) {
                 // 5. Добавить в объемы по вводу
                 reqConf.getChrgCountAmount().append(chrgCountAmountLocal);
             }
@@ -175,7 +176,7 @@ public class GenChrgProcessMngImpl implements GenChrgProcessMng {
                 chrgCountAmountLocal.saveFactMeterTp(ko, lstMeterVol, reqConf.getCurDt2());
             }
 
-            if (reqConf.getTp() == 4) {
+            if (reqConf.getTp() == CHARGE_SINGLE_USL) {
                 // 10. по операции - начисление по одной услуге, для автоначисления - по нормативу
                 // заполнить итоговый объем
                 reqConf.getChrgCountAmount().setResultVol(chrgCountAmountLocal.getAmntVolByUsl(reqConf.getUsl()));

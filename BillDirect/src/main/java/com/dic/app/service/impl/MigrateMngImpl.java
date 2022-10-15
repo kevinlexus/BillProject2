@@ -26,6 +26,8 @@ import com.dic.bill.dto.CommonResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StopWatch;
 
+import static com.dic.app.service.impl.enums.ProcessTypes.MIGRATION;
+
 
 /**
  * Сервис для миграции данных в другие структуры
@@ -62,7 +64,7 @@ public class MigrateMngImpl implements MigrateMng {
         log.info("формировать ничего не надо!");
         // построить запрос
         RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
-                .withTp(5)
+                .withTp(MIGRATION)
                 .withLskFrom(lskFrom)
                 .withLskTo(lskTo)
                 .withCurDt1(config.getCurDt1())

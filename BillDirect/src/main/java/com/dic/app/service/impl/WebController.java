@@ -2,6 +2,7 @@ package com.dic.app.service.impl;
 
 import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.service.*;
+import com.dic.app.service.impl.enums.ProcessTypes;
 import com.dic.app.service.registry.RegistryMngImpl;
 import com.dic.bill.dao.OrgDAO;
 import com.dic.bill.dao.PrepErrDAO;
@@ -23,8 +24,6 @@ import com.ric.cmn.excp.WrongParam;
 import com.ric.cmn.excp.WrongParamPeriod;
 import com.ric.dto.ListKoAddress;
 import com.ric.dto.ListMeter;
-import com.ric.dto.MapKoAddress;
-import com.ric.dto.MapMeter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.SessionFactory;
@@ -37,7 +36,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -191,7 +189,8 @@ public class WebController implements CommonConstants {
             retStatus = "OK";
         } else {
             // проверка типа формирования
-            if (!Utl.in(tp, 0, 1, 2, 4, 5)) {
+            ProcessTypes processType = ProcessTypes.getById(tp);
+            if (processType == null) {
                 return "ERROR! Некорректный тип расчета: tp=" + tp;
             }
 
@@ -249,7 +248,7 @@ public class WebController implements CommonConstants {
             Date genDt;
             try {
                 genDt = genDtStr != null ? Utl.getDateFromStr(genDtStr) : null;
-                retStatus = processMng.processWebRequest(tp, debugLvl, genDt, house, vvod, ko, uk, usl);
+                retStatus = processMng.processWebRequest(processType, debugLvl, genDt, house, vvod, ko, uk, usl);
             } catch (ParseException e) {
                 log.error(Utl.getStackTraceString(e));
                 retStatus = "ERROR! Некорректная дата genDtStr=" + genDtStr;
@@ -618,8 +617,8 @@ public class WebController implements CommonConstants {
     @ResponseBody
     public String loadFileSberRegistry(@PathVariable String fileName, @PathVariable String nkom) {
         log.info("GOT /load-file-sber-registry/{}/{}", fileName, nkom);
-            String result = registryMng.loadFileSberRegistry(fileName, nkom);
-            return result;
+        String result = registryMng.loadFileSberRegistry(fileName, nkom);
+        return result;
     }
 
     /**

@@ -28,6 +28,8 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_FOR_DIST;
+
 /**
  * Сервис распределения объемов по дому
  * ОДН, и прочие объемы
@@ -131,7 +133,7 @@ public class DistVolMngImpl implements DistVolMng, CommonConstants {
                     reqConf2.setHouse(null);
                     reqConf2.setKo(null);
                     reqConf2.setVvod(vvod);
-                    reqConf2.setTp(3); // начисление для распределения по вводу
+                    reqConf2.setTp(CHARGE_FOR_DIST); // начисление для распределения по вводу
                     reqConf2.prepareId();
                     reqConf2.prepareChrgCountAmount();
 

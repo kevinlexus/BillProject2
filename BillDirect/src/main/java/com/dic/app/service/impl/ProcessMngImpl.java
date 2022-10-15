@@ -4,6 +4,7 @@ import com.dic.app.RequestConfigDirect;
 import com.dic.app.service.ChangeMng;
 import com.dic.app.service.ConfigApp;
 import com.dic.app.service.ProcessMng;
+import com.dic.app.service.impl.enums.ProcessTypes;
 import com.dic.bill.dao.ChangeDocDAO;
 import com.dic.bill.dao.HouseDAO;
 import com.dic.bill.dao.KartDAO;
@@ -87,7 +88,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
             propagation = Propagation.REQUIRED,
             isolation = Isolation.READ_COMMITTED, // читать только закомиченные данные, не ставить другое, не даст запустить поток!
             rollbackFor = Exception.class)
-    public String processWebRequest(int tp, int debugLvl, Date genDt,
+    public String processWebRequest(ProcessTypes tp, int debugLvl, Date genDt,
                                     House house, Vvod vvod, Ko ko, Org uk, Usl usl) {
         String retStatus;
         // построить запрос

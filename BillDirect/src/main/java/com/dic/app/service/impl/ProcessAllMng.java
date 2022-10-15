@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import static com.dic.app.service.impl.enums.ProcessTypes.DIST_VOL;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -26,7 +28,7 @@ public class ProcessAllMng {
 
     private final ConfigApp config;
     private final ThreadMng threadMng;
-    private final GenChrgProcessMng genChrgProcessMng;
+    private final GenChrgProcessMngImpl genChrgProcessMng;
     private final GenPenProcessMng genPenProcessMng;
     private final MigrateMng migrateMng;
     private final DistVolMng distVolMng;
@@ -123,12 +125,8 @@ public class ProcessAllMng {
      */
     private List<LskChargeUsl> selectInvokeProcess(RequestConfigDirect reqConf) throws ErrorWhileGen {
         List<LskChargeUsl> resultLskChargeUsl = new ArrayList<>();
-        switch (reqConf.getTp()) {
-            case 0:
-            case 1:
-            case 2:
-            case 3: // начисление для распределения по вводу
-            case 4: {
+        switch (reqConf.getTp()) { // начисление для распределения по вводу
+            case CHARGE, DEBT_PEN, DIST_VOL, CHARGE_FOR_DIST, CHARGE_SINGLE_USL -> {
                 // перебрать все объекты для расчета
                 Long id = null;
                 try {
@@ -163,7 +161,7 @@ public class ProcessAllMng {
                                 }
                                 i++;
                                 i2++;
-                            } else if (reqConf.getTp() == 2) {
+                            } else if (reqConf.getTp() == DIST_VOL) {
                                 // Распределение объемов
                                 distVolMng.distVolByVvodTrans(reqConf, id);
                             }
@@ -178,7 +176,7 @@ public class ProcessAllMng {
                     if (reqConf.isLockForLongLastingProcess()) {
                         config.getLock().unlockProc(reqConf.getRqn(), reqConf.getStopMark());
                     }
-                    if (reqConf.getTp() == 2) {
+                    if (reqConf.getTp() == DIST_VOL) {
                         throw new ErrorWhileGen("ОШИБКА! Произошла ошибка в потоке " + reqConf.getTpName()
                                 + ", объект vvodId=" + id);
                     } else {
@@ -186,9 +184,8 @@ public class ProcessAllMng {
                                 + ", объект klskId=" + id);
                     }
                 }
-                break;
             }
-            case 5: {
+            case MIGRATION -> {
                 // миграция долгов
                 // перебрать все объекты для расчета
                 String id = null;
@@ -216,10 +213,8 @@ public class ProcessAllMng {
                     throw new ErrorWhileGen("ОШИБКА! Произошла ошибка в потоке " + reqConf.getTpName()
                             + ", объект lsk=" + id);
                 }
-                break;
             }
-            default:
-                throw new ErrorWhileGen("Некорректный параметр reqConf.tp=" + reqConf.getTp());
+            default -> throw new ErrorWhileGen("Некорректный параметр reqConf.tp=" + reqConf.getTp());
         }
         return resultLskChargeUsl;
     }
