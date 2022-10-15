@@ -739,7 +739,6 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
                     .vol(u.getVol())
                     .summa(summa)
                     .price(u.price)
-                    .uslId(u.usl.getId())
                     .area(area)
                     .mg(period)
                     .build());

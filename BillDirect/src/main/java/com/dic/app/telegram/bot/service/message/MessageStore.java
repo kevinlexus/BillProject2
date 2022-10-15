@@ -78,20 +78,5 @@ public class MessageStore {
         inlineKeyboardMarkup.setKeyboard(rowList);
         return createMessage(update, msg, inlineKeyboardMarkup);
     }
-
-    public TelegramMessage buildUpdateMessage(String msg, boolean useMarkDown2) {
-        inlineKeyboardMarkup.setKeyboard(rowList);
-        EditMessageText em = new EditMessageText();
-        if (update.getMessage() == null) {
-            em.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
-            em.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
-        } else {
-            em.setChatId(update.getMessage().getChatId());
-        }
-        em.setText(msg);
-        em.setReplyMarkup(inlineKeyboardMarkup);
-        if (useMarkDown2) em.setParseMode(ParseMode.MARKDOWNV2);
-        return new UpdateMessage(em);
-    }
 }
 

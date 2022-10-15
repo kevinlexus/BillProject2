@@ -1,13 +1,16 @@
 package com.dic.app.service.registry;
 
+import com.dic.app.RequestConfigDirect;
 import com.dic.app.gis.service.maintaners.EolinkMng;
 import com.dic.app.gis.service.maintaners.impl.EolinkMngImpl;
-import com.dic.app.mm.impl.bot.ChargeReport;
-import com.dic.app.mm.impl.bot.FlowReport;
 import com.dic.app.service.ConfigApp;
+import com.dic.app.service.GenChrgProcessMng;
 import com.dic.app.service.impl.DebitRegistryEls;
 import com.dic.app.service.impl.DebitRegistryRec;
 import com.dic.app.service.impl.RegistryMapper;
+import com.dic.app.service.registry.bot.ChargeReport;
+import com.dic.app.service.registry.bot.FlowReport;
+import com.dic.app.service.registry.bot.PaymentReport;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.*;
 import com.dic.bill.dto.cursor.AllTabColumns;
@@ -19,6 +22,7 @@ import com.linuxense.javadbf.DBFDataType;
 import com.linuxense.javadbf.DBFField;
 import com.linuxense.javadbf.DBFWriter;
 import com.ric.cmn.Utl;
+import com.ric.cmn.excp.ErrorWhileChrg;
 import com.ric.cmn.excp.ErrorWhileLoad;
 import com.ric.cmn.excp.WrongParam;
 import lombok.RequiredArgsConstructor;
@@ -89,14 +93,17 @@ public class RegistryMngImpl {
     private final LoadKartExtDAO loadKartExtDAO;
     private final KartExtDAO kartExtDAO;
     private final AkwtpDAO akwtpDAO;
+    private final KwtpDAO kwtpDAO;
     private final HouseDAO houseDAO;
     private final LoadBankDAO loadBankDAO;
     private final ChargeDAO chargeDAO;
     private final SysDAO sysDAO;
     private final FlowReport flowReport;
     private final ChargeReport chargeReport;
+    private final PaymentReport paymentReport;
     private final JdbcTemplate jdbcTemplate;
     private final CsvReaderService csvReaderService;
+    private final GenChrgProcessMng genChrgProcessMng;
 
     /**
      * Сформировать реест задолженности по лиц.счетам для Сбербанка
@@ -1462,11 +1469,7 @@ public class RegistryMngImpl {
         StringBuilder str;
         try {
             str = flowReport.getStrFlowFormatted(flowLst);
-        } catch (IntrospectionException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
+        } catch (IntrospectionException | InvocationTargetException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
 
@@ -1474,15 +1477,53 @@ public class RegistryMngImpl {
     }
 
     public StringBuilder getChargeFormatted(Long klskId) {
-        List<SumCharge> chargeLst = chargeDAO.getChargeByKlsk(klskId);
+        Ko ko = em.find(Ko.class, klskId);
+        RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
+                .withTp(0)
+                .withGenDt(configApp.getCurDt2())
+                .withKo(ko)
+                .withCurDt1(configApp.getCurDt1())
+                .withCurDt2(configApp.getCurDt2())
+                .withDebugLvl(0)
+                .withRqn(configApp.incNextReqNum())
+                .withIsMultiThreads(false)
+                .withStopMark("processMng.process")
+                .build();
+        reqConf.prepareChrgCountAmount();
+        reqConf.prepareId();
+
+        List<LskChargeUsl> charges;
+        try {
+            charges = genChrgProcessMng.genChrg(reqConf, klskId);
+        } catch (ErrorWhileChrg e) {
+            log.error("Ошибка получения начисления по klskId={}", klskId, e);
+            return null;
+        }
+
+        List<SumChargeRec> chargeLst = charges.stream().map(t -> {
+                    Usl usl = em.find(Usl.class, t.getUslId());
+                    return new SumChargeRec(usl.getName(),
+                            t.getVol().doubleValue(), t.getPrice().doubleValue(),
+                            usl.getUnitVol(), t.getSumma().doubleValue());
+                }
+        ).collect(Collectors.toList());
+
         StringBuilder str;
         try {
             str = chargeReport.getStrChargeFormatted(chargeLst);
-        } catch (IntrospectionException e) {
+        } catch (IntrospectionException | InvocationTargetException | IllegalAccessException e) {
             throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
+        }
+        return str;
+    }
+
+    public StringBuilder getPaymentFormatted(Long klskId, String periodFrom, String periodTo) {
+        List<SumPayment> payments = akwtpDAO.getByKlskIdPeriod(klskId, periodFrom, periodTo);
+        payments.addAll(kwtpDAO.getByKlskId(klskId));
+        StringBuilder str;
+        try {
+            str = paymentReport.getStrPaymentFormatted(payments);
+        } catch (IntrospectionException | InvocationTargetException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
         return str;

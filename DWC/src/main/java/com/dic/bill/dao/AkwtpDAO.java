@@ -2,6 +2,7 @@ package com.dic.bill.dao;
 
 import com.dic.bill.dto.KartExtPaymentRec;
 import com.dic.bill.dto.KartExtPaymentRec2;
+import com.dic.bill.dto.SumPayment;
 import com.dic.bill.model.scott.Akwtp;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -59,115 +60,9 @@ public interface AkwtpDAO extends JpaRepository<Akwtp, Integer> {
             "                        order by e.ext_lsk", nativeQuery = true)
     List<KartExtPaymentRec2> getPaymentByPeriodUsingLsk(@Param("dt1") Date dt1, @Param("dt2") Date dt2, @Param("orgId") Integer orgId);
 
-    /**
-     * Получить платежи по внешним лиц.счетам, используя LSK и наборы услуг
-     *
-     * @param mg - период
-     * @param orgId  - Id организации
-     * @param genDt1 - дата начала
-     * @param genDt2 - дата окончания
-     */
-/*
-    @Query(value = "select distinct t from Akwtp t join t.kart k join k.kartExt e join k.nabor n " +
-            " where t.mg=:mg and n.org.id=:orgId and t.dtInk between :genDt1 and :genDt2 order by t.id")
-    List<Akwtp> getKwtpKartExtByReuWithLsk(@Param("mg") String mg, @Param("orgId") Integer orgId,
-                                          @Param("genDt1") Date genDt1, @Param("genDt2") Date genDt2);
-*/
-
-
-    /**
-     * Получить платежи по внешним лиц.счетам, используя FK_KLSK_ID и наборы услуг
-     *
-     * @param mg - период
-     * @param orgId  - Id организации
-     * @param genDt1 - дата начала
-     * @param genDt2 - дата окончания
-     */
-/*
-    @Query(value = "select distinct t from Akwtp t join t.kart k join k.koKw.kartExtByKoKw e join k.nabor n " +
-            " where t.mg=:mg and n.org.id=:orgId and t.dtInk between :genDt1 and :genDt2 order by t.id")
-    List<Akwtp> getKwtpKartExtByReuWithKoKw(@Param("mg") String mg, @Param("orgId") Integer orgId,
-                                           @Param("genDt1") Date genDt1, @Param("genDt2") Date genDt2);
-*/
-
-    /**
-     * Получить платежи по внешним лиц.счетам, используя FK_KLSK_PREMISE и наборы услуг
-     *
-     * @param mg - период
-     * @param orgId  - Id организации
-     * @param genDt1 - дата начала
-     * @param genDt2 - дата окончания
-     */
-/*
-    @Query(value = "select distinct t from Akwtp t join t.kart k join k.koPremise.kartExtByPremise e join k.nabor n " +
-            " where t.mg=:mg and n.org.id=:orgId and t.dtInk between :genDt1 and :genDt2 order by t.id")
-    List<Akwtp> getKwtpKartExtByReuWithPremise(@Param("mg") String mg, @Param("orgId") Integer orgId,
-                                              @Param("genDt1") Date genDt1, @Param("genDt2") Date genDt2);
-*/
-
-    /*
-    */
-/**
-     * Получить платежи по внешним лиц.счетам, используя LSK
-     * @param ukId - Id УК
-     * @param mg - период
-     * @param genDt1 - дата начала
-     * @param genDt2 - дата окончания
-     *//*
-
-    @Query(value = "select distinct t from Akwtp t join t.kart k join k.kartExt e " +
-            " where t.mg=:mg and k.uk.reu=:ukId and t.dtInk between :genDt1 and :genDt2 order by t.id")
-    List<Akwtp> getKwtpKartExtByReuWithLsk(@Param("ukId") String ukId, @Param("mg") String mg,
-                                          @Param("genDt1") Date genDt1, @Param("genDt2") Date genDt2);
-
-*/
-/*
-    */
-/**
-     * Получить платежи по внешним лиц.счетам, используя LSK и наборы услуг
-     * @param ukId - Id УК
-     * @param mg - период
-     * @param orgId - Id организации
-     * @param genDt1 - дата начала
-     * @param genDt2 - дата окончания
-     *//*
-
-    @Query(value = "select distinct t from Akwtp t join t.kart k join k.kartExt e join k.nabor n  " +
-            " where t.mg=:mg and k.uk.reu <> :ukId and n.org.id=:orgId and t.dtInk between :genDt1 and :genDt2 order by t.id")
-    List<Akwtp> getKwtpKartExtByReuWithLsk(@Param("ukId") String ukId, @Param("mg") String mg,
-                                           @Param("orgId") Integer orgId,
-                                           @Param("genDt1") Date genDt1, @Param("genDt2") Date genDt2);
-
-    */
-/**
-     * Получить платежи по внешним лиц.счетам, используя FK_KLSK_PREMISE
-     * @param ukId - Id УК
-     * @param mg - период
-     * @param genDt1 - дата начала
-     * @param genDt2 - дата окончания
-     *//*
-
-    @Query(value = "select distinct t from Akwtp t join t.kart k join k.koPremise.kartExtByPremise e " +
-            " where t.mg=:mg and k.uk.reu=:ukId and t.dtInk between :genDt1 and :genDt2 order by t.id")
-    List<Akwtp> getKwtpKartExtByReuWithPremise(@Param("ukId") String ukId, @Param("mg") String mg,
-                                              @Param("genDt1") Date genDt1, @Param("genDt2") Date genDt2);
-
-
-    */
-/**
-     * Получить платежи по внешним лиц.счетам, используя FK_KLSK_PREMISE и наборы услуг
-     * @param ukId - Id УК
-     * @param mg - период
-     * @param orgId - Id организации
-     * @param genDt1 - дата начала
-     * @param genDt2 - дата окончания
-     *//*
-
-    @Query(value = "select distinct t from Akwtp t join t.kart k join k.koPremise.kartExtByPremise e join k.nabor n " +
-            " where t.mg=:mg and k.uk.reu <> :ukId and n.org.id=:orgId and t.dtInk between :genDt1 and :genDt2 order by t.id")
-    List<Akwtp> getKwtpKartExtByReuWithPremise(@Param("ukId") String ukId, @Param("mg") String mg,
-                                               @Param("orgId") Integer orgId,
-                                               @Param("genDt1") Date genDt1, @Param("genDt2") Date genDt2);
-
-*/
+    @Query(value = "select t.dt as dt, t.summa as summa, c.org.name as source from Akwtp t join t.comps c "
+            + "where t.kart.koKw.id=:klskId and t.mg between :periodFrom and :periodTo " +
+            "order by t.dt")
+    List<SumPayment> getByKlskIdPeriod(@Param("klskId") Long klskId, @Param("periodFrom") String periodFrom,
+                                       @Param("periodTo") String periodTo);
 }

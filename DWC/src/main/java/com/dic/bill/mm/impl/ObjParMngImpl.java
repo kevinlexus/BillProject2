@@ -181,6 +181,7 @@ public class ObjParMngImpl implements ObjParMng {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public MapKoAddress getMapKoAddressByObjPar(String cd, Long userId) {
         Map<Long, KoAddress> mapAddress = new HashMap<>();
         final int[] ord = {1};

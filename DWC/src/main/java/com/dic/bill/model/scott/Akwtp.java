@@ -58,6 +58,11 @@ public class Akwtp implements java.io.Serializable, KwtpPay  {
 	@JoinColumn(name="C_KWTP_ID", referencedColumnName="ID")
 	private List<AkwtpMg> akwtpMg = new ArrayList<AkwtpMg>(0);
 
+	// источник платежа (компьютер)
+	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+	@JoinColumn(name="NKOM", referencedColumnName = "NKOM", insertable = false, updatable = false)
+	private List<Comps> comps = new ArrayList<>(0);
+
 	// № платежного документа (из банка, из ГИС ЖКХ)
 	@Column(name = "NUM_DOC", updatable = false)
 	private String numDoc;

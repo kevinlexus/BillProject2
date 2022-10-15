@@ -58,6 +58,11 @@ public class Kwtp implements java.io.Serializable, KwtpPay {
     @OneToMany(mappedBy = "kwtp", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<KwtpMg> kwtpMg = new ArrayList<>(0);
 
+    // источник платежа (компьютер)
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name="NKOM", referencedColumnName = "NKOM", insertable = false, updatable = false)
+    private List<Comps> comps = new ArrayList<>(0);
+
     // № платежного документа (из банка, из ГИС ЖКХ)
     @Column(name = "NUM_DOC")
     private String numDoc;

@@ -1,4 +1,4 @@
-package com.dic.app.mm.impl.bot;
+package com.dic.app.service.registry.bot;
 
 import com.ric.cmn.Utl;
 import lombok.Getter;

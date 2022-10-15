@@ -15,6 +15,7 @@ import com.ric.dto.SumMeterVolExt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -24,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 import static com.dic.app.telegram.bot.service.menu.Buttons.*;
 
@@ -66,15 +66,14 @@ public class UserInteractionImpl {
     }
 
 
-    public TelegramMessage selectMeter(Update update, long userId) {
+    public TelegramMessage selectMeter(Update update, String callBackData, long userId) {
         StringBuilder msg = new StringBuilder();
         Long klskId = getCurrentKlskId(userId);
 
-        if (update.getCallbackQuery() != null) {
+        if (callBackData != null) {
             // присвоить адрес, если не установлен
-            String callBackStr = update.getCallbackQuery().getData();
-            if (callBackStr != null && callBackStr.startsWith(ADDRESS_KLSK.getCallBackData())) {
-                klskId = Long.parseLong(callBackStr.substring(ADDRESS_KLSK.getCallBackData().length() + 1));
+            if (callBackData.startsWith(ADDRESS_KLSK.getCallBackData())) {
+                klskId = Long.parseLong(callBackData.substring(ADDRESS_KLSK.getCallBackData().length() + 1));
                 updateMapMeterByCurrentKlskId(userId, klskId);
             }
         }
@@ -99,7 +98,7 @@ public class UserInteractionImpl {
         }
 
         messageStore.addButton(REPORTS);
-        messageStore.addButton(METER_BACK);
+        messageStore.addButton(BACK);
         return messageStore.build(msg);
     }
 
@@ -109,7 +108,7 @@ public class UserInteractionImpl {
         messageStore.addButton(BILLING_FLOW);
         messageStore.addButton(BILLING_CHARGES);
         messageStore.addButton(BILLING_PAYMENTS);
-        messageStore.addButton(BILLING_BACK);
+        messageStore.addButton(BACK);
 
         StringBuilder msg = new StringBuilder("Выберите");
         return messageStore.build(msg);
@@ -117,12 +116,13 @@ public class UserInteractionImpl {
 
     public TelegramMessage showFlow(Update update, long userId) {
         MessageStore messageStore = new MessageStore(update);
-        messageStore.addButton(BILLING_BACK);
+        messageStore.addButton(BACK);
 
         String periodBack = config.getPeriodBackByMonth(12);
         Long klskId = getCurrentKlskId(userId);
         klskId = 104880L; // todo
         periodBack = "201309"; // todo
+        // todo проверить, какой период здесь нужен и нужно ли пересчитывать движение?
         StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
 
         msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
@@ -131,12 +131,29 @@ public class UserInteractionImpl {
 
     public TelegramMessage showCharge(Update update, long userId) {
         MessageStore messageStore = new MessageStore(update);
-        messageStore.addButton(BILLING_BACK);
+        messageStore.addButton(BACK);
 
         String periodBack = config.getPeriodBackByMonth(12);
         Long klskId = getCurrentKlskId(userId);
         klskId = 104880L; // todo
         StringBuilder msg = registryMng.getChargeFormatted(klskId);
+        if (msg == null) {
+            msg.append("_Повторите запрос позже_");
+        } else {
+            msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
+        }
+        return messageStore.build(msg);
+    }
+
+    public TelegramMessage showPayment(Update update, long userId) {
+        MessageStore messageStore = new MessageStore(update);
+        messageStore.addButton(BACK);
+
+        String periodFrom = config.getPeriodBackByMonth(12);
+        String periodTo = config.getPeriod();
+        Long klskId = getCurrentKlskId(userId);
+        klskId = 104880L; // todo
+        StringBuilder msg = registryMng.getPaymentFormatted(klskId, periodFrom, periodTo);
 
         msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
         return messageStore.build(msg);
@@ -147,16 +164,6 @@ public class UserInteractionImpl {
         return env.getUserCurrentKo().get(userId) != null ? env.getUserCurrentKo().get(userId).getKlskId() : null;
     }
 
-
-    public TelegramMessage wrongInput(Update update, long userId) {
-        MessageStore messageStore = new MessageStore(update);
-        messageStore.addButton(METER_BACK);
-        StringBuilder msg = new StringBuilder();
-        msg.append("Некорректный выбор\\!");
-        return messageStore.build(msg);
-    }
-
-
     public void updateMapMeterByCurrentKlskId(long userId, long klskId) {
         MapKoAddress registeredKoByUser = env.getUserRegisteredKo().get(userId);
         env.getUserCurrentKo().put(userId, registeredKoByUser.getMapKoAddress().get(klskId));
@@ -164,14 +171,11 @@ public class UserInteractionImpl {
     }
 
 
-    public TelegramMessage inputVol(Update update, long userId) {
+    public TelegramMessage inputVol(Update update, String callBackData, long userId) {
         // присвоить счетчик
         Integer meterId = null;
-        if (update.getCallbackQuery() != null) {
-            String callBackStr = update.getCallbackQuery().getData();
-            if (callBackStr != null) {
-                meterId = Integer.parseInt((callBackStr.substring(14)));
-            }
+        if (callBackData != null) {
+            meterId = Integer.parseInt((callBackData.substring(14)));
         } else {
             meterId = env.getUserCurrentMeter().get(userId).getMeterId();
         }
@@ -197,28 +201,46 @@ public class UserInteractionImpl {
             log.error("Не определен meterId");
         }
         MessageStore messageStore = new MessageStore(update);
-        messageStore.addButton(INPUT_BACK);
+        messageStore.addButton(BACK);
         return messageStore.build(msg);
     }
 
+    public TelegramMessage inputVolAccept(Update update, long userId) {
+
+        MeterValSaveState status = saveMeterValByMeterId(env
+                        .getUserCurrentMeter().get(userId).getMeterId(),
+                update.getMessage().getText());
+        updateMapMeterByCurrentKlskId(userId, env.getUserCurrentKo().get(userId).getKlskId());
+        SumMeterVolExt sumMeterVolExt = env.getUserCurrentMeter().get(userId);
+        StringBuilder msg = new StringBuilder();
+        if (status.equals(MeterValSaveState.SUCCESSFUL)) {
+            msg.append("Показания по услуге ")
+                    .append(sumMeterVolExt.getServiceName().replace(".", "\\."))
+                    .append(": ").append(update.getMessage().getText()
+                            .replace(".", "\\.")).append(": ").append(" приняты");
+        } else {
+            log.error("Ошибка передачи показаний по счетчику, фин.лиц klskId={}, {}",
+                    env.getUserCurrentKo().get(userId).getKlskId(),
+                    status);
+            msg.append("Попробуйте передать показания позже");
+        }
+        MessageStore messageStore = new MessageStore(update);
+        messageStore.addButton(BACK);
+        return messageStore.build(msg);
+
+    }
 
     /**
      * @param userId Id пользователя в Telegram
      * @return код для процедуры сопоставления Id пользователя с Директ klskId
      */
 
-    public int authenticateUser(long userId) {
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true, rollbackFor = Exception.class)
+    public long authenticateUser(long userId) {
         MapKoAddress mapKoAddress = objParMng.getMapKoAddressByObjPar("TelegramId", userId);
         if (mapKoAddress.getMapKoAddress().size() == 0) {
-            // временный код, для регистрации
-            return env.getUserTemporalCode().computeIfAbsent(userId, t -> {
-                        int randCode = -1;
-                        while (randCode == -1 || !env.getIssuedCodes().add(randCode)) {
-                            randCode = ThreadLocalRandom.current().nextInt(1000, 10000);
-                        }
-                        return randCode;
-                    }
-            );
+            // Id, для регистрации
+            return userId;
         } else {
             env.getUserRegisteredKo().put(userId, mapKoAddress);
             return 0;

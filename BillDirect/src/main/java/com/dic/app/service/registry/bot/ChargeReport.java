@@ -1,7 +1,7 @@
-package com.dic.app.mm.impl.bot;
+package com.dic.app.service.registry.bot;
 
 import com.dic.bill.dto.SumCharge;
-import com.dic.bill.dto.SumFinanceFlow;
+import com.dic.bill.dto.SumChargeRec;
 import com.ric.cmn.Utl;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +28,7 @@ public class ChargeReport extends BotReportBase {
     public static final String SUMMA_NAME = "Cумма,руб.";
 
     // отчёт - текущее начисление
-    public StringBuilder getStrChargeFormatted(List<SumCharge> lst) throws IntrospectionException, InvocationTargetException, IllegalAccessException {
+    public StringBuilder getStrChargeFormatted(List<SumChargeRec> lst) throws IntrospectionException, InvocationTargetException, IllegalAccessException {
         Map<String, Column> columns = new HashMap<>();
         columns.put(USL, new Column(USL, USL_NAME));
         columns.put(VOL, new Column(VOL, VOL_NAME));
@@ -37,7 +37,7 @@ public class ChargeReport extends BotReportBase {
         columns.put(SUMMA, new Column(SUMMA, SUMMA_NAME));
 
         // рассчитать макс.размер столбцов
-        setMaxColumSize(lst, columns, SumCharge.class);
+        setMaxColumSize(lst, columns, SumChargeRec.class);
 
         StringBuilder msg = new StringBuilder();
         msg.append("Начисление\r\n");
@@ -50,12 +50,12 @@ public class ChargeReport extends BotReportBase {
 
         preFormatted.append(String.format("|%s|%s|%s|%s|%s|\r\n", uslHeader, volHeader, priceHeader, unitHeader, summaHeader));
         for (SumCharge row : lst) {
-            String uslName = columns.get(USL).getStrFormatted(row.getName());
+            String usl = columns.get(USL).getStrFormatted(row.getName());
             String vol = columns.get(VOL).getValueFormatted(row.getVol(), MONEY_PATTERN);
             String price = columns.get(PRICE).getValueFormatted(row.getPrice(), MONEY_PATTERN);
             String unit = columns.get(UNIT).getStrFormatted(row.getUnit());
             String summa = columns.get(SUMMA).getValueFormatted(row.getSumma(), MONEY_PATTERN);
-            preFormatted.append(String.format("|%s|%s|%s|%s|%s|\r\n", uslName, vol, price, unit, summa));
+            preFormatted.append(String.format("|%s|%s|%s|%s|%s|\r\n", usl, vol, price, unit, summa));
         }
         Utl.replaceAll(preFormatted, ".", "\\.");
         Utl.replaceAll(preFormatted, "|", "\\|");

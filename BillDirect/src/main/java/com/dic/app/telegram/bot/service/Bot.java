@@ -5,10 +5,8 @@ import com.dic.app.telegram.bot.message.SimpleMessage;
 import com.dic.app.telegram.bot.message.TelegramMessage;
 import com.dic.app.telegram.bot.message.UpdateMessage;
 import com.dic.app.telegram.bot.service.client.Env;
-import com.dic.app.telegram.bot.service.menu.Buttons;
 import com.dic.app.telegram.bot.service.menu.Menu;
-import com.dic.app.telegram.bot.service.menu.MeterValSaveState;
-import com.ric.dto.SumMeterVolExt;
+import com.dic.app.telegram.bot.service.menu.MenuStep;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +19,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.Map;
+import java.util.LinkedList;
 
 import static com.dic.app.telegram.bot.service.menu.Buttons.*;
 
@@ -51,79 +49,84 @@ public class Bot extends TelegramLongPollingBot {
                 user = message.getFrom();
             }
             userId = user.getId();
-            Map<Long, Menu> menuPosition = env.getMenuPosition();
-            Menu curMenu = menuPosition.get(userId);
-            if (curMenu == null) {
-                curMenu = Menu.UNDEFINED;
-            }
-            //Map<Long, Menu> menuPositionPrev = env.getMenuPositionPrev();
-            //menuPositionPrev.put(userId, curMenu);
 
+            LinkedList<MenuStep> menuPath = env.getUserMenuPath().get(userId);
+            if (menuPath == null) {
+                env.getUserMenuPath().put(userId, new LinkedList<>());
+                menuPath = env.getUserMenuPath().get(userId);
+            }
+
+            String callBackStr;
+            TelegramMessage tm = null;
             if (!env.getUserRegisteredKo().containsKey(userId)) {
                 // аутентификация пользователя в системе
-                int code = ui.authenticateUser(userId);
+                long code = ui.authenticateUser(userId);
                 if (code != 0) {
-                    executeSendMessage(update, "Сообщите код оператору, для регистрации = " + code);
-                    menuPosition.put(userId, Menu.MAIN);
+                    executeSendMessage(update, String.format("Сообщите код оператору, для регистрации = %,d", code).replace(","," "));
+                    return;
                 } else {
-                    menuPosition.put(userId, Menu.SELECT_ADDRESS);
+                    menuPath.add(new MenuStep(Menu.ROOT, ""));
+                    tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
                 }
             } else {
                 if (update.hasCallbackQuery()) {
                     // нажата кнопка (выбрано меню)
-                    String callBackStr = update.getCallbackQuery().getData();
+                    callBackStr = update.getCallbackQuery().getData();
+                    boolean isBack = false;
                     if (callBackStr.startsWith(BACK.getCallBackData())) {
+                        isBack = true;
+                        if (menuPath.size() > 0) {
+                            menuPath.removeLast();
+                            callBackStr = menuPath.getLast().getCallBackData();
+                        }
+                    }
 
-                    } else if (callBackStr.startsWith(ADDRESS_KLSK.getCallBackData() + "_")) {
-                        menuPosition.put(userId, Menu.SELECT_METER);
+                    if (callBackStr.startsWith(ADDRESS_KLSK.getCallBackData() + "_")) {
+                        if (!isBack) {
+                            menuPath.add(new MenuStep(Menu.SELECT_METER, null));
+                            menuPath.getLast().setCallBackData(callBackStr);
+                        }
+                        tm = ui.selectMeter(update, callBackStr, userId);
                     } else if (callBackStr.startsWith(METER.getCallBackData() + "_")) {
-                        menuPosition.put(userId, Menu.INPUT_VOL);
-                    } else if (callBackStr.equals(Buttons.METER_BACK.getCallBackData())) {
-                        menuPosition.put(userId, Menu.SELECT_ADDRESS);
-                    } else if (callBackStr.startsWith(INPUT_BACK.getCallBackData())) {
-                        menuPosition.put(userId, Menu.SELECT_METER);
+                        if (!isBack) {
+                            menuPath.add(new MenuStep(Menu.INPUT_VOL, null));
+                            menuPath.getLast().setCallBackData(callBackStr);
+                        }
+                        tm = ui.inputVol(update, callBackStr, userId);
                     } else if (callBackStr.equals(REPORTS.getCallBackData())) {
-                        menuPosition.put(userId, Menu.SELECT_REPORT);
-                    } else if (callBackStr.equals(BILLING_BACK.getCallBackData())) {
-                        menuPosition.put(userId, Menu.SELECT_METER);
+                        if (!isBack) {
+                            menuPath.add(new MenuStep(Menu.SELECT_REPORT, callBackStr));
+                            menuPath.getLast().setCallBackData(callBackStr);
+                        }
+                        tm = ui.selectReport(update, userId);
                     } else if (callBackStr.equals(BILLING_FLOW.getCallBackData())) {
-                        menuPosition.put(userId, Menu.SELECT_FLOW);
+                        if (!isBack) {
+                            menuPath.add(new MenuStep(Menu.SELECT_FLOW, callBackStr));
+                            menuPath.getLast().setCallBackData(callBackStr);
+                        }
+                        tm = ui.showFlow(update, userId);
                     } else if (callBackStr.equals(BILLING_CHARGES.getCallBackData())) {
-                        menuPosition.put(userId, Menu.SELECT_CHARGE);
+                        if (!isBack) {
+                            menuPath.add(new MenuStep(Menu.SELECT_CHARGE, callBackStr));
+                            menuPath.getLast().setCallBackData(callBackStr);
+                        }
+                        tm = ui.showCharge(update, userId);
                     } else if (callBackStr.equals(BILLING_PAYMENTS.getCallBackData())) {
-                        menuPosition.put(userId, Menu.SELECT_REPORT); // todo
-                    }
-                } else if (curMenu.equals(Menu.INPUT_VOL)) {
-                    // введены показания
-                    MeterValSaveState status = ui.saveMeterValByMeterId(env
-                                    .getUserCurrentMeter().get(userId).getMeterId(),
-                            message.getText());
-                    ui.updateMapMeterByCurrentKlskId(userId, env.getUserCurrentKo().get(userId).getKlskId());
-                    SumMeterVolExt sumMeterVolExt = env.getUserCurrentMeter().get(userId);
-                    if (status.equals(MeterValSaveState.SUCCESSFUL)) {
-                        executeSendMessage(update, "Показания по услуге " + sumMeterVolExt.getServiceName() + ": "
-                                + message.getText() + " приняты");
+                        if (!isBack) {
+                            menuPath.add(new MenuStep(Menu.SELECT_PAYMENTS, callBackStr));
+                            menuPath.getLast().setCallBackData(callBackStr);
+                        }
+                        tm = ui.showPayment(update, userId);
                     } else {
-                        log.error("Ошибка передачи показаний по счетчику, фин.лиц klskId={}, {}",
-                                env.getUserCurrentKo().get(userId).getKlskId(),
-                                status);
-                        executeSendMessage(update, status.toString());
+                        tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
                     }
-                    menuPosition.put(userId, Menu.SELECT_METER);
+                } else if (menuPath.getLast().getMenu().equals(Menu.INPUT_VOL)) {
+                    // введены показания
+                    tm = ui.inputVolAccept(update, userId);
                 } else {
-                    menuPosition.put(userId, Menu.INPUT_WRONG);
+                    menuPath.add(new MenuStep(Menu.ROOT, ""));
+                    tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
                 }
-            }
-
-            TelegramMessage tm = null;
-            switch (menuPosition.get(userId)) {
-                case SELECT_ADDRESS -> tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
-                case SELECT_METER -> tm = ui.selectMeter(update, userId);
-                case INPUT_VOL -> tm = ui.inputVol(update, userId);
-                case INPUT_WRONG -> tm = ui.wrongInput(update, userId);
-                case SELECT_REPORT -> tm = ui.selectReport(update, userId);
-                case SELECT_FLOW -> tm = ui.showFlow(update, userId);
-                case SELECT_CHARGE -> tm = ui.showCharge(update, userId);
             }
 
             if (tm instanceof PlainMessage) {

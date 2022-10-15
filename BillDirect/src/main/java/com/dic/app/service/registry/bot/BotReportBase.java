@@ -1,6 +1,4 @@
-package com.dic.app.mm.impl.bot;
-
-import com.dic.bill.dto.SumFinanceFlow;
+package com.dic.app.service.registry.bot;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
