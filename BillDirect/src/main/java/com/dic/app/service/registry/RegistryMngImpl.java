@@ -1505,11 +1505,11 @@ public class RegistryMngImpl {
 
         List<SumChargeRec> chargeLst = charges.stream().map(t -> {
                     Usl usl = em.find(Usl.class, t.getUslId());
-                    return new SumChargeRec(usl.getName(),
+                    return new SumChargeRec(usl.getName(), usl.getNpp(),
                             t.getVol().doubleValue(), t.getPrice().doubleValue(),
                             usl.getUnitVol(), t.getSumma().doubleValue());
                 }
-        ).collect(Collectors.toList());
+        ).sorted(Comparator.comparing(SumChargeRec::getNpp)).collect(Collectors.toList());
 
         StringBuilder str;
         try {

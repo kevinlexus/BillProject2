@@ -76,7 +76,7 @@ public interface PenyaDAO extends JpaRepository<Penya, Integer> {
 */
    @Query(value="select sum(t.summa) as \"debt\", 1.23 as \"pen\", 34.66 as \"chrg\",\n" +
            "     3.56 as \"pay\", 983.33 as \"payPen\", t.mg as \"mg\"\n" +
-           "      from scott.kart k join scott.long_table t on  t.mg >= ?2\n" +
+           "      from scott.kart k join scott.long_table t on t.mg >= ?2\n" +
            "      left join scott.c_penya t on t.mg=t.mg1 and k.lsk=t.lsk\n" +
            "      left join scott.c_chargepay2 c on t.mg=c.mg and k.lsk=c.lsk and c.type=0 and ?2 between c.mgFrom and c.mgTo\n" +
            "      left join scott.c_chargepay2 c2 on t.mg=c2.mg and k.lsk=c2.lsk and c2.type=1 and ?2 between c2.mgFrom and c2.mgTo\n" +

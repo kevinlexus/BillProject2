@@ -120,9 +120,9 @@ public class UserInteractionImpl {
 
         String periodBack = config.getPeriodBackByMonth(12);
         Long klskId = getCurrentKlskId(userId);
-        klskId = 104880L; // todo
-        periodBack = "201309"; // todo
-        // todo проверить, какой период здесь нужен и нужно ли пересчитывать движение?
+        //klskId = 104880L;
+        //periodBack = "201309";
+        // todo проверить, какой период здесь нужен и нужно ли пересчитывать движение? а если пересчиталось начисление, поступила оплата???
         StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
 
         msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
@@ -135,7 +135,7 @@ public class UserInteractionImpl {
 
         String periodBack = config.getPeriodBackByMonth(12);
         Long klskId = getCurrentKlskId(userId);
-        klskId = 104880L; // todo
+        //klskId = 104880L;
         StringBuilder msg = registryMng.getChargeFormatted(klskId);
         if (msg == null) {
             msg.append("_Повторите запрос позже_");
@@ -152,10 +152,9 @@ public class UserInteractionImpl {
         String periodFrom = config.getPeriodBackByMonth(12);
         String periodTo = config.getPeriod();
         Long klskId = getCurrentKlskId(userId);
-        klskId = 104880L; // todo
+        //klskId = 104880L;
         StringBuilder msg = registryMng.getPaymentFormatted(klskId, periodFrom, periodTo);
 
-        msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
         return messageStore.build(msg);
     }
 

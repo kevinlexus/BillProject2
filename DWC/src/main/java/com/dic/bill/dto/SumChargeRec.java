@@ -9,6 +9,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class SumChargeRec implements SumCharge {
     private String name;
+    private Integer npp;
     private Double vol;
     private Double price;
     private String unit;

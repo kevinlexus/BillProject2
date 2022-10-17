@@ -120,8 +120,7 @@ public class ProcessAllMng {
     /**
      * Обработать очередь объектов
      *
-     * @param reqConf - конфиг запроса
-     * @return
+     * @param reqConf конфиг запроса
      */
     private List<LskChargeUsl> selectInvokeProcess(RequestConfigDirect reqConf) throws ErrorWhileGen {
         List<LskChargeUsl> resultLskChargeUsl = new ArrayList<>();

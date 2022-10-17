@@ -160,7 +160,7 @@ public class RequestConfigDirect implements Cloneable {
      */
     public void prepareId() {
         calcScope = CalcScope.NOT_SPECIFIED;
-        if (Utl.in(tp, 0, 1, 3, 4)) {
+        if (Utl.in(tp, CHARGE, DEBT_PEN, CHARGE_FOR_DIST, CHARGE_SINGLE_USL)) {
             // начисление, начисление для распределения объемов, начисление по одной услуге, для автоначисления
             KartDAO kartDao = SpringContext.getBean(KartDAO.class);
             if (ko != null) {
