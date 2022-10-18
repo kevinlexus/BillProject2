@@ -34,6 +34,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import static com.dic.app.service.impl.enums.ProcessTypes.*;
 import static java.util.stream.Collectors.groupingBy;
 
 /**
@@ -116,13 +117,13 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
         retStatus = reqConf.checkArguments();
         if (retStatus == null) {
             try {
-                if (Utl.in(reqConf.getTp(), 0, 1, 2, 4)) {
+                if (Utl.in(reqConf.getTp(), CHARGE, DEBT_PEN, DIST_VOL, CHARGE_SINGLE_USL)) {
                     // расчет начисления, распределение объемов, расчет пени
                     if (reqConf.getLstItems().size() > 1)
                         log.info("Будет обработано {} объектов", reqConf.getLstItems().size());
                     processAllMng.processAll(reqConf);
                 }
-                if (Utl.in(reqConf.getTp(), 4)) {
+                if (Utl.in(reqConf.getTp(), CHARGE_SINGLE_USL)) {
                     // по операции - начисление по одной услуге, для автоначисления
                     // вернуть начисленный объем
                     retStatus = "OK:" + reqConf.getChrgCountAmount().getResultVol().toString();

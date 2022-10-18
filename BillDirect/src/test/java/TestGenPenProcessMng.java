@@ -2,6 +2,7 @@ import com.dic.app.config.Config;
 import com.dic.app.RequestConfigDirect;
 import com.dic.app.service.ConfigApp;
 import com.dic.app.service.GenPenProcessMng;
+import com.dic.app.service.impl.enums.ProcessTypes;
 import com.dic.bill.dao.AchargeDAO;
 import com.dic.bill.dao.PenCurDAO;
 import com.dic.bill.dao.RedirPayDAO;
@@ -184,7 +185,7 @@ public class TestGenPenProcessMng {
 
         // построить запрос
         RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
-                .withTp(1)
+                .withTp(ProcessTypes.DEBT_PEN)
                 .withGenDt(Utl.getDateFromStr("28.04.2014"))
                 .withKo(ko)
                 .withCurDt1(config.getCurDt1())

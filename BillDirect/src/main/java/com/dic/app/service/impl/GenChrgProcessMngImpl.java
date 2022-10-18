@@ -33,8 +33,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_FOR_DIST;
-import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_SINGLE_USL;
+import static com.dic.app.service.impl.enums.ProcessTypes.*;
 
 /**
  * Сервис расчета начисления
@@ -92,10 +91,10 @@ public class GenChrgProcessMngImpl {
 
             // выбранные услуги для формирования
             List<Usl> lstSelUsl = new ArrayList<>();
-            if (Utl.in(reqConf.getTp(), 0, 4) && reqConf.getUsl() != null) {
+            if (Utl.in(reqConf.getTp(), CHARGE, CHARGE_SINGLE_USL) && reqConf.getUsl() != null) {
                 // начисление по выбранной услуге, начисление по одной услуге, для автоначисления
                 lstSelUsl.add(reqConf.getUsl());
-            } else if (Utl.in(reqConf.getTp(), 3)) {
+            } else if (Utl.in(reqConf.getTp(), CHARGE_FOR_DIST)) {
                 // начисление для распределения по вводу
                 // добавить услуги для ограничения формирования только по ним
                 lstSelUsl.add(reqConf.getVvod().getUsl());
@@ -133,7 +132,7 @@ public class GenChrgProcessMngImpl {
             }
 
             // кроме распределения объемов (там нечего еще считать, нет экономии ОДН
-            if (!Utl.in(reqConf.getTp(), 3, 4)) {
+            if (!Utl.in(reqConf.getTp(), CHARGE_FOR_DIST, CHARGE_SINGLE_USL)) {
                 // 2. распределить экономию ОДН по услуге, пропорционально объемам
                 log.trace("Распределение экономии ОДН");
                 distODNeconomy(chrgCountAmountLocal, ko, lstSelUsl);
@@ -164,7 +163,7 @@ public class GenChrgProcessMngImpl {
 
             chrgCountAmountLocal.printVolAmnt(null, "После округления");
 
-            if (!Utl.in(reqConf.getTp(), 3, 4)) {
+            if (!Utl.in(reqConf.getTp(), CHARGE_FOR_DIST, CHARGE_SINGLE_USL)) {
                 // 6. Сгруппировать строки начислений для записи в C_CHARGE
                 //chrgCountAmountLocal.printVolAmntChrg();
                 chrgCountAmountLocal.groupUslVolChrg();

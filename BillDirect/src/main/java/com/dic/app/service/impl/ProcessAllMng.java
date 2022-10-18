@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static com.dic.app.service.impl.enums.ProcessTypes.DIST_VOL;
+import static com.dic.app.service.impl.enums.ProcessTypes.*;
 
 @Slf4j
 @Service
@@ -137,13 +137,13 @@ public class ProcessAllMng {
                                 log.info("Процесс {} был ПРИНУДИТЕЛЬНО остановлен", reqConf.getTpName());
                                 break;
                             }
-                            if (Utl.in(reqConf.getTp(), 0, 1, 3, 4)) {
+                            if (Utl.in(reqConf.getTp(), CHARGE, DEBT_PEN, CHARGE_FOR_DIST, CHARGE_SINGLE_USL)) {
                                 // Начисление и начисление для распределения объемов, расчет пени
                                 if (reqConf.isSingleObjectCalc()) {
                                     log.info("****** {} фин.лиц.сч. klskId={} - начало    ******",
                                             reqConf.getTpName(), id);
                                 }
-                                if (Utl.in(reqConf.getTp(), 1)) {
+                                if (Utl.in(reqConf.getTp(), DEBT_PEN)) {
                                     // расчет пени
                                     genPenProcessMng.genDebitPen(reqConf, true, id);
                                 } else {

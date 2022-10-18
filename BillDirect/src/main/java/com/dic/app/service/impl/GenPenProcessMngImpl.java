@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import java.time.ZonedDateTime;
+import java.util.Date;
 
 /**
  * Сервис формирования задолженностей и пени
@@ -59,6 +61,7 @@ public class GenPenProcessMngImpl implements GenPenProcessMng {
         for (Kart kart : ko.getKart()) {
             genDebitPenKart(reqConf, kart);
         }
+        ko.setDtGenDebPen(Date.from(ZonedDateTime.now().toInstant()));
     }
 
     /**

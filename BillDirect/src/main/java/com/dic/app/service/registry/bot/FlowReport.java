@@ -40,7 +40,6 @@ public class FlowReport extends BotReportBase {
 
         StringBuilder msg = new StringBuilder();
         msg.append("Движение средств за последний год\r\n");
-        msg.append("Расчет был произведен:\r\n");
         StringBuilder preFormatted = new StringBuilder("```\r\n");
         String chrgHeader = columns.get(CHRG).getCaptionWithPrefix();
         String debtHeader = columns.get(DEBT).getCaptionWithPrefix();

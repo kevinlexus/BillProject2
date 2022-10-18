@@ -1,5 +1,5 @@
 import com.dic.app.config.Config;
-import com.dic.app.mm.RegistryMng;
+import com.dic.app.service.registry.RegistryMngImpl;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dto.MeterData;
 import com.dic.bill.dto.SumFinanceFlow;
@@ -45,7 +45,7 @@ public class TestRegistryMng {
 	@PersistenceContext
 	private EntityManager em;
 	@Autowired
-	private RegistryMng registryMng;
+	private RegistryMngImpl registryMng;
 
 	@Test
 	public void checkFlow() {

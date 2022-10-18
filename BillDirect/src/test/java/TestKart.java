@@ -1,7 +1,7 @@
 import com.dic.app.config.Config;
 import com.dic.app.RequestConfigDirect;
 import com.dic.app.service.ConfigApp;
-import com.dic.app.service.GenChrgProcessMng;
+import com.dic.app.service.impl.GenChrgProcessMngImpl;
 import com.dic.app.service.impl.ProcessAllMng;
 import com.dic.bill.dao.KartDAO;
 import com.dic.bill.mm.KartMng;
@@ -33,6 +33,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE;
+import static com.dic.app.service.impl.enums.ProcessTypes.DIST_VOL;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = Config.class)
 @AutoConfigureTestDatabase(replace = Replace.NONE)
@@ -50,7 +53,7 @@ public class TestKart {
     @Autowired
     private ProcessAllMng processMng;
     @Autowired
-    private GenChrgProcessMng genChrgProcessMng;
+    private GenChrgProcessMngImpl genChrgProcessMng;
     @Autowired
     private ConfigApp config;
     @Autowired
@@ -90,7 +93,7 @@ public class TestKart {
         RequestConfigDirect reqConf =
                 RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
                         .withRqn(config.incNextReqNum()) // уникальный номер запроса
-                        .withTp(0) // тип операции - начисление
+                        .withTp(CHARGE) // тип операции - начисление
                         .withIsMultiThreads(false) // для Unit - теста однопоточно!
                         .build();
 
@@ -117,7 +120,7 @@ public class TestKart {
 
         reqConf.setVvod(null);
         reqConf.setKo(ko);
-        reqConf.setTp(0);
+        reqConf.setTp(CHARGE);
 
         // выполнить расчет
         genChrgProcessMng.genChrg(reqConf, ko.getId());
@@ -139,7 +142,7 @@ public class TestKart {
             reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
                     .withRqn(config.incNextReqNum()) // уникальный номер запроса
                     .withGenDt(Utl.getDateFromStr("11.04.2014"))
-                    .withTp(2) // тип операции - распределение объема
+                    .withTp(DIST_VOL) // тип операции - распределение объема
                     .withIsMultiThreads(false) // для Unit - теста однопоточно!
                     .build();
         } catch (ParseException e) {
@@ -221,7 +224,7 @@ public class TestKart {
 
         reqConf.setVvod(null);
         reqConf.setHouse(house);
-        reqConf.setTp(0);
+        reqConf.setTp(CHARGE);
         reqConf.prepareChrgCountAmount();
         reqConf.prepareId();
         sw.start("TIMING:Начисление");

@@ -9,10 +9,7 @@ import javax.persistence.*;
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Справочник всех объектов Klsk Objects - KO
@@ -26,7 +23,7 @@ import java.util.Set;
 @Getter
 @Setter
 @Cacheable
-@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCache", usage = CacheConcurrencyStrategy.READ_ONLY)
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCache", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Ko implements java.io.Serializable {
 
     @Id
@@ -74,10 +71,9 @@ public class Ko implements java.io.Serializable {
     @OneToMany(mappedBy = "ko", fetch = FetchType.LAZY, cascade=CascadeType.ALL, orphanRemoval = true)
     private List<ObjPar> objPar = new ArrayList<>(0);
 
-/*
-    @Column(name = "GUID")
-    private String guid;
-*/
+    // Дата последнего формирования движения и пени по фин.л.с
+    @Column(name = "DT_GEN_DEB_PEN")
+    private Date dtGenDebPen;
 
     public Ko() {
         super();

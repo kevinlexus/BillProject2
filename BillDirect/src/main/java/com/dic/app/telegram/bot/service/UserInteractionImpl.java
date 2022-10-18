@@ -8,6 +8,8 @@ import com.dic.app.telegram.bot.service.menu.MeterValSaveState;
 import com.dic.app.telegram.bot.service.message.MessageStore;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.ObjParMng;
+import com.dic.bill.model.scott.Ko;
+import com.ric.cmn.Utl;
 import com.ric.dto.KoAddress;
 import com.ric.dto.MapKoAddress;
 import com.ric.dto.MapMeter;
@@ -21,6 +23,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
+import javax.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -40,6 +43,7 @@ public class UserInteractionImpl {
     private final MeterMng meterMng;
     private final ConfigApp config;
     private final RegistryMngImpl registryMng;
+    private final EntityManager entityManager;
     private final Map<Integer, MeterValSaveState> statusCode =
             Map.of(0, MeterValSaveState.SUCCESSFUL,
                     3, MeterValSaveState.VAL_SAME_OR_LOWER,
@@ -122,9 +126,10 @@ public class UserInteractionImpl {
         Long klskId = getCurrentKlskId(userId);
         //klskId = 104880L;
         //periodBack = "201309";
-        // todo проверить, какой период здесь нужен и нужно ли пересчитывать движение? а если пересчиталось начисление, поступила оплата???
         StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
 
+        Ko ko = entityManager.find(Ko.class, klskId);
+        msg.append("_Расчет был произведен:").append(Utl.getStrFromDate(ko.getDtGenDebPen(), "dd.MM.yyyy HH:mm").replace(".", "\\.")).append("_\r\n");
         msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
         return messageStore.build(msg);
     }
