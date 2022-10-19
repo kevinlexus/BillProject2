@@ -45,8 +45,6 @@ public class PaymentReport extends BotReportBase {
             String source = columns.get(SOURCE).getStrFormatted(row.getSource());
             preFormatted.append(String.format("|%s|%s|%s|\r\n", dt, sum, source));
         }
-        Utl.replaceAll(preFormatted, ".", "\\.");
-        Utl.replaceAll(preFormatted, "|", "\\|");
         preFormatted.append("```");
         msg.append(preFormatted);
         return msg;

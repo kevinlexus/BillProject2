@@ -56,8 +56,6 @@ public class FlowReport extends BotReportBase {
             String paypen = columns.get(PAYPEN).getValueFormatted(row.getPayPen(), MONEY_PATTERN);
             preFormatted.append(String.format("|%s|%s|%s|%s|%s|%s|\r\n", row.getMg() + " ", debt, pen, chrg, pay, paypen));
         }
-        Utl.replaceAll(preFormatted, ".", "\\.");
-        Utl.replaceAll(preFormatted, "|", "\\|");
         preFormatted.append("```");
         msg.append(preFormatted);
         return msg;

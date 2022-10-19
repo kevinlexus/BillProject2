@@ -57,8 +57,6 @@ public class ChargeReport extends BotReportBase {
             String summa = columns.get(SUMMA).getValueFormatted(row.getSumma(), MONEY_PATTERN);
             preFormatted.append(String.format("|%s|%s|%s|%s|%s|\r\n", usl, vol, price, unit, summa));
         }
-        Utl.replaceAll(preFormatted, ".", "\\.");
-        Utl.replaceAll(preFormatted, "|", "\\|");
         preFormatted.append("```");
         msg.append(preFormatted);
         return msg;

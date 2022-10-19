@@ -92,11 +92,11 @@ public class UserInteractionImpl {
         if (klskId != null) {
             for (SumMeterVolExt sumMeterVol : env.getMetersByKlskId().get(klskId).getMapKoMeter().values()) {
                 String serviceName = sumMeterVol.getServiceName();
-                msg.append(serviceName.replace(".", "\\."));
-                msg.append(", текущ\\.: показания:");
-                msg.append("*" + sumMeterVol.getN1().toString().replace(".", "\\.") + "*");
+                msg.append(serviceName);
+                msg.append(", текущ: показания:");
+                msg.append("*" + sumMeterVol.getN1().toString() + "*");
                 msg.append(", расход:");
-                msg.append("*" + sumMeterVol.getVol().toString().replace(".", "\\.") + "*");
+                msg.append("*" + sumMeterVol.getVol().toString() + "*");
                 msg.append("\r\n");
                 messageStore.addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(), serviceName);
             }
@@ -132,7 +132,7 @@ public class UserInteractionImpl {
         StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
 
         Ko ko = entityManager.find(Ko.class, klskId);
-        msg.append("_Расчет был произведен:").append(Utl.getStrFromDate(ko.getDtGenDebPen(), "dd.MM.yyyy HH:mm").replace(".", "\\.")).append("_\r\n");
+        msg.append("_Расчет был произведен:").append(Utl.getStrFromDate(ko.getDtGenDebPen(), "dd.MM.yyyy HH:mm")).append("_\r\n");
         msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
         return messageStore.build(msg);
     }
@@ -198,11 +198,11 @@ public class UserInteractionImpl {
             SumMeterVolExt sumMeterVolExt = mapKoMeter.get(meterId);
             env.getMeterVolExtByMeterId().put(meterId, sumMeterVolExt);
             msg.append("Введите новое показание счетчика по услуге: ");
-            msg.append(sumMeterVolExt.getServiceName().replace(".", "\\."));
+            msg.append(sumMeterVolExt.getServiceName());
             msg.append(", текущие показания:");
-            msg.append(sumMeterVolExt.getN1().toString().replace(".", "\\."));
+            msg.append(sumMeterVolExt.getN1().toString());
             msg.append(", расход:");
-            msg.append(sumMeterVolExt.getVol().toString().replace(".", "\\."));
+            msg.append(sumMeterVolExt.getVol().toString());
 
         } else {
             log.error("Не определен meterId");
@@ -223,9 +223,9 @@ public class UserInteractionImpl {
         StringBuilder msg = new StringBuilder();
         if (status.equals(MeterValSaveState.SUCCESSFUL)) {
             msg.append("Показания по услуге ")
-                    .append(sumMeterVolExt.getServiceName().replace(".", "\\."))
+                    .append(sumMeterVolExt.getServiceName())
                     .append(": ").append(String.valueOf(result.getValue1())
-                            .replace(".", "\\.")).append(": ").append(" приняты");
+                            ).append(": ").append(" приняты");
         } else if (status.equals(MeterValSaveState.WRONG_FORMAT)) {
             log.error("Некорректное показание по счетчику, фин.лиц klskId={}, {}",
                     env.getUserCurrentKo().get(userId).getKlskId(),
