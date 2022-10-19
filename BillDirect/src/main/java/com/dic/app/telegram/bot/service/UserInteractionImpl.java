@@ -16,6 +16,7 @@ import com.ric.dto.MapMeter;
 import com.ric.dto.SumMeterVolExt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.javatuples.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import javax.persistence.EntityManager;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -211,17 +214,29 @@ public class UserInteractionImpl {
 
     public TelegramMessage inputVolAccept(Update update, long userId) {
 
-        MeterValSaveState status = saveMeterValByMeterId(env
+        Pair<MeterValSaveState, Double> result = saveMeterValByMeterId(env
                         .getUserCurrentMeter().get(userId).getMeterId(),
                 update.getMessage().getText());
+        MeterValSaveState status = result.getValue0();
         updateMapMeterByCurrentKlskId(userId, env.getUserCurrentKo().get(userId).getKlskId());
         SumMeterVolExt sumMeterVolExt = env.getUserCurrentMeter().get(userId);
         StringBuilder msg = new StringBuilder();
         if (status.equals(MeterValSaveState.SUCCESSFUL)) {
             msg.append("Показания по услуге ")
                     .append(sumMeterVolExt.getServiceName().replace(".", "\\."))
-                    .append(": ").append(update.getMessage().getText()
+                    .append(": ").append(String.valueOf(result.getValue1())
                             .replace(".", "\\.")).append(": ").append(" приняты");
+        } else if (status.equals(MeterValSaveState.WRONG_FORMAT)) {
+            log.error("Некорректное показание по счетчику, фин.лиц klskId={}, {}",
+                    env.getUserCurrentKo().get(userId).getKlskId(),
+                    status);
+            msg.append("Некорректное показание по счетчику\\!");
+        } else if (status.equals(MeterValSaveState.VAL_SAME_OR_LOWER)) {
+            msg.append("Показания те же или меньше текущих\\!");
+        } else if (status.equals(MeterValSaveState.VAL_TOO_BIG)) {
+            msg.append("Показания слишком большие\\!");
+        } else if (status.equals(MeterValSaveState.VAL_TOO_BIG_OR_LOW)) {
+            msg.append("Показания вне допустимого диапазона\\!");
         } else {
             log.error("Ошибка передачи показаний по счетчику, фин.лиц klskId={}, {}",
                     env.getUserCurrentKo().get(userId).getKlskId(),
@@ -252,19 +267,20 @@ public class UserInteractionImpl {
     }
 
 
-    public MeterValSaveState saveMeterValByMeterId(int meterId, String strVal) {
+    public Pair<MeterValSaveState, Double> saveMeterValByMeterId(int meterId, String strVal) {
         try {
             double val = Double.parseDouble(strVal.replace(",", "."));
+            BigDecimal rounded = new BigDecimal(val).setScale(5, RoundingMode.HALF_UP);
             if (val > 9999999 || val < -9999999) {
-                return MeterValSaveState.VAL_TOO_BIG_OR_LOW;
+                return new Pair<>(MeterValSaveState.VAL_TOO_BIG_OR_LOW, null);
             }
-            Integer ret = meterMng.saveMeterValByMeterId(meterId, val);
-            return statusCode.get(ret);
+            Integer ret = meterMng.saveMeterValByMeterId(meterId, rounded.doubleValue());
+            return new Pair<>(statusCode.get(ret), rounded.doubleValue());
         } catch (NumberFormatException e) {
-            return MeterValSaveState.WRONG_FORMAT;
+            return new Pair<>(MeterValSaveState.WRONG_FORMAT, null);
         } catch (Exception e) {
             e.printStackTrace();
-            return MeterValSaveState.ERROR_WHILE_SENDING;
+            return new Pair<>(MeterValSaveState.WRONG_FORMAT, null);
         }
     }
 

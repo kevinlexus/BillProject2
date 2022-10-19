@@ -8,9 +8,9 @@ import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Справочник услуг
@@ -135,6 +135,10 @@ public class Usl implements java.io.Serializable {
     @Type(type = "org.hibernate.type.NumericBooleanType")
     @Column(name = "HIDE_CHRG", updatable = false)
     private Boolean isHideChrg;
+
+    // максимальный объем за одну итерацию передачи объемов через ЛК или Telegram bot
+    @Column(name = "MAX_VOL")
+    private BigDecimal maxVol;
 
     /**
      * Получить фактическую услугу, поставляющую объем (иногда нужно, например для услуги fkCalcTp=31)

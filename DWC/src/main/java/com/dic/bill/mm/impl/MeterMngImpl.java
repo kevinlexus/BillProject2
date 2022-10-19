@@ -587,6 +587,7 @@ public class MeterMngImpl implements MeterMng {
                 )
                 .setParameter("p_meter_id", meterId)
                 .setParameter("p_n1", curVal)
+                .setParameter("p_control", 2)
                 .setParameter("p_is_set_prev", 0)
                 .setParameter("p_ts", new Date())
                 .setParameter("p_status", MeterValConsts.INSERT_FOR_LOAD_TO_GIS)

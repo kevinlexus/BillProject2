@@ -162,6 +162,8 @@ public class Bot extends TelegramLongPollingBot {
 
     private void updateMessage(TelegramMessage tm) throws TelegramApiException {
         EditMessageText em = ((UpdateMessage) tm).getEm();
+        log.info("text={}", em.getText());
+        em.setText(em.getText().replace("-","\\-")); // todo перенести сюда все исправления . и прочих символов
         execute(em);
     }
 
