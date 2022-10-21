@@ -4,11 +4,13 @@ import com.ric.cmn.excp.WrongParam;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.imageio.ImageIO;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.*;
@@ -19,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static junit.framework.TestCase.assertTrue;
@@ -1009,6 +1012,65 @@ public class Utl {
             index += to.length(); // Move to the end of the replacement
             index = builder.indexOf(from, index);
         }
+    }
+
+    public static ByteArrayInputStream renderImage(StringBuilder msg, String fontName, int fontSize, int widthAdd) {
+        ByteArrayInputStream mediaStream = null;
+        //        int fontSize = 14;
+        String[] lines = msg.toString().split("\\r?\\n");
+
+//        InputFile file = new InputFile();
+        BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = img.createGraphics();
+        Font font = new Font(fontName, Font.PLAIN, fontSize);
+        g2d.setFont(font);
+        FontMetrics fm = g2d.getFontMetrics();
+        int width = 0;
+        int height = 0;
+
+        for (String line : lines) {
+            int lineWidth = fm.stringWidth(line) + widthAdd;
+            if (lineWidth > width) {
+                width = lineWidth;
+            }
+            height += fm.getHeight();
+        }
+
+        g2d.dispose();
+
+        img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        g2d = img.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_ENABLE);
+        g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        g2d.setFont(font);
+        g2d.setColor(new Color(252, 252, 230)); // цвет фона
+        g2d.fillRoundRect(0, 0, img.getWidth(), img.getHeight(), 10, 10);
+        g2d.setColor(Color.BLACK);
+        int nextLinePosition = 0;
+        for (String line : lines) {
+            g2d.drawString(line, 0, nextLinePosition);
+            nextLinePosition = nextLinePosition + fontSize;
+        }
+        g2d.dispose();
+        try {
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            File filed = new File("d:\\temp\\86\\test.png");
+            ImageIO.write(img, "png", filed);
+            ImageIO.write(img, "png", stream);
+            mediaStream = new ByteArrayInputStream(stream.toByteArray());
+            //file.setMedia(mediaStream, "test.png");
+
+            //if (pm != null) pm.setPhoto(file);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return mediaStream;
     }
 
 }

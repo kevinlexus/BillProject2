@@ -15,11 +15,11 @@ import java.util.Map;
 public class PaymentReport extends BotReportBase {
 
     public static final String DT = "dt";
-    public static final String DT_NAME = "Дата платежа";
+    public static final String DT_NAME = "      Дата";
     public static final String SUM = "summa";
     public static final String SUM_NAME = "Сумма";
     public static final String SOURCE = "source";
-    public static final String SOURCE_NAME = "Источник поступления";
+    public static final String SOURCE_NAME = "Источник";
 
     // отчёт - поступление оплаты
     public StringBuilder getStrPaymentFormatted(List<SumPayment> lst) throws IntrospectionException, InvocationTargetException, IllegalAccessException {

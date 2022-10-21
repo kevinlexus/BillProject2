@@ -1,21 +1,29 @@
 package com.dic.app.telegram.bot.service.message;
 
+import com.dic.app.telegram.bot.message.PhotoMessage;
 import com.dic.app.telegram.bot.message.SimpleMessage;
 import com.dic.app.telegram.bot.message.TelegramMessage;
 import com.dic.app.telegram.bot.message.UpdateMessage;
 import com.dic.app.telegram.bot.service.menu.Buttons;
+import com.ric.cmn.Utl;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 public class MessageStore {
+    public static final int WIDTH_ADD = 25; // магическое число, если шрифт будет меньше 14, начнут вылезать поля
     private final Update update;
     private List<InlineKeyboardButton> buttons = new ArrayList<>();
     @Getter
@@ -63,6 +71,7 @@ public class MessageStore {
             return new SimpleMessage(sm);
         }
     }
+
     public void addButton(Buttons button) {
         addButton(button.getCallBackData(), button.toString());
     }
@@ -72,11 +81,20 @@ public class MessageStore {
     }
 
     public TelegramMessage build(StringBuilder msg) {
-        if (buttons.size()>0) {
+        if (buttons.size() > 0) {
             rowList.add(buttons);
         }
         inlineKeyboardMarkup.setKeyboard(rowList);
         return createMessage(update, msg, inlineKeyboardMarkup);
+    }
+
+    public TelegramMessage buildPhoto(StringBuilder msg, String fileName) {
+        SendPhoto pm = new SendPhoto();
+        ByteArrayInputStream stream = Utl.renderImage(msg, "Lucida Console", 14, 25);
+        InputFile inputFile = new InputFile();
+        inputFile.setMedia(stream, fileName);
+        pm.setPhoto(inputFile);
+        return new PhotoMessage(pm);
     }
 }
 

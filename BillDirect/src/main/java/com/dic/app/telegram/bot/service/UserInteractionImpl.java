@@ -127,8 +127,6 @@ public class UserInteractionImpl {
 
         String periodBack = config.getPeriodBackByMonth(12);
         Long klskId = getCurrentKlskId(userId);
-        //klskId = 104880L;
-        //periodBack = "201309";
         StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
 
         Ko ko = entityManager.find(Ko.class, klskId);
@@ -141,16 +139,12 @@ public class UserInteractionImpl {
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
 
-        String periodBack = config.getPeriodBackByMonth(12);
         Long klskId = getCurrentKlskId(userId);
-        //klskId = 104880L;
         StringBuilder msg = registryMng.getChargeFormatted(klskId);
         if (msg == null) {
             msg.append("_Повторите запрос позже_");
-        } else {
-            msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
         }
-        return messageStore.build(msg);
+        return messageStore.buildPhoto(msg, "Начисление.png");
     }
 
     public TelegramMessage showPayment(Update update, long userId) {
@@ -160,7 +154,6 @@ public class UserInteractionImpl {
         String periodFrom = config.getPeriodBackByMonth(12);
         String periodTo = config.getPeriod();
         Long klskId = getCurrentKlskId(userId);
-        //klskId = 104880L;
         StringBuilder msg = registryMng.getPaymentFormatted(klskId, periodFrom, periodTo);
 
         return messageStore.build(msg);
@@ -182,7 +175,7 @@ public class UserInteractionImpl {
         // присвоить счетчик
         Integer meterId = null;
         if (callBackData != null) {
-            meterId = Integer.parseInt((callBackData.substring(14)));
+            meterId = Integer.parseInt((callBackData.substring(METER.getCallBackData().length() + 1)));
         } else {
             meterId = env.getUserCurrentMeter().get(userId).getMeterId();
         }
@@ -224,12 +217,12 @@ public class UserInteractionImpl {
         if (status.equals(MeterValSaveState.SUCCESSFUL)) {
             msg.append("Показания по услуге ")
                     .append(sumMeterVolExt.getServiceName())
-                    .append(": ").append(String.valueOf(result.getValue1())
-                            ).append(": ").append(" приняты");
+                    .append(": ").append(result.getValue1()
+                    ).append(": ").append(" приняты");
         } else if (status.equals(MeterValSaveState.WRONG_FORMAT)) {
             log.error("Некорректное показание по счетчику, фин.лиц klskId={}, {}",
                     env.getUserCurrentKo().get(userId).getKlskId(),
-                    status);
+                    update.getMessage().getText());
             msg.append("Некорректное показание по счетчику\\!");
         } else if (status.equals(MeterValSaveState.VAL_SAME_OR_LOWER)) {
             msg.append("Показания те же или меньше текущих\\!");
@@ -246,7 +239,6 @@ public class UserInteractionImpl {
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
         return messageStore.build(msg);
-
     }
 
     /**
@@ -271,9 +263,7 @@ public class UserInteractionImpl {
         try {
             double val = Double.parseDouble(strVal.replace(",", "."));
             BigDecimal rounded = new BigDecimal(val).setScale(5, RoundingMode.HALF_UP);
-            if (val > 9999999 || val < -9999999) {
-                return new Pair<>(MeterValSaveState.VAL_TOO_BIG_OR_LOW, null);
-            }
+            // все проверки по допустимому объему счетчика, осуществляются в хранимой процедуре p_meter.ins_data_meter
             Integer ret = meterMng.saveMeterValByMeterId(meterId, rounded.doubleValue());
             return new Pair<>(statusCode.get(ret), rounded.doubleValue());
         } catch (NumberFormatException e) {

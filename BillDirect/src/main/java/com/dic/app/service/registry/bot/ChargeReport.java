@@ -41,7 +41,7 @@ public class ChargeReport extends BotReportBase {
 
         StringBuilder msg = new StringBuilder();
         msg.append("Начисление\r\n");
-        StringBuilder preFormatted = new StringBuilder("```\r\n");
+        StringBuilder preFormatted = new StringBuilder("");
         String uslHeader = columns.get(USL).getCaptionWithPrefix();
         String volHeader = columns.get(VOL).getCaptionWithPrefix();
         String priceHeader = columns.get(PRICE).getCaptionWithPrefix();
@@ -57,7 +57,6 @@ public class ChargeReport extends BotReportBase {
             String summa = columns.get(SUMMA).getValueFormatted(row.getSumma(), MONEY_PATTERN);
             preFormatted.append(String.format("|%s|%s|%s|%s|%s|\r\n", usl, vol, price, unit, summa));
         }
-        preFormatted.append("```");
         msg.append(preFormatted);
         return msg;
     }

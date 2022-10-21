@@ -1,9 +1,6 @@
 package com.dic.app.telegram.bot.service;
 
-import com.dic.app.telegram.bot.message.PlainMessage;
-import com.dic.app.telegram.bot.message.SimpleMessage;
-import com.dic.app.telegram.bot.message.TelegramMessage;
-import com.dic.app.telegram.bot.message.UpdateMessage;
+import com.dic.app.telegram.bot.message.*;
 import com.dic.app.telegram.bot.service.client.Env;
 import com.dic.app.telegram.bot.service.menu.Menu;
 import com.dic.app.telegram.bot.service.menu.MenuStep;
@@ -13,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -60,15 +58,13 @@ public class Bot extends TelegramLongPollingBot {
             TelegramMessage tm = null;
             if (!env.getUserRegisteredKo().containsKey(userId)) {
                 // аутентификация пользователя в системе
-                long code = ui.authenticateUser(userId);
-                if (code != 0) {
-                    executeSendMessage(update, String.format("Сообщите код оператору, для регистрации = %,d", code).replace(","," "));
-                    return;
-                } else {
-                    menuPath.add(new MenuStep(Menu.ROOT, ""));
-                    tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
-                }
+                if (checkAuth(update, userId)) return;
+                menuPath.add(new MenuStep(Menu.ROOT, ""));
+                tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
+
             } else {
+                if (checkAuth(update, userId)) return;
+
                 if (update.hasCallbackQuery()) {
                     // нажата кнопка (выбрано меню)
                     callBackStr = update.getCallbackQuery().getData();
@@ -135,12 +131,23 @@ public class Bot extends TelegramLongPollingBot {
                 sendSimpleMessage(tm);
             } else if (tm instanceof UpdateMessage) {
                 updateMessage(tm);
+            } else if (tm instanceof PhotoMessage) {
+                sendPhotoMessage(update, tm);
             }
         } catch (
                 TelegramApiException e) {
             e.printStackTrace();
         }
 
+    }
+
+    private boolean checkAuth(Update update, long userId) throws TelegramApiException {
+        long code = ui.authenticateUser(userId);
+        if (code != 0) {
+            executeSendMessage(update, String.format("Сообщите код оператору, для регистрации = %,d", code).replace(","," "));
+            return true;
+        }
+        return false;
     }
 
     private void executeSendMessage(Update update, String msg) throws TelegramApiException {
@@ -166,7 +173,15 @@ public class Bot extends TelegramLongPollingBot {
         em.setText(em.getText().replace("-","\\-").replace(".", "\\.").replace("|", "\\|"));
         execute(em);
     }
-
+    private void sendPhotoMessage(Update update, TelegramMessage tm) throws TelegramApiException {
+        SendPhoto pm = ((PhotoMessage) tm).getPm();
+        if (update.getMessage() == null) {
+            pm.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
+        } else {
+            pm.setChatId(update.getMessage().getChatId().toString());
+        }
+        execute(pm);
+    }
 
     public String getBotUsername() {
         return botUsername;
