@@ -185,7 +185,7 @@ public class TestGenPenProcessMng {
 
         // построить запрос
         RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
-                .withTp(ProcessTypes.DEBT_PEN)
+                .withTp(ProcessTypes.DEBT_PEN_1)
                 .withGenDt(Utl.getDateFromStr("28.04.2014"))
                 .withKo(ko)
                 .withCurDt1(config.getCurDt1())

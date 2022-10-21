@@ -33,8 +33,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE;
-import static com.dic.app.service.impl.enums.ProcessTypes.DIST_VOL;
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_0;
+import static com.dic.app.service.impl.enums.ProcessTypes.DIST_VOL_2;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = Config.class)
@@ -93,7 +93,7 @@ public class TestKart {
         RequestConfigDirect reqConf =
                 RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
                         .withRqn(config.incNextReqNum()) // уникальный номер запроса
-                        .withTp(CHARGE) // тип операции - начисление
+                        .withTp(CHARGE_0) // тип операции - начисление
                         .withIsMultiThreads(false) // для Unit - теста однопоточно!
                         .build();
 
@@ -120,7 +120,7 @@ public class TestKart {
 
         reqConf.setVvod(null);
         reqConf.setKo(ko);
-        reqConf.setTp(CHARGE);
+        reqConf.setTp(CHARGE_0);
 
         // выполнить расчет
         genChrgProcessMng.genChrg(reqConf, ko.getId());
@@ -142,7 +142,7 @@ public class TestKart {
             reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
                     .withRqn(config.incNextReqNum()) // уникальный номер запроса
                     .withGenDt(Utl.getDateFromStr("11.04.2014"))
-                    .withTp(DIST_VOL) // тип операции - распределение объема
+                    .withTp(DIST_VOL_2) // тип операции - распределение объема
                     .withIsMultiThreads(false) // для Unit - теста однопоточно!
                     .build();
         } catch (ParseException e) {
@@ -224,7 +224,7 @@ public class TestKart {
 
         reqConf.setVvod(null);
         reqConf.setHouse(house);
-        reqConf.setTp(CHARGE);
+        reqConf.setTp(CHARGE_0);
         reqConf.prepareChrgCountAmount();
         reqConf.prepareId();
         sw.start("TIMING:Начисление");

@@ -91,10 +91,10 @@ public class GenChrgProcessMngImpl {
 
             // выбранные услуги для формирования
             List<Usl> lstSelUsl = new ArrayList<>();
-            if (Utl.in(reqConf.getTp(), CHARGE, CHARGE_SINGLE_USL) && reqConf.getUsl() != null) {
+            if (Utl.in(reqConf.getTp(), CHARGE_0, CHARGE_SINGLE_USL_4) && reqConf.getUsl() != null) {
                 // начисление по выбранной услуге, начисление по одной услуге, для автоначисления
                 lstSelUsl.add(reqConf.getUsl());
-            } else if (Utl.in(reqConf.getTp(), CHARGE_FOR_DIST)) {
+            } else if (Utl.in(reqConf.getTp(), CHARGE_FOR_DIST_2)) {
                 // начисление для распределения по вводу
                 // добавить услуги для ограничения формирования только по ним
                 lstSelUsl.add(reqConf.getVvod().getUsl());
@@ -132,7 +132,7 @@ public class GenChrgProcessMngImpl {
             }
 
             // кроме распределения объемов (там нечего еще считать, нет экономии ОДН
-            if (!Utl.in(reqConf.getTp(), CHARGE_FOR_DIST, CHARGE_SINGLE_USL)) {
+            if (!Utl.in(reqConf.getTp(), CHARGE_FOR_DIST_2, CHARGE_SINGLE_USL_4)) {
                 // 2. распределить экономию ОДН по услуге, пропорционально объемам
                 log.trace("Распределение экономии ОДН");
                 distODNeconomy(chrgCountAmountLocal, ko, lstSelUsl);
@@ -156,14 +156,14 @@ public class GenChrgProcessMngImpl {
             chrgCountAmountLocal.roundVol();
             //chrgCountAmountLocal.printVolAmntChrg();
 
-            if (reqConf.getTp() == CHARGE_FOR_DIST) {
+            if (reqConf.getTp() == CHARGE_FOR_DIST_2) {
                 // 5. Добавить в объемы по вводу
                 reqConf.getChrgCountAmount().append(chrgCountAmountLocal);
             }
 
             chrgCountAmountLocal.printVolAmnt(null, "После округления");
 
-            if (!Utl.in(reqConf.getTp(), CHARGE_FOR_DIST, CHARGE_SINGLE_USL)) {
+            if (!Utl.in(reqConf.getTp(), CHARGE_FOR_DIST_2, CHARGE_SINGLE_USL_4)) {
                 // 6. Сгруппировать строки начислений для записи в C_CHARGE
                 //chrgCountAmountLocal.printVolAmntChrg();
                 chrgCountAmountLocal.groupUslVolChrg();
@@ -175,7 +175,7 @@ public class GenChrgProcessMngImpl {
                 chrgCountAmountLocal.saveFactMeterTp(ko, lstMeterVol, reqConf.getCurDt2());
             }
 
-            if (reqConf.getTp() == CHARGE_SINGLE_USL) {
+            if (reqConf.getTp() == CHARGE_SINGLE_USL_4) {
                 // 10. по операции - начисление по одной услуге, для автоначисления - по нормативу
                 // заполнить итоговый объем
                 reqConf.getChrgCountAmount().setResultVol(chrgCountAmountLocal.getAmntVolByUsl(reqConf.getUsl()));

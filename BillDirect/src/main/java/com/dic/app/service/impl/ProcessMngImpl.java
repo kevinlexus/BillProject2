@@ -117,13 +117,13 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
         retStatus = reqConf.checkArguments();
         if (retStatus == null) {
             try {
-                if (Utl.in(reqConf.getTp(), CHARGE, DEBT_PEN, DIST_VOL, CHARGE_SINGLE_USL)) {
+                if (Utl.in(reqConf.getTp(), CHARGE_0, DEBT_PEN_1, DIST_VOL_2, CHARGE_SINGLE_USL_4)) {
                     // расчет начисления, распределение объемов, расчет пени
                     if (reqConf.getLstItems().size() > 1)
                         log.info("Будет обработано {} объектов", reqConf.getLstItems().size());
                     processAllMng.processAll(reqConf);
                 }
-                if (Utl.in(reqConf.getTp(), CHARGE_SINGLE_USL)) {
+                if (Utl.in(reqConf.getTp(), CHARGE_SINGLE_USL_4)) {
                     // по операции - начисление по одной услуге, для автоначисления
                     // вернуть начисленный объем
                     retStatus = "OK:" + reqConf.getChrgCountAmount().getResultVol().toString();

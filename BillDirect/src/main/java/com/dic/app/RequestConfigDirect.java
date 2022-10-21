@@ -53,7 +53,7 @@ public class RequestConfigDirect implements Cloneable {
     // Id запроса
     int rqn;
     // тип выполнения
-    ProcessTypes tp = CHARGE;
+    ProcessTypes tp = CHARGE_0;
     // уровень отладки
     int debugLvl = 0;
     // дата на которую сформировать
@@ -117,12 +117,12 @@ public class RequestConfigDirect implements Cloneable {
     // получить наименование типа выполнения
     public String getTpName() {
         return switch (this.tp) {
-            case CHARGE -> "Начисление";
-            case DEBT_PEN -> "Задолженность и пеня";
-            case DIST_VOL -> "Распределение объемов";
-            case CHARGE_FOR_DIST -> "Начисление для распределения объемов";
-            case CHARGE_SINGLE_USL -> "Начисление по одной услуге, для автоначисления";
-            case MIGRATION -> "Миграция долгов";
+            case CHARGE_0 -> "Начисление";
+            case DEBT_PEN_1 -> "Задолженность и пеня";
+            case DIST_VOL_2 -> "Распределение объемов";
+            case CHARGE_FOR_DIST_2 -> "Начисление для распределения объемов";
+            case CHARGE_SINGLE_USL_4 -> "Начисление по одной услуге, для автоначисления";
+            case MIGRATION_5 -> "Миграция долгов";
         };
     }
 
@@ -133,7 +133,7 @@ public class RequestConfigDirect implements Cloneable {
      */
     public String checkArguments() {
         switch (this.tp) {
-            case DEBT_PEN, DIST_VOL, CHARGE_FOR_DIST, CHARGE_SINGLE_USL -> {
+            case DEBT_PEN_1, DIST_VOL_2, CHARGE_FOR_DIST_2, CHARGE_SINGLE_USL_4 -> {
                 // задолженность и пеня, - проверить текущую дату
                 if (genDt == null) {
                     return "ERROR! некорректная дата расчета!";
@@ -145,7 +145,7 @@ public class RequestConfigDirect implements Cloneable {
                 }
             }
         }
-        if (this.tp == CHARGE_SINGLE_USL) {
+        if (this.tp == CHARGE_SINGLE_USL_4) {
             if (this.usl == null) {
                 return "ERROR! не заполнена услуга (uslId) для расчета!";
             }
@@ -160,7 +160,7 @@ public class RequestConfigDirect implements Cloneable {
      */
     public void prepareId() {
         calcScope = CalcScope.NOT_SPECIFIED;
-        if (Utl.in(tp, CHARGE, DEBT_PEN, CHARGE_FOR_DIST, CHARGE_SINGLE_USL)) {
+        if (Utl.in(tp, CHARGE_0, DEBT_PEN_1, CHARGE_FOR_DIST_2, CHARGE_SINGLE_USL_4)) {
             // начисление, начисление для распределения объемов, начисление по одной услуге, для автоначисления
             KartDAO kartDao = SpringContext.getBean(KartDAO.class);
             if (ko != null) {
@@ -177,7 +177,7 @@ public class RequestConfigDirect implements Cloneable {
                 isLockForLongLastingProcess = true;
                 lstItems = kartDao.findAllKlskIdByReuId(uk.getReu())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
-                if (tp == CHARGE_FOR_DIST) {
+                if (tp == CHARGE_FOR_DIST_2) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
                 } else {
@@ -189,7 +189,7 @@ public class RequestConfigDirect implements Cloneable {
                 isLockForLongLastingProcess = false;
                 lstItems = kartDao.findAllKlskIdByHouseId(house.getId())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
-                if (tp == CHARGE_FOR_DIST) {
+                if (tp == CHARGE_FOR_DIST_2) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
                 } else {
@@ -201,7 +201,7 @@ public class RequestConfigDirect implements Cloneable {
                 isLockForLongLastingProcess = true;
                 lstItems = kartDao.findAllKlskIdByKulNds(kulNds)
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
-                if (tp == CHARGE_FOR_DIST) {
+                if (tp == CHARGE_FOR_DIST_2) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
                 } else {
@@ -212,7 +212,7 @@ public class RequestConfigDirect implements Cloneable {
                 calcScope = CalcScope.KLSK_IDS;
                 isLockForLongLastingProcess = true;
                 lstItems = klskIds;
-                if (tp == CHARGE_FOR_DIST) {
+                if (tp == CHARGE_FOR_DIST_2) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
                 } else {
@@ -224,7 +224,7 @@ public class RequestConfigDirect implements Cloneable {
                 isLockForLongLastingProcess = false;
                 lstItems = kartDao.findAllKlskIdByVvodId(vvod.getId())
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
-                if (tp == CHARGE_FOR_DIST) {
+                if (tp == CHARGE_FOR_DIST_2) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
                 } else {
@@ -237,14 +237,14 @@ public class RequestConfigDirect implements Cloneable {
                 // конвертировать из List<BD> в List<Long> (native JPA представляет k_lsk_id только в BD и происходит type Erasure)
                 lstItems = kartDao.findAllKlskId()
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
-                if (tp == CHARGE_FOR_DIST) {
+                if (tp == CHARGE_FOR_DIST_2) {
                     // кол-во потоков для начисления по распределению объемов
                     cntThreads = CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS;
                 } else {
                     cntThreads = CNT_THREADS_FOR_COMMON_TASKS;
                 }
             }
-        } else if (tp == DIST_VOL) {
+        } else if (tp == DIST_VOL_2) {
             // распределение вводов
             VvodDAO vvodDAO = SpringContext.getBean(VvodDAO.class);
             if (vvod != null) {
@@ -273,7 +273,7 @@ public class RequestConfigDirect implements Cloneable {
                         .stream().map(BigDecimal::longValue).collect(Collectors.toList());
                 cntThreads = CNT_THREADS_FOR_COMMON_TASKS;
             }
-        } else if (tp == MIGRATION) {
+        } else if (tp == MIGRATION_5) {
             // миграция долгов
             ConfigApp config = SpringContext.getBean(ConfigApp.class);
             SaldoUslDAO saldoUslDao = SpringContext.getBean(SaldoUslDAO.class);
@@ -328,7 +328,7 @@ public class RequestConfigDirect implements Cloneable {
         int rqn;
         // тип выполнения 0-начисление, 3-начисление для распределения по вводу, 1-задолженность и пеня, 2 - распределение объемов по вводу,
         // 4 - начисление по одной услуге, для автоначисления
-        ProcessTypes tp = CHARGE;
+        ProcessTypes tp = CHARGE_0;
         // уровень отладки
         int debugLvl = 0;
         // дата на которую сформировать

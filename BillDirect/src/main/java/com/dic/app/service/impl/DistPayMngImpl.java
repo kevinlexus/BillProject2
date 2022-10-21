@@ -27,7 +27,7 @@ import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.*;
 
-import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE;
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_0;
 
 /**
  * Сервис распределения оплаты
@@ -479,7 +479,7 @@ public class DistPayMngImpl implements DistPayMng {
 
         // сформировать начисление
         if (isGenChrg) {
-                processMng.processWebRequest(CHARGE, 0, amount.getDtek(), null, null,
+                processMng.processWebRequest(CHARGE_0, 0, amount.getDtek(), null, null,
                         amount.getKart().getKoKw(), null, null);
         }
 

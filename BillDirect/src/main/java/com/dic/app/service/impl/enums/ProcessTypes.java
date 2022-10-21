@@ -5,12 +5,12 @@ import lombok.Getter;
 import java.util.Arrays;
 
 public enum ProcessTypes {
-    CHARGE(0), // 0-начисление
-    DEBT_PEN(1),  // 1 - задолженность и пеня
-    DIST_VOL(2), // 2 - распределение объемов по вводу
-    CHARGE_FOR_DIST(3), // 3 - начисление для распределения по вводу
-    CHARGE_SINGLE_USL(4), // 4 - начисление по одной услуге
-    MIGRATION(5); // 5 - миграция долгов
+    CHARGE_0(0), // 0-начисление
+    DEBT_PEN_1(1),  // 1 - задолженность и пеня
+    DIST_VOL_2(2), // 2 - распределение объемов по вводу
+    CHARGE_FOR_DIST_2(3), // 3 - начисление для распределения по вводу
+    CHARGE_SINGLE_USL_4(4), // 4 - начисление по одной услуге
+    MIGRATION_5(5); // 5 - миграция долгов
     @Getter
     private final int id;
 

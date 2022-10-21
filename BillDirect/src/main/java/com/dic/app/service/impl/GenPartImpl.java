@@ -4,7 +4,6 @@ import com.dic.app.RequestConfigDirect;
 import com.dic.app.service.ConfigApp;
 import com.dic.app.service.GenPart;
 import com.dic.bill.dao.NaborDAO;
-import com.dic.bill.dao.UslDAO;
 import com.dic.bill.dto.*;
 import com.dic.bill.mm.*;
 import com.dic.bill.model.scott.*;
@@ -23,7 +22,7 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_SINGLE_USL;
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_SINGLE_USL_4;
 
 @Slf4j
 @Service
@@ -224,7 +223,7 @@ public class GenPartImpl implements GenPart {
                                     isMeterExist || Utl.between(curDt, sprParamMng.getD1("MONTH_HEAT1"),// кран из системы отопления (не счетчик) -
                                     sprParamMng.getD1("MONTH_HEAT2")) // начислять только в отопительный период
                             ))) {
-                        if (reqConf.getTp() == CHARGE_SINGLE_USL) {
+                        if (reqConf.getTp() == CHARGE_SINGLE_USL_4) {
                             // начисление по выбранной услуге, по нормативу, для автоначисления
                             isMeterExist = false;
                         }
@@ -389,7 +388,7 @@ public class GenPartImpl implements GenPart {
                                     isMeterExist || Utl.between(curDt, sprParamMng.getD1("MONTH_HEAT1"),// кран из системы отопления (не счетчик) -
                                     sprParamMng.getD1("MONTH_HEAT2")) // начислять только в отопительный период
                             ))) {
-                        if (reqConf.getTp() == CHARGE_SINGLE_USL) {
+                        if (reqConf.getTp() == CHARGE_SINGLE_USL_4) {
                             // начисление по выбранной услуге, по нормативу, для автоначисления
                             isMeterExist = false;
                         }

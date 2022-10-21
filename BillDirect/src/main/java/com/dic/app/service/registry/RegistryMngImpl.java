@@ -52,7 +52,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE;
+import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_0;
 
 /**
  * Сервис работы с различными реестрами
@@ -1481,7 +1481,7 @@ public class RegistryMngImpl {
     public StringBuilder getChargeFormatted(Long klskId) {
         Ko ko = em.find(Ko.class, klskId);
         RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
-                .withTp(CHARGE)
+                .withTp(CHARGE_0)
                 .withGenDt(configApp.getCurDt2())
                 .withKo(ko)
                 .withCurDt1(configApp.getCurDt1())

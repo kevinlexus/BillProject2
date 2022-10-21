@@ -125,7 +125,7 @@ public class ProcessAllMng {
     private List<LskChargeUsl> selectInvokeProcess(RequestConfigDirect reqConf) throws ErrorWhileGen {
         List<LskChargeUsl> resultLskChargeUsl = new ArrayList<>();
         switch (reqConf.getTp()) { // начисление для распределения по вводу
-            case CHARGE, DEBT_PEN, DIST_VOL, CHARGE_FOR_DIST, CHARGE_SINGLE_USL -> {
+            case CHARGE_0, DEBT_PEN_1, DIST_VOL_2, CHARGE_FOR_DIST_2, CHARGE_SINGLE_USL_4 -> {
                 // перебрать все объекты для расчета
                 Long id = null;
                 try {
@@ -137,13 +137,13 @@ public class ProcessAllMng {
                                 log.info("Процесс {} был ПРИНУДИТЕЛЬНО остановлен", reqConf.getTpName());
                                 break;
                             }
-                            if (Utl.in(reqConf.getTp(), CHARGE, DEBT_PEN, CHARGE_FOR_DIST, CHARGE_SINGLE_USL)) {
+                            if (Utl.in(reqConf.getTp(), CHARGE_0, DEBT_PEN_1, CHARGE_FOR_DIST_2, CHARGE_SINGLE_USL_4)) {
                                 // Начисление и начисление для распределения объемов, расчет пени
                                 if (reqConf.isSingleObjectCalc()) {
                                     log.info("****** {} фин.лиц.сч. klskId={} - начало    ******",
                                             reqConf.getTpName(), id);
                                 }
-                                if (Utl.in(reqConf.getTp(), DEBT_PEN)) {
+                                if (Utl.in(reqConf.getTp(), DEBT_PEN_1)) {
                                     // расчет пени
                                     genPenProcessMng.genDebitPen(reqConf, true, id);
                                 } else {
@@ -160,7 +160,7 @@ public class ProcessAllMng {
                                 }
                                 i++;
                                 i2++;
-                            } else if (reqConf.getTp() == DIST_VOL) {
+                            } else if (reqConf.getTp() == DIST_VOL_2) {
                                 // Распределение объемов
                                 distVolMng.distVolByVvodTrans(reqConf, id);
                             }
@@ -175,7 +175,7 @@ public class ProcessAllMng {
                     if (reqConf.isLockForLongLastingProcess()) {
                         config.getLock().unlockProc(reqConf.getRqn(), reqConf.getStopMark());
                     }
-                    if (reqConf.getTp() == DIST_VOL) {
+                    if (reqConf.getTp() == DIST_VOL_2) {
                         throw new ErrorWhileGen("ОШИБКА! Произошла ошибка в потоке " + reqConf.getTpName()
                                 + ", объект vvodId=" + id);
                     } else {
@@ -184,7 +184,7 @@ public class ProcessAllMng {
                     }
                 }
             }
-            case MIGRATION -> {
+            case MIGRATION_5 -> {
                 // миграция долгов
                 // перебрать все объекты для расчета
                 String id = null;
