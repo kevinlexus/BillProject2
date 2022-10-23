@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -94,7 +95,7 @@ public class Bot extends TelegramLongPollingBot {
                             menuPath.add(new MenuStep(Menu.SELECT_REPORT, callBackStr));
                             menuPath.getLast().setCallBackData(callBackStr);
                         }
-                        tm = ui.selectReport(update, userId);
+                        tm = ui.selectReport(update);
                     } else if (callBackStr.equals(BILLING_FLOW.getCallBackData())) {
                         if (!isBack) {
                             menuPath.add(new MenuStep(Menu.SELECT_FLOW, callBackStr));
@@ -132,7 +133,7 @@ public class Bot extends TelegramLongPollingBot {
             } else if (tm instanceof UpdateMessage) {
                 updateMessage(tm);
             } else if (tm instanceof PhotoMessage) {
-                sendPhotoMessage(update, tm);
+                sendPhotoMessage(tm);
             }
         } catch (
                 TelegramApiException e) {
@@ -173,15 +174,18 @@ public class Bot extends TelegramLongPollingBot {
         em.setText(em.getText().replace("-","\\-").replace(".", "\\.").replace("|", "\\|"));
         execute(em);
     }
-    private void sendPhotoMessage(Update update, TelegramMessage tm) throws TelegramApiException {
+    private void sendPhotoMessage(TelegramMessage tm) throws TelegramApiException {
         SendPhoto pm = ((PhotoMessage) tm).getPm();
-        if (update.getMessage() == null) {
-            pm.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
-        } else {
-            pm.setChatId(update.getMessage().getChatId().toString());
-        }
         execute(pm);
     }
+
+    private void deleteMessage(Update update) throws TelegramApiException {
+            DeleteMessage dm = new DeleteMessage();
+            dm.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
+            dm.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
+            execute(dm);
+    }
+
 
     public String getBotUsername() {
         return botUsername;

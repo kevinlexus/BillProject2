@@ -1505,7 +1505,7 @@ public class RegistryMngImpl {
 
         List<SumChargeRec> chargeLst = charges.stream().map(t -> {
                     Usl usl = em.find(Usl.class, t.getUslId());
-                    return new SumChargeRec(usl.getName(), usl.getNpp(),
+                    return new SumChargeRec(usl.getNameForBot() != null ? usl.getNameForBot() : usl.getId(), usl.getNpp(),
                             t.getVol().doubleValue(), t.getPrice().doubleValue(),
                             usl.getUnitVol(), t.getSumma().doubleValue());
                 }

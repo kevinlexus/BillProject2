@@ -398,6 +398,12 @@ public class Kart {
                 (getNumTrimmed().length() > 0 ? (", " + getNumTrimmed()) : "");
     }
 
+    @Transient
+    public String getAdrExt() {
+        return getSpul().getName() + ", д." + getNdTrimmed() +
+                (getNumTrimmed().length() > 0 ? (", кв." + getNumTrimmed()) : "");
+    }
+
     /**
      * Получить адрес с УК по лиц.счету
      */

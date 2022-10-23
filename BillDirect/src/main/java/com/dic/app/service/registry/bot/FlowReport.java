@@ -40,7 +40,7 @@ public class FlowReport extends BotReportBase {
 
         StringBuilder msg = new StringBuilder();
         msg.append("Движение средств за последний год\r\n");
-        StringBuilder preFormatted = new StringBuilder("```\r\n");
+        StringBuilder preFormatted = new StringBuilder("");
         String chrgHeader = columns.get(CHRG).getCaptionWithPrefix();
         String debtHeader = columns.get(DEBT).getCaptionWithPrefix();
         String payHeader = columns.get(PAY).getCaptionWithPrefix();
@@ -56,7 +56,6 @@ public class FlowReport extends BotReportBase {
             String paypen = columns.get(PAYPEN).getValueFormatted(row.getPayPen(), MONEY_PATTERN);
             preFormatted.append(String.format("|%s|%s|%s|%s|%s|%s|\r\n", row.getMg() + " ", debt, pen, chrg, pay, paypen));
         }
-        preFormatted.append("```");
         msg.append(preFormatted);
         return msg;
     }

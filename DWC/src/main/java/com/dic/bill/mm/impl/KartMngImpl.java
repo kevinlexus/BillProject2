@@ -242,11 +242,16 @@ public class KartMngImpl implements KartMng {
     /**
      * Получить адрес с названием горда по лиц.счету
      *
-     * @param kart - лиц.счет
+     * @param kart лиц.счет
      */
     @Override
     public String getAdrWithCity(Kart kart) {
         return orgDao.getByOrgTp("Город").getName() + ", " + kart.getAdr();
+    }
+
+    @Override
+    public String getAdrWithCityExt(Kart kart) {
+        return orgDao.getByOrgTp("Город").getName() + ", " + kart.getAdrExt();
     }
 
     /**

@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 @Value
-@NoArgsConstructor(force = true)
 @AllArgsConstructor()
 public class SumMeterVolExt {
 

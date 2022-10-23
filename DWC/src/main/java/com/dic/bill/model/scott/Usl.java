@@ -47,6 +47,10 @@ public class Usl implements java.io.Serializable {
     @Column(name = "NM2")
     private String nm2;
 
+    // упрощенное наименование, для telegram bot
+    @Column(name = "NM_FOR_BOT")
+    private String nameForBot;
+
     // короткое название услуги (для удобного представления счета при оплате)
     @Column(name = "NM_SHORT")
     private String nameShort;

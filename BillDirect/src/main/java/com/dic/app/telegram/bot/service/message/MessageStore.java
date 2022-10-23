@@ -12,7 +12,9 @@ import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -24,6 +26,7 @@ import java.util.List;
 @Slf4j
 public class MessageStore {
     public static final int WIDTH_ADD = 25; // магическое число, если шрифт будет меньше 14, начнут вылезать поля
+    public static final String FONT_LUCIDA_CONSOLE = "Lucida Console";
     private final Update update;
     private List<InlineKeyboardButton> buttons = new ArrayList<>();
     @Getter
@@ -52,14 +55,27 @@ public class MessageStore {
 
     private TelegramMessage createMessage(Update update, StringBuilder msg, InlineKeyboardMarkup inlineKeyboardMarkup) {
         if (update.getMessage() == null) {
-            EditMessageText em = new EditMessageText();
-            em.setText(msg.toString());
-            em.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
-            em.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
-            em.setReplyMarkup(inlineKeyboardMarkup);
+            CallbackQuery callbackQuery = update.getCallbackQuery();
+            Message message = callbackQuery.getMessage();
+            if (callbackQuery.getMessage().hasPhoto()) {
+                SendMessage sm = new SendMessage();
+                sm.setText(msg.toString());
 
-            em.setParseMode(ParseMode.MARKDOWNV2);
-            return new UpdateMessage(em);
+                sm.setParseMode(ParseMode.MARKDOWNV2);
+
+                sm.setChatId(message.getChatId().toString());
+                sm.setReplyMarkup(inlineKeyboardMarkup);
+                return new SimpleMessage(sm);
+            } else {
+                EditMessageText em = new EditMessageText();
+                em.setText(msg.toString());
+                em.setChatId(message.getChatId().toString());
+                em.setMessageId(message.getMessageId());
+                em.setReplyMarkup(inlineKeyboardMarkup);
+
+                em.setParseMode(ParseMode.MARKDOWNV2);
+                return new UpdateMessage(em);
+            }
         } else {
             SendMessage sm = new SendMessage();
             sm.setText(msg.toString());
@@ -90,11 +106,23 @@ public class MessageStore {
 
     public TelegramMessage buildPhoto(StringBuilder msg, String fileName) {
         SendPhoto pm = new SendPhoto();
-        ByteArrayInputStream stream = Utl.renderImage(msg, "Lucida Console", 14, 25);
+        ByteArrayInputStream stream = Utl.renderImage(msg, FONT_LUCIDA_CONSOLE, 14, 25);
         InputFile inputFile = new InputFile();
-        inputFile.setMedia(stream, fileName);
+        inputFile.setMedia(stream, fileName + ".png");
+        if (buttons.size() > 0) {
+            rowList.add(buttons);
+        }
+        inlineKeyboardMarkup.setKeyboard(rowList);
+        pm.setReplyMarkup(inlineKeyboardMarkup);
         pm.setPhoto(inputFile);
+        pm.setCaption(fileName);
+        if (update.getMessage() == null) {
+            pm.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
+        } else {
+            pm.setChatId(update.getMessage().getChatId());
+        }
         return new PhotoMessage(pm);
     }
+
 }
 

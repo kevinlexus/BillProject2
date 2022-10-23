@@ -98,14 +98,14 @@ public interface MeterDAO extends JpaRepository<Meter, Integer> {
     List<Meter> findMeter(int n1, int n2);
 
     @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
-    @Query(value = "select new com.ric.dto.SumMeterVolExt(t.id as meterId, t.usl.id as uslId, t.dt1 as dtFrom, t.dt2 as dtTo, " +
-            "coalesce(sum(o.n1),0) as vol, coalesce(t.n1,0) as n1, t.usl.name as serviceName) " +
+    @Query(value = "select new com.ric.dto.SumMeterVolExt(t.id, t.usl.id, t.dt1, t.dt2, " +
+            "coalesce(sum(o.n1),0), coalesce(t.n1,0), t.usl.nameForBot) " +
             "from Meter t " +
-            "left join t.objPar o with o.lst.cd='ins_vol_sch' and o.mg = TO_CHAR(?2,'YYYYMM') "
-            + "where t.koObj.id = ?1 " +
+            "left join t.objPar o "
+            + "where o.lst.cd='ins_vol_sch' and o.mg = TO_CHAR(?2,'YYYYMM') and t.koObj.id = ?1 " +
             "and ((?2 between t.dt1 and t.dt2 or ?3 between t.dt1 and t.dt2) or " +
             "(t.dt1 between ?2 and ?3 or t.dt2 between ?2 and ?3)) " +
-            "group by t.id, t.usl.id, t.dt1, t.dt2, t.n1, t.usl.name ")
+            "group by t.id, t.usl.id, t.dt1, t.dt2, t.n1, t.usl.nameForBot")
     List<SumMeterVolExt> getMeterVolExtByKlskId(Long koObjId, Date dtFrom, Date dtTo);
 
 }

@@ -6,6 +6,7 @@ import com.dic.app.telegram.bot.message.TelegramMessage;
 import com.dic.app.telegram.bot.service.client.Env;
 import com.dic.app.telegram.bot.service.menu.MeterValSaveState;
 import com.dic.app.telegram.bot.service.message.MessageStore;
+import com.dic.bill.dao.OrgDAO;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.mm.ObjParMng;
 import com.dic.bill.model.scott.Ko;
@@ -47,6 +48,8 @@ public class UserInteractionImpl {
     private final ConfigApp config;
     private final RegistryMngImpl registryMng;
     private final EntityManager entityManager;
+    private final OrgDAO orgDAO;
+
     private final Map<Integer, MeterValSaveState> statusCode =
             Map.of(0, MeterValSaveState.SUCCESSFUL,
                     3, MeterValSaveState.VAL_SAME_OR_LOWER,
@@ -60,6 +63,8 @@ public class UserInteractionImpl {
         StringBuilder msg = new StringBuilder();
         MapKoAddress mapKoAddress = registeredKo.get(userId);
         msg.append("_Выберите адрес:_\r\n");
+        String city = orgDAO.getByOrgTp("Город").getName();
+        msg.append("* г.").append(city).append(":*\r\n");
 
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboards = new ArrayList<>();
@@ -98,7 +103,7 @@ public class UserInteractionImpl {
                 msg.append(", расход:");
                 msg.append("*" + sumMeterVol.getVol().toString() + "*");
                 msg.append("\r\n");
-                messageStore.addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(), serviceName);
+                messageStore.addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(), serviceName!=null?serviceName: sumMeterVol.getUslId());
             }
         } else {
             log.error("Не определен klskId");
@@ -110,14 +115,14 @@ public class UserInteractionImpl {
     }
 
 
-    public TelegramMessage selectReport(Update update, long userId) {
+    public TelegramMessage selectReport(Update update) {
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BILLING_FLOW);
         messageStore.addButton(BILLING_CHARGES);
         messageStore.addButton(BILLING_PAYMENTS);
         messageStore.addButton(BACK);
 
-        StringBuilder msg = new StringBuilder("Выберите");
+        StringBuilder msg = new StringBuilder("      \r\nВыберите:");
         return messageStore.build(msg);
     }
 
@@ -130,9 +135,8 @@ public class UserInteractionImpl {
         StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
 
         Ko ko = entityManager.find(Ko.class, klskId);
-        msg.append("_Расчет был произведен:").append(Utl.getStrFromDate(ko.getDtGenDebPen(), "dd.MM.yyyy HH:mm")).append("_\r\n");
-        msg.append("_При необходимости, поверните экран смартфона, для лучшего чтения информации_");
-        return messageStore.build(msg);
+        msg.append("\r\nРасчет был произведен:").append(Utl.getStrFromDate(ko.getDtGenDebPen(), "dd.MM.yyyy HH:mm"));
+        return messageStore.buildPhoto(msg, "Движение по лицевому счету");
     }
 
     public TelegramMessage showCharge(Update update, long userId) {
@@ -142,9 +146,9 @@ public class UserInteractionImpl {
         Long klskId = getCurrentKlskId(userId);
         StringBuilder msg = registryMng.getChargeFormatted(klskId);
         if (msg == null) {
-            msg.append("_Повторите запрос позже_");
+            msg = new StringBuilder("Повторите запрос позже");
         }
-        return messageStore.buildPhoto(msg, "Начисление.png");
+       return messageStore.buildPhoto(msg, "Начисление");
     }
 
     public TelegramMessage showPayment(Update update, long userId) {
@@ -156,7 +160,7 @@ public class UserInteractionImpl {
         Long klskId = getCurrentKlskId(userId);
         StringBuilder msg = registryMng.getPaymentFormatted(klskId, periodFrom, periodTo);
 
-        return messageStore.build(msg);
+        return messageStore.buildPhoto(msg, "Оплата");
     }
 
 

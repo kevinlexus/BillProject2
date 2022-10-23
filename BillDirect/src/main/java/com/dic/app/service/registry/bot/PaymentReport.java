@@ -33,7 +33,7 @@ public class PaymentReport extends BotReportBase {
 
         StringBuilder msg = new StringBuilder();
         msg.append("Оплата\r\n");
-        StringBuilder preFormatted = new StringBuilder("```\r\n");
+        StringBuilder preFormatted = new StringBuilder("");
         String dtHeader = columns.get(DT).getCaptionWithPrefix();
         String sumHeader = columns.get(SUM).getCaptionWithPrefix();
         String sourceHeader = columns.get(SOURCE).getCaptionWithPrefix();
@@ -45,7 +45,6 @@ public class PaymentReport extends BotReportBase {
             String source = columns.get(SOURCE).getStrFormatted(row.getSource());
             preFormatted.append(String.format("|%s|%s|%s|\r\n", dt, sum, source));
         }
-        preFormatted.append("```");
         msg.append(preFormatted);
         return msg;
     }

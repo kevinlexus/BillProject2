@@ -176,7 +176,7 @@ public class ObjParMngImpl implements ObjParMng {
         objParDAO.getKoByObjPar(cd, String.valueOf(userId)).stream()
                 .flatMap(t -> t.getKart().stream().filter(Kart::isActual))
                 .forEach(d -> addressMap.putIfAbsent(d.getKoKw().getId(),
-                        new KoAddress(ord[0]++, d.getKoKw().getId(), kartMng.getAdrWithCity(d))));
+                        new KoAddress(ord[0]++, d.getKoKw().getId(), kartMng.getAdrWithCityExt(d))));
         return new ListKoAddress(new ArrayList<>(addressMap.values()));
     }
 
@@ -189,7 +189,7 @@ public class ObjParMngImpl implements ObjParMng {
                 .flatMap(t -> t.getKart().stream().filter(Kart::isActual))
                 .forEach(d ->
                         mapAddress.put(d.getKoKw().getId(),
-                                new KoAddress(ord[0]++, d.getKoKw().getId(), kartMng.getAdrWithCity(d)))
+                                new KoAddress(ord[0]++, d.getKoKw().getId(), d.getAdrExt()))
                 );
         return new MapKoAddress(mapAddress);
     }

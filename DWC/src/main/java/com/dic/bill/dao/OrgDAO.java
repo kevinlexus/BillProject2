@@ -8,9 +8,6 @@ import java.util.List;
 
 /**
  * DAO сущности com.dic.bill.model.scott.Org
- *
- * @author Lev
- * @version 1.01
  */
 public interface OrgDAO extends JpaRepository<Org, Integer> {
 
@@ -18,8 +15,7 @@ public interface OrgDAO extends JpaRepository<Org, Integer> {
     /**
      * Получить организацию по коду REU
      *
-     * @param reu - код REU
-     * @return
+     * @param reu код REU
      */
     @Query("select t from com.dic.bill.model.scott.Org t where t.reu = ?1")
     Org getByReu(String reu);
@@ -30,17 +26,15 @@ public interface OrgDAO extends JpaRepository<Org, Integer> {
     /**
      * Получить организацию по CD
      *
-     * @param cd - код CD
-     * @return
+     * @param cd код CD
      */
     @Query("select t from com.dic.bill.model.scott.Org t where t.cd = ?1")
     Org getByCD(String cd);
 
     /**
-     * Получить организацию по Типу орг
+     * Получить организацию (наименование города) по Типу орг
      *
-     * @param tp - тип организации
-     * @return
+     * @param tp тип организации
      */
     @Query("select t from com.dic.bill.model.scott.Org t where t.orgTp.cd = ?1")
     Org getByOrgTp(String tp);
