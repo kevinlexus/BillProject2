@@ -729,13 +729,6 @@ public class WebController implements CommonConstants {
                 period, config.getPeriod());
     }
 
-    @RequestMapping(value = "/getListKoAddressByTelegramUserId/{userId}", method = RequestMethod.GET)
-    @ResponseBody
-    public ListKoAddress getListKoAddressByTelegramUserId(@PathVariable Long userId) {
-        log.info("GOT /getListKoAddressByTelegramUserId with userId={}", userId);
-        return objParMng.getListKoAddressByObjPar("TelegramId", userId);
-    }
-
     @RequestMapping(value = "/getListMeterByKlskId/{klskId}", method = RequestMethod.GET)
     @ResponseBody
     public ListMeter getListMeterByKlskId(@PathVariable Long klskId) {

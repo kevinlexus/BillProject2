@@ -24,7 +24,7 @@ class Column {
     }
 
     String getValueFormatted(Double val, String pattern) {
-        return Utl.getMoneyStr(val, size, " ", pattern);
+        return Utl.getMoneyStrWithLpad(val, size, " ", pattern);
     }
 
     String getStrFormatted(String str) {

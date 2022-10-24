@@ -21,7 +21,5 @@ public interface ObjParMng {
 
     Date getDate(long klskId, String cd) throws WrongParam, WrongGetMethod;
 
-    ListKoAddress getListKoAddressByObjPar(String cd, Long userId);
-
     MapKoAddress getMapKoAddressByObjPar(String cd, Long userId);
 }

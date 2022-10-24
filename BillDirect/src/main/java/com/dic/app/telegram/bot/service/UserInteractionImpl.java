@@ -62,7 +62,7 @@ public class UserInteractionImpl {
     public TelegramMessage selectAddress(Update update, long userId, Map<Long, MapKoAddress> registeredKo) {
         StringBuilder msg = new StringBuilder();
         MapKoAddress mapKoAddress = registeredKo.get(userId);
-        msg.append("_Выберите адрес:_\r\n");
+        msg.append("_Выберите адрес,_");
         String city = orgDAO.getByOrgTp("Город").getName();
         msg.append("* г.").append(city).append(":*\r\n");
 
@@ -83,10 +83,9 @@ public class UserInteractionImpl {
         Long klskId = getCurrentKlskId(userId);
 
         if (callBackData != null) {
-            // присвоить адрес, если не установлен
             if (callBackData.startsWith(ADDRESS_KLSK.getCallBackData())) {
                 klskId = Long.parseLong(callBackData.substring(ADDRESS_KLSK.getCallBackData().length() + 1));
-                updateMapMeterByCurrentKlskId(userId, klskId);
+                updateMapMeterByKlskId(userId, klskId);
             }
         }
         msg.append("*Адрес: ").append(env.getUserCurrentKo().get(userId).getAddress()).append("*\r\n");
@@ -168,10 +167,15 @@ public class UserInteractionImpl {
         return env.getUserCurrentKo().get(userId) != null ? env.getUserCurrentKo().get(userId).getKlskId() : null;
     }
 
-    public void updateMapMeterByCurrentKlskId(long userId, long klskId) {
+    public void updateMapMeterByKlskId(long userId, long klskId) {
         MapKoAddress registeredKoByUser = env.getUserRegisteredKo().get(userId);
-        env.getUserCurrentKo().put(userId, registeredKoByUser.getMapKoAddress().get(klskId));
-        env.getMetersByKlskId().put(klskId, meterMng.getMapMeterByKlskId(klskId, config.getCurDt1(), config.getCurDt2()));
+        if (registeredKoByUser!=null) {
+            KoAddress currentKo = registeredKoByUser.getMapKoAddress().get(klskId);
+            if (currentKo!=null) {
+                env.getUserCurrentKo().put(userId, currentKo);
+                env.getMetersByKlskId().put(klskId, meterMng.getMapMeterByKlskId(klskId, config.getCurDt1(), config.getCurDt2()));
+            }
+        }
     }
 
 
@@ -196,9 +200,9 @@ public class UserInteractionImpl {
             env.getMeterVolExtByMeterId().put(meterId, sumMeterVolExt);
             msg.append("Введите новое показание счетчика по услуге: ");
             msg.append(sumMeterVolExt.getServiceName());
-            msg.append(", текущие показания:");
+            msg.append(", текущие показания: ");
             msg.append(sumMeterVolExt.getN1().toString());
-            msg.append(", расход:");
+            msg.append(", расход: ");
             msg.append(sumMeterVolExt.getVol().toString());
 
         } else {
@@ -215,7 +219,7 @@ public class UserInteractionImpl {
                         .getUserCurrentMeter().get(userId).getMeterId(),
                 update.getMessage().getText());
         MeterValSaveState status = result.getValue0();
-        updateMapMeterByCurrentKlskId(userId, env.getUserCurrentKo().get(userId).getKlskId());
+        updateMapMeterByKlskId(userId, env.getUserCurrentKo().get(userId).getKlskId());
         SumMeterVolExt sumMeterVolExt = env.getUserCurrentMeter().get(userId);
         StringBuilder msg = new StringBuilder();
         if (status.equals(MeterValSaveState.SUCCESSFUL)) {

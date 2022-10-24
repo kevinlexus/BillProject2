@@ -32,7 +32,7 @@ public class PaymentReport extends BotReportBase {
         setMaxColumSize(lst, columns, SumPayment.class);
 
         StringBuilder msg = new StringBuilder();
-        msg.append("Оплата\r\n");
+        msg.append("Поступление платежей\r\n");
         StringBuilder preFormatted = new StringBuilder("");
         String dtHeader = columns.get(DT).getCaptionWithPrefix();
         String sumHeader = columns.get(SUM).getCaptionWithPrefix();

@@ -22,7 +22,7 @@ public class ChargeReport extends BotReportBase {
     public static final String PRICE = "price";
     public static final String PRICE_NAME = "Цена,руб.";
     public static final String UNIT = "unit";
-    public static final String UNIT_NAME = "Ед.изм.";
+    public static final String UNIT_NAME = "";
     public static final String SUMMA = "summa";
 
     public static final String SUMMA_NAME = "Cумма,руб.";
@@ -38,6 +38,7 @@ public class ChargeReport extends BotReportBase {
 
         // рассчитать макс.размер столбцов
         setMaxColumSize(lst, columns, SumChargeRec.class);
+        columns.get(VOL).size += columns.get(UNIT).size + 2; // добавляем ед.изм, так как вместе идут эти поля в отчёте +2 - точка и пробел
 
         StringBuilder msg = new StringBuilder();
         msg.append("Начисление\r\n");
@@ -45,17 +46,16 @@ public class ChargeReport extends BotReportBase {
         String uslHeader = columns.get(USL).getCaptionWithPrefix();
         String volHeader = columns.get(VOL).getCaptionWithPrefix();
         String priceHeader = columns.get(PRICE).getCaptionWithPrefix();
-        String unitHeader = columns.get(UNIT).getCaptionWithPrefix();
         String summaHeader = columns.get(SUMMA).getCaptionWithPrefix();
 
-        preFormatted.append(String.format("|%s|%s|%s|%s|%s|\r\n", uslHeader, volHeader, priceHeader, unitHeader, summaHeader));
+        preFormatted.append(String.format("|%s|%s|%s|%s|\r\n", uslHeader, volHeader, priceHeader, summaHeader));
         for (SumCharge row : lst) {
             String usl = columns.get(USL).getStrFormatted(row.getName());
-            String vol = columns.get(VOL).getValueFormatted(row.getVol(), MONEY_PATTERN);
+            String vol = columns.get(VOL).getStrFormatted(Utl.getMoneyStrWithLpad(row.getVol(), 0, null, MONEY_PATTERN) +
+                    ", " + row.getUnit());
             String price = columns.get(PRICE).getValueFormatted(row.getPrice(), MONEY_PATTERN);
-            String unit = columns.get(UNIT).getStrFormatted(row.getUnit());
             String summa = columns.get(SUMMA).getValueFormatted(row.getSumma(), MONEY_PATTERN);
-            preFormatted.append(String.format("|%s|%s|%s|%s|%s|\r\n", usl, vol, price, unit, summa));
+            preFormatted.append(String.format("|%s|%s|%s|%s|\r\n", usl, vol, price, summa));
         }
         msg.append(preFormatted);
         return msg;

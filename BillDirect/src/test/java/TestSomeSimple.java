@@ -33,7 +33,7 @@ public class TestSomeSimple {
         //
         Double inputDouble = 4.25D;
         int len = 7;
-        String str = Utl.getMoneyStr(inputDouble, len, " ", "###,###.##");
+        String str = Utl.getMoneyStrWithLpad(inputDouble, len, " ", "###,###.##");
         log.info(String.format("|%s|", str));
         log.info("double={}", inputDouble.toString());
     }

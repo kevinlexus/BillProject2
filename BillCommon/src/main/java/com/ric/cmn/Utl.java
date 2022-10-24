@@ -977,9 +977,9 @@ public class Utl {
     }
 
     /**
-     * Вернуть формат денежной строки, строгой длины. Например "65.23" -> "    65.23"
+     * Вернуть формат денежной строки, строгой длины. + слева пробелы Например "65.23" -> "    65.23"
      */
-    public static String getMoneyStr(Double inputDouble, int len, String prefix, String pattern) {
+    public static String getMoneyStrWithLpad(Double inputDouble, int len, String prefix, String pattern) {
         DecimalFormat df = new DecimalFormat(pattern, new DecimalFormatSymbols(Locale.ROOT));
         String str;
         if (inputDouble != null) {

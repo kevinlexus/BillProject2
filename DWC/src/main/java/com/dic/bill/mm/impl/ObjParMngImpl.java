@@ -170,22 +170,10 @@ public class ObjParMngImpl implements ObjParMng {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public ListKoAddress getListKoAddressByObjPar(String cd, Long userId) {
-        Map<Long, KoAddress> addressMap = new HashMap<>();
-        final int[] ord = {1};
-        objParDAO.getKoByObjPar(cd, String.valueOf(userId)).stream()
-                .flatMap(t -> t.getKart().stream().filter(Kart::isActual))
-                .forEach(d -> addressMap.putIfAbsent(d.getKoKw().getId(),
-                        new KoAddress(ord[0]++, d.getKoKw().getId(), kartMng.getAdrWithCityExt(d))));
-        return new ListKoAddress(new ArrayList<>(addressMap.values()));
-    }
-
-    @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public MapKoAddress getMapKoAddressByObjPar(String cd, Long userId) {
         Map<Long, KoAddress> mapAddress = new HashMap<>();
         final int[] ord = {1};
-        objParDAO.getKoByObjPar(cd, String.valueOf(userId)).stream()
+        objParDAO.getKoByObjParLike(cd, String.valueOf(userId)).stream()
                 .flatMap(t -> t.getKart().stream().filter(Kart::isActual))
                 .forEach(d ->
                         mapAddress.put(d.getKoKw().getId(),
