@@ -2,14 +2,15 @@ insert into u_list (cd, name, nm, fk_listtp, npp, val_tp, fk_unit, sqltext, fk_e
 select 'TelegramId',
        'Telegram Id',
        null,
-       2021,
+       tp.id,
        0,
        'ST',
        null,
        null,
        null
-from dual
-where not exists(select * from u_list t where t.cd = 'TelegramId');
+from u_listtp tp
+where not exists(select * from u_list t where t.cd = 'TelegramId')
+and tp.cd='Параметры лиц.счета';
 
 update u_list t
 set t.val_tp='ST'
