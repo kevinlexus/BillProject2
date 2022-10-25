@@ -101,8 +101,8 @@ public interface MeterDAO extends JpaRepository<Meter, Integer> {
     @Query(value = "select new com.ric.dto.SumMeterVolExt(t.id, t.usl.id, t.dt1, t.dt2, " +
             "coalesce(sum(o.n1),0), coalesce(t.n1,0), t.usl.nameForBot) " +
             "from Meter t " +
-            "left join t.objPar o "
-            + "where o.lst.cd='ins_vol_sch' and o.mg = TO_CHAR(?2,'YYYYMM') and t.koObj.id = ?1 " +
+            "left join t.objPar o with o.mg = TO_CHAR(?2,'YYYYMM') and o.lst.cd='ins_vol_sch' "
+            + "where t.koObj.id = ?1 " +
             "and ((?2 between t.dt1 and t.dt2 or ?3 between t.dt1 and t.dt2) or " +
             "(t.dt1 between ?2 and ?3 or t.dt2 between ?2 and ?3)) " +
             "group by t.id, t.usl.id, t.dt1, t.dt2, t.n1, t.usl.nameForBot")

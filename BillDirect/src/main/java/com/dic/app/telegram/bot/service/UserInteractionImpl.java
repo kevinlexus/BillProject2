@@ -42,6 +42,7 @@ import static com.dic.app.telegram.bot.service.menu.Buttons.*;
 @Transactional
 public class UserInteractionImpl {
 
+    public static final int PERIOD_BACK = -12; // охват отчета, начиная с N месяцев назад
     private final Env env;
     private final ObjParMng objParMng;
     private final MeterMng meterMng;
@@ -102,7 +103,7 @@ public class UserInteractionImpl {
                 msg.append(", расход:");
                 msg.append("*" + sumMeterVol.getVol().toString() + "*");
                 msg.append("\r\n");
-                messageStore.addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(), serviceName!=null?serviceName: sumMeterVol.getUslId());
+                messageStore.addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(), serviceName != null ? serviceName : sumMeterVol.getUslId());
             }
         } else {
             log.error("Не определен klskId");
@@ -129,9 +130,10 @@ public class UserInteractionImpl {
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
 
-        String periodBack = config.getPeriodBackByMonth(12);
+        String periodBack = config.getPeriodBackByMonth(PERIOD_BACK);
+        String period = config.getPeriod();
         Long klskId = getCurrentKlskId(userId);
-        StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack);
+        StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack, period);
 
         Ko ko = entityManager.find(Ko.class, klskId);
         msg.append("\r\nРасчет был произведен:").append(Utl.getStrFromDate(ko.getDtGenDebPen(), "dd.MM.yyyy HH:mm"));
@@ -147,14 +149,14 @@ public class UserInteractionImpl {
         if (msg == null) {
             msg = new StringBuilder("Повторите запрос позже");
         }
-       return messageStore.buildPhoto(msg, "Начисление");
+        return messageStore.buildPhoto(msg, "Начисление");
     }
 
     public TelegramMessage showPayment(Update update, long userId) {
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
 
-        String periodFrom = config.getPeriodBackByMonth(12);
+        String periodFrom = config.getPeriodBackByMonth(PERIOD_BACK);
         String periodTo = config.getPeriod();
         Long klskId = getCurrentKlskId(userId);
         StringBuilder msg = registryMng.getPaymentFormatted(klskId, periodFrom, periodTo);
@@ -169,9 +171,9 @@ public class UserInteractionImpl {
 
     public void updateMapMeterByKlskId(long userId, long klskId) {
         MapKoAddress registeredKoByUser = env.getUserRegisteredKo().get(userId);
-        if (registeredKoByUser!=null) {
+        if (registeredKoByUser != null) {
             KoAddress currentKo = registeredKoByUser.getMapKoAddress().get(klskId);
-            if (currentKo!=null) {
+            if (currentKo != null) {
                 env.getUserCurrentKo().put(userId, currentKo);
                 env.getMetersByKlskId().put(klskId, meterMng.getMapMeterByKlskId(klskId, config.getCurDt1(), config.getCurDt2()));
             }
@@ -277,7 +279,7 @@ public class UserInteractionImpl {
         } catch (NumberFormatException e) {
             return new Pair<>(MeterValSaveState.WRONG_FORMAT, null);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Ошибка сохранения показаний {}, по счетчику meterId={}", strVal, meterId, e);
             return new Pair<>(MeterValSaveState.WRONG_FORMAT, null);
         }
     }

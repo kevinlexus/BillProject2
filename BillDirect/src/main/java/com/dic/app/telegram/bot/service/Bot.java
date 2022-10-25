@@ -70,52 +70,61 @@ public class Bot extends TelegramLongPollingBot {
                     // нажата кнопка (выбрано меню)
                     callBackStr = update.getCallbackQuery().getData();
                     boolean isBack = false;
+                    boolean wrongButton = false;
                     if (callBackStr.startsWith(BACK.getCallBackData())) {
                         isBack = true;
                         if (menuPath.size() > 0) {
                             menuPath.removeLast();
-                            callBackStr = menuPath.getLast().getCallBackData();
+                            if (menuPath.size() > 0) {
+                                callBackStr = menuPath.getLast().getCallBackData();
+                            } else {
+                                menuPath.add(new MenuStep(Menu.ROOT, ""));
+
+                                tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
+                                wrongButton = true; // нажата кнопка из "старого" чата, что может приводить к ошибке
+                            }
                         }
                     }
-
-                    if (callBackStr.startsWith(ADDRESS_KLSK.getCallBackData() + "_")) {
-                        if (!isBack) {
-                            menuPath.add(new MenuStep(Menu.SELECT_METER, null));
-                            menuPath.getLast().setCallBackData(callBackStr);
+                    if (!wrongButton) {
+                        if (callBackStr.startsWith(ADDRESS_KLSK.getCallBackData() + "_")) {
+                            if (!isBack) {
+                                menuPath.add(new MenuStep(Menu.SELECT_METER, null));
+                                menuPath.getLast().setCallBackData(callBackStr);
+                            }
+                            tm = ui.selectMeter(update, callBackStr, userId);
+                        } else if (callBackStr.startsWith(METER.getCallBackData() + "_")) {
+                            if (!isBack) {
+                                menuPath.add(new MenuStep(Menu.INPUT_VOL, null));
+                                menuPath.getLast().setCallBackData(callBackStr);
+                            }
+                            tm = ui.inputVol(update, callBackStr, userId);
+                        } else if (callBackStr.equals(REPORTS.getCallBackData())) {
+                            if (!isBack) {
+                                menuPath.add(new MenuStep(Menu.SELECT_REPORT, callBackStr));
+                                menuPath.getLast().setCallBackData(callBackStr);
+                            }
+                            tm = ui.selectReport(update);
+                        } else if (callBackStr.equals(BILLING_FLOW.getCallBackData())) {
+                            if (!isBack) {
+                                menuPath.add(new MenuStep(Menu.SELECT_FLOW, callBackStr));
+                                menuPath.getLast().setCallBackData(callBackStr);
+                            }
+                            tm = ui.showFlow(update, userId);
+                        } else if (callBackStr.equals(BILLING_CHARGES.getCallBackData())) {
+                            if (!isBack) {
+                                menuPath.add(new MenuStep(Menu.SELECT_CHARGE, callBackStr));
+                                menuPath.getLast().setCallBackData(callBackStr);
+                            }
+                            tm = ui.showCharge(update, userId);
+                        } else if (callBackStr.equals(BILLING_PAYMENTS.getCallBackData())) {
+                            if (!isBack) {
+                                menuPath.add(new MenuStep(Menu.SELECT_PAYMENTS, callBackStr));
+                                menuPath.getLast().setCallBackData(callBackStr);
+                            }
+                            tm = ui.showPayment(update, userId);
+                        } else {
+                            tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
                         }
-                        tm = ui.selectMeter(update, callBackStr, userId);
-                    } else if (callBackStr.startsWith(METER.getCallBackData() + "_")) {
-                        if (!isBack) {
-                            menuPath.add(new MenuStep(Menu.INPUT_VOL, null));
-                            menuPath.getLast().setCallBackData(callBackStr);
-                        }
-                        tm = ui.inputVol(update, callBackStr, userId);
-                    } else if (callBackStr.equals(REPORTS.getCallBackData())) {
-                        if (!isBack) {
-                            menuPath.add(new MenuStep(Menu.SELECT_REPORT, callBackStr));
-                            menuPath.getLast().setCallBackData(callBackStr);
-                        }
-                        tm = ui.selectReport(update);
-                    } else if (callBackStr.equals(BILLING_FLOW.getCallBackData())) {
-                        if (!isBack) {
-                            menuPath.add(new MenuStep(Menu.SELECT_FLOW, callBackStr));
-                            menuPath.getLast().setCallBackData(callBackStr);
-                        }
-                        tm = ui.showFlow(update, userId);
-                    } else if (callBackStr.equals(BILLING_CHARGES.getCallBackData())) {
-                        if (!isBack) {
-                            menuPath.add(new MenuStep(Menu.SELECT_CHARGE, callBackStr));
-                            menuPath.getLast().setCallBackData(callBackStr);
-                        }
-                        tm = ui.showCharge(update, userId);
-                    } else if (callBackStr.equals(BILLING_PAYMENTS.getCallBackData())) {
-                        if (!isBack) {
-                            menuPath.add(new MenuStep(Menu.SELECT_PAYMENTS, callBackStr));
-                            menuPath.getLast().setCallBackData(callBackStr);
-                        }
-                        tm = ui.showPayment(update, userId);
-                    } else {
-                        tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
                     }
                 } else if (menuPath.getLast().getMenu().equals(Menu.INPUT_VOL)) {
                     // введены показания
@@ -124,6 +133,7 @@ public class Bot extends TelegramLongPollingBot {
                     menuPath.add(new MenuStep(Menu.ROOT, ""));
                     tm = ui.selectAddress(update, userId, env.getUserRegisteredKo());
                 }
+
             }
 
             if (tm instanceof PlainMessage) {

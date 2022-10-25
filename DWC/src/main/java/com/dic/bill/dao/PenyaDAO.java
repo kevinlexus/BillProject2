@@ -46,58 +46,17 @@ public interface PenyaDAO extends JpaRepository<Penya, Integer> {
     @Query(value = "select distinct k from Kart k left join fetch k.penya p where k.uk.grpDeb=:grpDeb")
     List<Kart> getKartWithDebitByGrpDeb(@Param("grpDeb") Integer grpDeb);
 
-
-/*
-   @Query(value="select sum(t.summa) as \"debt\", sum(t.penya) as \"pen\", sum(c.summa) as \"chrg\",\n" +
-           "     sum(c2.summa) as \"pay\", sum(c2.summap) as \"payPen\", t.mg as \"mg\"\n" +
-           "      from scott.kart k join scott.long_table t on  t.mg >= ?2\n" +
-           "      left join scott.c_penya t on t.mg=t.mg1 and k.lsk=t.lsk\n" +
-           "      left join scott.c_chargepay2 c on t.mg=c.mg and k.lsk=c.lsk and c.type=0 and ?2 between c.mgFrom and c.mgTo\n" +
-           "      left join scott.c_chargepay2 c2 on t.mg=c2.mg and k.lsk=c2.lsk and c2.type=1 and ?2 between c2.mgFrom and c2.mgTo\n" +
-           "      where k.k_lsk_id=?1\n" +
-           "group by t.mg\n" +
-           "having coalesce(sum(t.summa), sum(t.penya), sum(c.summa), sum(c2.summa), sum(c2.summap)) <>0\n" +
-           "order by t.mg", nativeQuery = true)
-    List<SumFinanceFlow> getFinanceFlowByKlskSincePeriod(Long klskId, String period);
-*/
-
-/*
-   @Query(value="select sum(t.summa) as \"debt\", 111.23 as \"pen\", 1137734.66 as \"chrg\",\n" +
-           "     34455445.56 as \"pay\", 983.33 as \"payPen\", t.mg as \"mg\"\n" +
-           "      from scott.kart k join scott.long_table t on  t.mg >= ?2\n" +
-           "      left join scott.c_penya t on t.mg=t.mg1 and k.lsk=t.lsk\n" +
-           "      left join scott.c_chargepay2 c on t.mg=c.mg and k.lsk=c.lsk and c.type=0 and ?2 between c.mgFrom and c.mgTo\n" +
-           "      left join scott.c_chargepay2 c2 on t.mg=c2.mg and k.lsk=c2.lsk and c2.type=1 and ?2 between c2.mgFrom and c2.mgTo\n" +
-           "      where k.k_lsk_id=?1\n" +
-           "group by t.mg\n" +
-           "having coalesce(sum(t.summa), sum(t.penya), sum(c.summa), sum(c2.summa), sum(c2.summap)) <>0\n" +
-           "order by t.mg", nativeQuery = true)
-    List<SumFinanceFlow> getFinanceFlowByKlskSincePeriod(Long klskId, String period);
-*/
-/*
-   @Query(value="select sum(t.summa) as \"debt\", 1.23 as \"pen\", 34.66 as \"chrg\",\n" +
-           "     3.56 as \"pay\", 983.33 as \"payPen\", t.mg as \"mg\"\n" +
-           "      from scott.kart k join scott.long_table t on t.mg >= ?2\n" +
-           "      left join scott.c_penya t on t.mg=t.mg1 and k.lsk=t.lsk\n" +
-           "      left join scott.c_chargepay2 c on t.mg=c.mg and k.lsk=c.lsk and c.type=0 and ?2 between c.mgFrom and c.mgTo\n" +
-           "      left join scott.c_chargepay2 c2 on t.mg=c2.mg and k.lsk=c2.lsk and c2.type=1 and ?2 between c2.mgFrom and c2.mgTo\n" +
-           "      where k.k_lsk_id=?1\n" +
-           "group by t.mg\n" +
-           "having coalesce(sum(t.summa), sum(t.penya), sum(c.summa), sum(c2.summa), sum(c2.summap)) <>0\n" +
-           "order by t.mg", nativeQuery = true)
-    List<SumFinanceFlow> getFinanceFlowByKlskSincePeriod(Long klskId, String period);
-*/
-
-    @Query(value="select sum(t.summa) as \"debt\", sum(t.penya) as \"pen\", sum(c.summa) as \"chrg\",\n" +
-            "     sum(c2.summa) as \"pay\", sum(c2.summap) as \"payPen\", t.mg as \"mg\"\n" +
-            "      from scott.kart k join scott.long_table t on  t.mg >= ?2\n" +
-            "      left join scott.c_penya t on t.mg=t.mg1 and k.lsk=t.lsk\n" +
-            "      left join scott.c_chargepay2 c on t.mg=c.mg and k.lsk=c.lsk and c.type=0 and ?2 between c.mgFrom and c.mgTo\n" +
-            "      left join scott.c_chargepay2 c2 on t.mg=c2.mg and k.lsk=c2.lsk and c2.type=1 and ?2 between c2.mgFrom and c2.mgTo\n" +
-            "      where k.k_lsk_id=?1\n" +
-            "group by t.mg\n" +
-            "having coalesce(sum(t.summa), sum(t.penya), sum(c.summa), sum(c2.summa), sum(c2.summap)) <>0\n" +
-            "order by t.mg", nativeQuery = true)
-    List<SumFinanceFlow> getFinanceFlowByKlskSincePeriod(Long klskId, String period);
+    @Query(value= """
+            select max(t.summa) as "debt", max(t.penya) as "pen", sum(case when c.type=0 then c.summa else 0 end) as "chrg",
+                 sum(case when c.type=1 then c.summa else 0 end) as "pay", sum(case when c.type=1 then c.summap else 0 end) as "payPen", substr(d.mg,5,2)||'.'||substr(d.mg,1,4) as "mg"
+                  from scott.kart k join scott.long_table d on d.mg >= ?2
+                  left join scott.c_penya t on d.mg=t.mg1 and k.lsk=t.lsk
+                  left join scott.c_chargepay2 c on d.mg=c.mg and k.lsk=c.lsk and ?3 between c.mgFrom and c.mgTo
+                  where k.k_lsk_id=?1
+            group by d.mg
+            having max(t.summa)<>0 or  max(t.penya)<>0 or  sum(case when c.type=0 then c.summa else 0 end)<>0 or  sum(case when c.type=1 then c.summa else 0 end)<>0 or
+            sum(case when c.type=1 then c.summap else 0 end) <>0
+            order by d.mg""", nativeQuery = true)
+    List<SumFinanceFlow> getFinanceFlowByKlskSincePeriod(Long klskId, String periodBack, String period);
 
 }

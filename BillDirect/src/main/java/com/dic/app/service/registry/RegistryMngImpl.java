@@ -1465,8 +1465,8 @@ public class RegistryMngImpl {
         writer.close();
     }
 
-    public StringBuilder getFlowFormatted(Long klskId, String periodBack) {
-        List<SumFinanceFlow> flowLst = penyaDAO.getFinanceFlowByKlskSincePeriod(klskId, periodBack);
+    public StringBuilder getFlowFormatted(Long klskId, String periodBack, String period) {
+        List<SumFinanceFlow> flowLst = penyaDAO.getFinanceFlowByKlskSincePeriod(klskId, periodBack, period);
 
         StringBuilder str;
         try {

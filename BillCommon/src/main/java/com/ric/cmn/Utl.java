@@ -494,6 +494,10 @@ public class Utl {
         return getPeriodMonth(period)+getPeriodYear(period);
     }
 
+    public static String getPeriodToMonthYearWithDelimiter(String period, String delimiter) {
+        return getPeriodMonth(period)+delimiter+getPeriodYear(period);
+    }
+
     /**
      * Преобразовать период из формата MMYYYY в YYYYMM
      *
@@ -1060,13 +1064,10 @@ public class Utl {
         g2d.dispose();
         try {
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            File filed = new File("d:\\temp\\86\\test.png");
-            ImageIO.write(img, "png", filed);
+            //File filed = new File("d:\\temp\\86\\test.png"); // не удалять, для отладки
+            //ImageIO.write(img, "png", filed);                // не удалять, для отладки
             ImageIO.write(img, "png", stream);
             mediaStream = new ByteArrayInputStream(stream.toByteArray());
-            //file.setMedia(mediaStream, "test.png");
-
-            //if (pm != null) pm.setPhoto(file);
         } catch (IOException ex) {
             ex.printStackTrace();
         }

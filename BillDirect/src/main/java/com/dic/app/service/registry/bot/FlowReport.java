@@ -13,7 +13,7 @@ import java.util.Map;
 @Service
 public class FlowReport extends BotReportBase {
 
-    public static final String PERIOD_NAME = "Период";
+    public static final String PERIOD_NAME = "Период ";
     public static final String DEBT = "debt";
     public static final String DEBT_NAME = "Долг";
     public static final String PEN = "pen";

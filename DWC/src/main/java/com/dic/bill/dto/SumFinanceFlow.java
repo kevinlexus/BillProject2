@@ -5,7 +5,7 @@ package com.dic.bill.dto;
  */
 public interface SumFinanceFlow {
     // период задолженности
-    Integer getMg();
+    String getMg();
 
     // долг
     Double getDebt();
