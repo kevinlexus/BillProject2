@@ -630,8 +630,8 @@ public class HouseManagementAsyncBindingBuilder {
 
     private void createNonResidentalPremises(SoapPar par, Eolink houseEol, Date curDate, ExportHouseResultType.ApartmentHouse apartmentHouse) throws UnusableCode {
         for (NonResidentialPremises t : apartmentHouse.getNonResidentialPremises()) {
-            log.trace("Нежилое помещение: №={}, UniqNumber={}, GUID={}",
-                    t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID());
+            log.trace("Нежилое помещение: №={}, UniqNumber={}, GUID={}, CadastralNumber={}",
+                    t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID(), t.getCadastralNumber());
             Eolink premisEol = eolinkDao.getEolinkByGuid(t.getPremisesGUID());
             // обработка номера помещения
             String num;
@@ -650,6 +650,7 @@ public class HouseManagementAsyncBindingBuilder {
                         .withObjTp(addrTp)
                         .withParent(houseEol)
                         .withUser(config.getCurUserGis().get())
+                        .withCadastrNum(t.getCadastralNumber())
                         .withStatus(1).build();
 
                 log.info("Попытка создать запись Нежилого помещения в Eolink: № помещения={}, un={}, GUID={}",
@@ -706,8 +707,8 @@ public class HouseManagementAsyncBindingBuilder {
 
     private void createResidentalPremises(SoapPar par, Eolink houseEol, Date curDate, ExportHouseResultType.ApartmentHouse apartmentHouse, Map<Integer, Eolink> entryMap, List<Eolink> entrances) throws UnusableCode {
         for (ExportHouseResultType.ApartmentHouse.ResidentialPremises t : apartmentHouse.getResidentialPremises()) {
-            log.trace("Жилое помещение: №={}, UniqNumber={}, GUID={}",
-                    t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID());
+            log.trace("Жилое помещение: №={}, UniqNumber={}, GUID={}, CadastralNumber={}",
+                    t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID(), t.getCadastralNumber());
             Eolink premisEol = eolinkDao.getEolinkByGuid(t.getPremisesGUID());
             // обработка номера помещения
             String num;
@@ -730,6 +731,7 @@ public class HouseManagementAsyncBindingBuilder {
                                 entryMap.get(Integer.valueOf(t.getEntranceNum())) : houseEol)   // присоединить к родителю:
                         // подъезд, или дом, если не найден подъезд
                         .withUser(config.getCurUserGis().get())
+                        .withCadastrNum(t.getCadastralNumber())
                         .withStatus(1)
                         .build();
                 log.info("Попытка создать запись жилого помещения в Eolink: № подъезда:{}, № помещения={}, un={}, GUID={}",
@@ -741,8 +743,8 @@ public class HouseManagementAsyncBindingBuilder {
             // обновить комнаты
             AddrTp addrTp = lstMng.getAddrTpByCD("Комната");
             for (ExportHouseResultType.ApartmentHouse.ResidentialPremises.LivingRoom r : t.getLivingRoom()) {
-                log.trace("Комната, UniqNumber={}, GUID={}",
-                        r.getLivingRoomUniqueNumber(), r.getLivingRoomGUID());
+                log.trace("Комната, UniqNumber={}, GUID={}, CadastralNumber={} ",
+                        r.getLivingRoomUniqueNumber(), r.getLivingRoomGUID(), t.getCadastralNumber());
                 Eolink roomEol = eolinkDao.getEolinkByGuid(r.getLivingRoomGUID());
                 if (roomEol == null) {
                     // не найдено, создать комнату
@@ -753,6 +755,7 @@ public class HouseManagementAsyncBindingBuilder {
                             .withKoObj(null) // TODO сделать ko! ред.21.08.2018
                             .withParent(premisEol) // присоединить к квартире
                             .withUser(config.getCurUserGis().get())
+                            .withCadastrNum(t.getCadastralNumber())
                             .withStatus(1)
                             .build();
                     log.info("Попытка создать запись комнаты в Eolink:un={}, GUID={}",

@@ -219,6 +219,10 @@ public class Eolink implements java.io.Serializable  {
 	@Column(name = "COMM")
 	private String comm;
 
+	// кадастровый номер
+	@Column(name = "CADASTR_NUM")
+	private String cadastrNum;
+
 	// актуальный?
 	@Transient
 	public boolean isActual() {
@@ -255,6 +259,7 @@ public class Eolink implements java.io.Serializable  {
 		this.updDt = builder.updDt;
 		this.comm = builder.comm;
 		this.kart = builder.kart;
+		this.cadastrNum = builder.cadastrNum;
 	}
 
 	@Override
@@ -325,6 +330,7 @@ public class Eolink implements java.io.Serializable  {
 		private Date updDt;
 		private String comm;
 		private Kart kart;
+		private String cadastrNum;
 
 		private Builder() {
 		}
@@ -491,6 +497,10 @@ public class Eolink implements java.io.Serializable  {
 			return this;
 		}
 
+		public Builder withCadastrNum(String cadastrNum) {
+			this.cadastrNum = cadastrNum;
+			return this;
+		}
 		public Eolink build() {
 			return new Eolink(this);
 		}
