@@ -83,26 +83,19 @@ public class TaskController implements TaskControllers {
             // перебрать все необработанные задания
             List<Task> unprocessedTasks;
             //log.info("queueTask.size()={}", queueTask.size());
-            List<Task> predFilter;
-            if (queueTask.size() > 0) {
-                predFilter = taskDao2.getAllUnprocessedAndNotActive(new ArrayList<>(queueTask)).stream().collect(Collectors.toList());
-                //predFilter.forEach(t -> log.info("1 predFilter taskId={}", t.getId()));
-                unprocessedTasks = predFilter
-                        .stream()
-                        .filter(t -> t.getPriority() != null || (t.getDtNextStart() == null || t.getDtNextStart().getTime() <= new Date().getTime())) //следующий старт
-                        .sorted(Comparator.comparing((Task t) -> Utl.nvl(t.getPriority(), 0)).reversed().thenComparing(Task::getId))
-                        .collect(Collectors.toList());
-                unprocessedTasks.forEach(t -> log.info("2 afterFilter taskId={}", t.getId()));
+            List<Integer> taskIds;
+            if (queueTask.size() == 0) {
+                taskIds = List.of(0);
             } else {
-                predFilter = taskDao2.getAllUnprocessed().stream().collect(Collectors.toList());
-                //predFilter.forEach(t -> log.info("3 predFilter taskId={}", t.getId()));
-                unprocessedTasks = predFilter
-                        .stream()
-                        .filter(t -> t.getPriority() != null || (t.getDtNextStart() == null || t.getDtNextStart().getTime() <= new Date().getTime())) //следующий старт
-                        .sorted(Comparator.comparing((Task t) -> Utl.nvl(t.getPriority(), 0)).reversed().thenComparing(Task::getId))
-                        .collect(Collectors.toList());
-                //unprocessedTasks.forEach(t -> log.info("4 afterFilter taskId={}", t.getId()));
+                taskIds = new ArrayList<>(queueTask);
             }
+            List<Task> predFilter;
+            predFilter = new ArrayList<>(taskDao2.getAllUnprocessedAndNotActive(taskIds));
+            unprocessedTasks = predFilter
+                    .stream()
+                    .filter(t -> t.getPriority() != null || (t.getDtNextStart() == null || t.getDtNextStart().getTime() <= new Date().getTime())) //следующий старт
+                    .sorted(Comparator.comparing((Task t) -> Utl.nvl(t.getPriority(), 0)).reversed().thenComparing(Task::getId))
+                    .collect(Collectors.toList());
 
             try {
                 for (Task unprocessedTask : unprocessedTasks) {

@@ -19,16 +19,6 @@ public interface TaskDAO2 extends JpaRepository<Task, Integer> {
             + "and (t.master is null or t.master.state in ('ACP'))")
     List<Task> getAllUnprocessedAndNotActive(@Param("inWorkTaskId") List<Integer> inWorkTaskId);
 
-    /**
-     * Вернуть список необработанных заданий, отсортированных по приоритету
-     * по разрешенным к обмену УК
-     */
-    @Query("select t from Task t left join t.master d left join t.procUk uk left join uk.org o " +
-            "where t.state in ('INS','ACK','RPT') and t.parent is null " +
-            "and (uk = null or o.isExchangeGis = true) " // либо пусто в УК, либо разрешен обмен с ГИС
-            + "and (t.master is null or t.master.state in ('ACP'))")
-    List<Task> getAllUnprocessed();
-
     @Query("select distinct t from Task t join t.eolink e join e.debSubRequests d " +
             "where t.act.cd in ('GIS_IMP_DEB_SUB_RESPONSE', 'GIS_EXP_DEB_SUB_REQUEST') and t.state not in ('INS','ACK') and d.id in (:debRequestIds)")
     List<Task> findDistinctActiveTaskIdByDebRequestIds(@Param("debRequestIds") List<Integer> debRequestIds);

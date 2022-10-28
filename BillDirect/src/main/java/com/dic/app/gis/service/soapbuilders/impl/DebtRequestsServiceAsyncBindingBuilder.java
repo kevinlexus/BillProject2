@@ -321,6 +321,9 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                                 // не был проставлен дом, по причине отсутствия по GUID
                                 Eolink house = eolinkDAO.getEolinkByGuid(housingFundObject.getFiasHouseGUID());
                                 debSubRequest.setHouse(house);
+                                if (house == null) {
+                                    debSubRequest.setResult("Дом не найден в базе EOLINK, по GUID=" + housingFundObject.getFiasHouseGUID());
+                                }
                             }
                         }
                         // статус ответа, как он отображен в ГИС

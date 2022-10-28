@@ -21,7 +21,7 @@ import java.util.List;
 @Getter
 @Setter
 @Cacheable
-@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheNabor", usage = CacheConcurrencyStrategy.READ_WRITE)
+@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheVvod", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Vvod implements java.io.Serializable {
 
     public Vvod() {
