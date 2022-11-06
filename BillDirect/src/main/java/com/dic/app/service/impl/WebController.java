@@ -22,7 +22,6 @@ import com.ric.cmn.excp.ErrorWhileDistPay;
 import com.ric.cmn.excp.ErrorWhileGen;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.cmn.excp.WrongParamPeriod;
-import com.ric.dto.ListKoAddress;
 import com.ric.dto.ListMeter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,7 +70,7 @@ public class WebController implements CommonConstants {
     private final CorrectsMng correctsMng;
     private final ChangeMng changeMng;
     private final RegistryMngImpl registryMng;
-    private final ObjParMng objParMng;
+    private final CacheMng cacheMng;
     private final KartMng kartMng;
     private final MeterMng meterMng;
     private final MntBase mntBase;
@@ -452,38 +451,17 @@ public class WebController implements CommonConstants {
     @RequestMapping(value = "/evictL2C", method = RequestMethod.GET)
     @ResponseBody
     public String evictL2C() {
-        SessionFactory sessionFactory = em.getEntityManagerFactory().unwrap(SessionFactory.class);
-        sessionFactory.getCache().evictRegion("BillDirectEntitiesCache");
-        log.info("Hbernate L2 Кэш очищен!");
-        return "OK";
+        return cacheMng.evictL2C();
     }
-
     @RequestMapping(value = "/evictL2CEntity/{fullEntityClassName}/{id}", method = RequestMethod.GET)
-    @ResponseBody
-    public String evictEolink(@PathVariable("fullEntityClassName") String fullEntityClassName, @PathVariable("id") String id) {
-        Class<?> foundClass;
-        try {
-            foundClass = Class.forName(fullEntityClassName);
-            if (foundClass.equals(Kart.class)) {
-                em.getEntityManagerFactory().getCache().evict(foundClass, id);
-            } else {
-                em.getEntityManagerFactory().getCache().evict(foundClass, Integer.valueOf(id));
-            }
-            log.info("Hbernate L2 Кэш по {}, id={} очищен!", fullEntityClassName, id);
-            return "OK";
-        } catch (ClassNotFoundException e) {
-            log.error("Не найден класс по имени {}", fullEntityClassName, e);
-            return "ERROR";
-        }
+    public String evictL2CEntity(@PathVariable("fullEntityClassName") String fullEntityClassName, @PathVariable("id") String id) {
+        return cacheMng.evictCacheByEntity(fullEntityClassName, id);
     }
 
     @RequestMapping(value = "/evictL2CRegion/{regionName}", method = RequestMethod.GET)
     @ResponseBody
     public String evictRegion(@PathVariable("regionName") String regionName) {
-        SessionFactory sessionFactory = em.getEntityManagerFactory().unwrap(SessionFactory.class);
-        sessionFactory.getCache().evictRegion(regionName);
-        log.info("Hbernate L2 Кэш очищен по региону {}", regionName);
-        return "OK";
+        return cacheMng.evictRegion(regionName);
     }
 
     /**

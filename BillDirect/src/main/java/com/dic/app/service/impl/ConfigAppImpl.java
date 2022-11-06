@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import java.io.File;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -78,6 +80,8 @@ public class ConfigAppImpl implements ConfigApp {
     // справочник кодов услуг, для округления начисления, для ГИС ЖКХ
     private Map<String, Set<String>> mapUslRound = new HashMap<>();
     private Map<String, Org> mapReuOrg = new HashMap<>();
+    // соответствие класса entity - типу поля Id, для evict cache
+    private Map<String, Object> mapClassId = new HashMap<>();
 
     @Value("${gisVersion}")
     private String gisVersion;
@@ -92,12 +96,13 @@ public class ConfigAppImpl implements ConfigApp {
         reloadSprPen();
         reloadParam();
         loadUslCodes();
-
+        loadIdEntitiesForCache();
         // блокировщик процессов
         setLock(new Lock());
 
         setUpGisParameters();
     }
+
 
     private void setUpGisParameters() {
         File tempFile = new File("stopGis");
@@ -243,5 +248,62 @@ public class ConfigAppImpl implements ConfigApp {
 
     }
 
+    /**
+     * Получить все Поля Id Entities, для использования при evict в Hibernate L2C cache
+     */
+    private void loadIdEntitiesForCache() {
+        Set<Class<?>> classes = Utl.findAllClassesUsingClassLoader("com.dic.bill.model.scott");
+        for (Class<?> aClass : classes) {
+            Class<?> foundClass;
+            try {
+                boolean found = findAnnotationByName(aClass, "javax.persistence.Table");
+                if (!found)
+                    continue;
+                found = findAnnotationByName(aClass, "javax.persistence.Cacheable");
+                if (!found)
+                    continue;
+                foundClass = Class.forName(aClass.getName());
+            } catch (ClassNotFoundException e) {
+                log.error("Не найден класс по имени {}", aClass.getName());
+                throw new RuntimeException("Не найден класс по имени " + aClass.getName());
+            }
+            Field[] fields = foundClass.getDeclaredFields();
+            // ищем поле с аннотацией @Id в данном классе
+            boolean found = findFieldByAnnotation(aClass, fields, "javax.persistence.Id");
+            if (!found) {
+                String err = String.format("В классе %s не найдено поле с аннотацией @Id", aClass.getName());
+                log.error(err);
+                throw new RuntimeException(err);
+            }
+        }
+       // System.out.println("CHECK");
+    }
+
+    private boolean findAnnotationByName(Class<?> aClass, String annotationName) {
+        Annotation[] annotations = aClass.getAnnotations();
+        for (Annotation annotation : annotations) {
+            if (annotation.annotationType().getName().equals(annotationName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean findFieldByAnnotation(Class<?> aClass, Field[] fields, String annotationName) {
+        boolean found = false;
+        for (Field fld : fields) {
+            Annotation[] annotations = fld.getDeclaredAnnotations();
+            for (Annotation annotation : annotations) {
+                if (annotation.annotationType().getName().equals(annotationName)) {
+                    mapClassId.put(aClass.getName(), fld.getType());
+                    found = true;
+                    break;
+                }
+            }
+            if (found)
+                break;
+        }
+        return found;
+    }
 
 }

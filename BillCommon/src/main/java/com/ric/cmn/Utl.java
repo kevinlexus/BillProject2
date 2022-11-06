@@ -216,7 +216,7 @@ public class Utl {
     /**
      * Находится ли одно Integer в диапазоне двух других Integer, включительно
      *
-     * @param val         - значение для поиска
+     * @param val        - значение для поиска
      * @param rangeBegin - диапазон, начало
      * @param rangeEnd   - диапазон, окончание
      */
@@ -227,7 +227,7 @@ public class Utl {
     /**
      * Находится ли одно String в диапазоне двух других String, преобразуюя в Integer, включительно
      *
-     * @param val         - значение для поиска
+     * @param val        - значение для поиска
      * @param rangeBegin - диапазон, начало
      * @param rangeEnd   - диапазон, окончание
      */
@@ -488,14 +488,15 @@ public class Utl {
 
     /**
      * Преобразовать период из формата YYYYMM в MMYYYY
+     *
      * @param period период в формате YYYYMM
      */
     public static String getPeriodToMonthYear(String period) {
-        return getPeriodMonth(period)+getPeriodYear(period);
+        return getPeriodMonth(period) + getPeriodYear(period);
     }
 
     public static String getPeriodToMonthYearWithDelimiter(String period, String delimiter) {
-        return getPeriodMonth(period)+delimiter+getPeriodYear(period);
+        return getPeriodMonth(period) + delimiter + getPeriodYear(period);
     }
 
     /**
@@ -613,7 +614,7 @@ public class Utl {
      * @param dt текущая дата
      */
     public static int getCntDaysByDate(Date dt) {
-        return LocalDate.ofInstant(dt.toInstant(),ZoneId.systemDefault()).lengthOfMonth();
+        return LocalDate.ofInstant(dt.toInstant(), ZoneId.systemDefault()).lengthOfMonth();
     }
 
 
@@ -856,12 +857,12 @@ public class Utl {
         if (lstNegative.size() > 0) {
             ArrayList<? extends DistributableBigDecimal> lstNegativeAbs
                     = new ArrayList<>(lstNegative);
-            lstNegativeAbs.forEach(t->t.setBdForDist(t.getBdForDist()));
+            lstNegativeAbs.forEach(t -> t.setBdForDist(t.getBdForDist()));
             BigDecimal sumNegative = lstNegative.stream()
                     .map(DistributableBigDecimal::getBdForDist)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             BigDecimal sumAmountAbs = lst.stream()
-                    .map(t->t.getBdForDist().abs())
+                    .map(t -> t.getBdForDist().abs())
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal proc = BigDecimal.ONE;
@@ -889,24 +890,25 @@ public class Utl {
             }
             mapNegative.putAll(mapPositive);
 
-            if (bd.signum()!=bdFact.signum()) {
+            if (bd.signum() != bdFact.signum()) {
                 // обратить знак, если распределяемое число - отрицательное
-                mapNegative.entrySet().forEach(t->t.setValue(t.getValue().negate()));
+                mapNegative.entrySet().forEach(t -> t.setValue(t.getValue().negate()));
             }
             return mapNegative;
         } else {
             // нет отрицательных, распределить только по положительным
             Map<DistributableBigDecimal, BigDecimal> mapNegative =
                     distBigDecimalByListIntoMapPositive(bdFact, lst, round);
-            if (bd.signum()!=bdFact.signum()) {
+            if (bd.signum() != bdFact.signum()) {
                 // обратить знак, если распределяемое число - отрицательное
-                mapNegative.entrySet().forEach(t->t.setValue(t.getValue().negate()));
+                mapNegative.entrySet().forEach(t -> t.setValue(t.getValue().negate()));
             }
             return mapNegative;
         }
 
 
     }
+
     /**
      * Распределить ПОЛОЖИТЕЛЬНОЕ число по коллекции ПОЛОЖИТЕЛЬНЫХ чисел, вернуть Map элементов с корректировками
      *
@@ -920,7 +922,7 @@ public class Utl {
         BigDecimal sum = lst.stream().map(DistributableBigDecimal::getBdForDist)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         for (DistributableBigDecimal elem : lst.stream().sorted(  // отсортировать,
-                Comparator.comparing(DistributableBigDecimal::getBdForDist))// чтобы небольшие числа шли первыми - так точнее
+                        Comparator.comparing(DistributableBigDecimal::getBdForDist))// чтобы небольшие числа шли первыми - так точнее
                 .collect(Collectors.toList())) {
             // найти пропорцию снятия с данного элемента
 /*
@@ -1074,5 +1076,24 @@ public class Utl {
         return mediaStream;
     }
 
+    public static Set<Class<?>> findAllClassesUsingClassLoader(String packageName) {
+        InputStream stream = ClassLoader.getSystemClassLoader()
+                .getResourceAsStream(packageName.replaceAll("[.]", "/"));
+        assert stream != null;
+        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+        return reader.lines()
+                .filter(line -> line.endsWith(".class"))
+                .map(line -> getClass(line, packageName))
+                .collect(Collectors.toSet());
+    }
+
+    private static Class<?> getClass(String className, String packageName) {
+        try {
+            return Class.forName(packageName + "."
+                    + className.substring(0, className.lastIndexOf('.')));
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Not found class by name:" + className + " in package:" + packageName);
+        }
+    }
 }
 

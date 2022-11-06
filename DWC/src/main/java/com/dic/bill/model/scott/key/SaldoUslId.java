@@ -1,4 +1,8 @@
-package com.dic.bill.model.scott;
+package com.dic.bill.model.scott.key;
+
+import com.dic.bill.model.scott.Kart;
+import com.dic.bill.model.scott.Org;
+import com.dic.bill.model.scott.Usl;
 
 import java.util.Objects;
 

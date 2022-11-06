@@ -1,5 +1,8 @@
 package com.dic.bill.model.scott;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -10,16 +13,12 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name = "TEMP_OBJ")
+@Getter
+@Setter
 public class TempObj {
 
-	private int id;
 	@Id
 	@Column(name = "ID", unique = true, nullable = false)
-	public int getId() {
-		return id;
-	}
-	public void setId(int id) {
-		this.id = id;
-	}
+	private int id;
 
 }

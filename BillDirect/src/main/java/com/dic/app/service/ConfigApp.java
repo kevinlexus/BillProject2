@@ -67,4 +67,6 @@ public interface ConfigApp {
     boolean isGisWorkOnStart();
 
     Map<String, Usl> getMapUslByCd();
+
+    Map<String, Object> getMapClassId();
 }

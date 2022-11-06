@@ -1,5 +1,6 @@
 package com.dic.bill.model.scott;
 
+import com.dic.bill.model.scott.key.SaldoUslId;
 import lombok.Getter;
 import lombok.Setter;
 
