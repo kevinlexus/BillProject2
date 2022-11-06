@@ -101,6 +101,7 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
             + "join k.parent e " // подъезд
             + "join e.parent h on h.id=:eolHouseId "  // дом
             + "where s.uk.id=:eolUkId " // УК
+            + "and s.kart is not null "  // лиц.счет должен так же быть и в kart
             + "order by s.id")
     List<Eolink> getLskEolByHouseWithEntry(@Param("eolHouseId") Integer eolHouseId,
                                            @Param("eolUkId") Integer eolUkId);
@@ -114,6 +115,7 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
             + "join s.parent k " // квартира
             + "join k.parent h on h.id=:eolHouseId "  // дом
             + "where s.uk.id=:eolUkId " // УК
+            + "and s.kart is not null "  // лиц.счет должен так же быть и в kart
             + "order by s.id")
     List<Eolink> getLskEolByHouseWOEntry(@Param("eolHouseId") Integer eolHouseId,
                                          @Param("eolUkId") Integer eolUkId);

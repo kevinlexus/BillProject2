@@ -68,10 +68,10 @@ public class EolinkMngImpl implements EolinkMng {
     }
 
     /**
-     * Получить лицевые счета по дому (входящие в подъезды и  не входящие)
+     * Получить лицевые счета по дому (входящие в подъезды и не входящие)
      *
-     * @param eolHouseId - Eolink.Id объекта типа "Дом"
-     * @param eolUkId    - Eolink.Id объекта типа "Организация"
+     * @param eolHouseId Eolink.Id объекта типа "Дом"
+     * @param eolUkId    Eolink.Id объекта типа "Организация"
      */
     @Override
     public List<Eolink> getLskEolByHouseEol(Integer eolHouseId, Integer eolUkId) {

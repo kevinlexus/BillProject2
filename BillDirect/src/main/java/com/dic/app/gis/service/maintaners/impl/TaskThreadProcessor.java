@@ -22,7 +22,7 @@ public class TaskThreadProcessor implements Runnable {
         while (true) {
             try {
                 Integer taskId = queueTask.take();
-                log.trace("Поток принял задачу id={}", taskId);
+                log.info("Поток принял задачу id={}", taskId);
                 taskProcessor.processTask(taskId);
                 TaskController.getTaskInWork().remove(taskId);
             } catch (InterruptedException e) {

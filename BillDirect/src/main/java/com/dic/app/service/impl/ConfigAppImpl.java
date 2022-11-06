@@ -252,7 +252,11 @@ public class ConfigAppImpl implements ConfigApp {
      * Получить все Поля Id Entities, для использования при evict в Hibernate L2C cache
      */
     private void loadIdEntitiesForCache() {
-        Set<Class<?>> classes = Utl.findAllClassesUsingClassLoader("com.dic.bill.model.scott");
+        Set<Class<?>> classes = getAllClassesForCaching();
+        log.info("Найдено {} классов для кэширования по Id", classes.size());
+        if (classes.size() == 0) {
+            throw new RuntimeException("Не найдены классы для кэширования по Id");
+        }
         for (Class<?> aClass : classes) {
             Class<?> foundClass;
             try {
@@ -268,15 +272,126 @@ public class ConfigAppImpl implements ConfigApp {
                 throw new RuntimeException("Не найден класс по имени " + aClass.getName());
             }
             Field[] fields = foundClass.getDeclaredFields();
-            // ищем поле с аннотацией @Id в данном классе
-            boolean found = findFieldByAnnotation(aClass, fields, "javax.persistence.Id");
-            if (!found) {
-                String err = String.format("В классе %s не найдено поле с аннотацией @Id", aClass.getName());
-                log.error(err);
-                throw new RuntimeException(err);
-            }
+            // ищем поле с аннотацией @Id в данном классе, заполняем mapClassId
+            findAndSetFieldByAnnotation(aClass, fields, "javax.persistence.Id");
         }
-       // System.out.println("CHECK");
+    }
+
+    private Set<Class<?>> getAllClassesForCaching() {
+        String classes = """
+                 com.dic.bill.model.scott.Acharge
+                 com.dic.bill.model.scott.AchargePrep
+                 com.dic.bill.model.scott.Akart
+                 com.dic.bill.model.scott.AkartPr
+                 com.dic.bill.model.scott.Akwtp
+                 com.dic.bill.model.scott.AkwtpMg
+                 com.dic.bill.model.scott.Anabor
+                 com.dic.bill.model.scott.Apenya
+                 com.dic.bill.model.scott.BaseNabor
+                 com.dic.bill.model.scott.Change
+                 com.dic.bill.model.scott.ChangeDoc
+                 com.dic.bill.model.scott.Charge
+                 com.dic.bill.model.scott.ChargePay
+                 com.dic.bill.model.scott.ChargePayId
+                 com.dic.bill.model.scott.ChargePrep
+                 com.dic.bill.model.scott.ChargePrepId
+                 com.dic.bill.model.scott.Comps
+                 com.dic.bill.model.scott.CorrectPay
+                 com.dic.bill.model.scott.Deb
+                 com.dic.bill.model.scott.Doc
+                 com.dic.bill.model.scott.House
+                 com.dic.bill.model.scott.Kart
+                 com.dic.bill.model.scott.KartDetail
+                 com.dic.bill.model.scott.KartExt
+                 com.dic.bill.model.scott.KartPr
+                 com.dic.bill.model.scott.Ko
+                 com.dic.bill.model.scott.Kwtp
+                 com.dic.bill.model.scott.KwtpDay
+                 com.dic.bill.model.scott.KwtpDayLog
+                 com.dic.bill.model.scott.KwtpMg
+                 com.dic.bill.model.scott.KwtpPay
+                 com.dic.bill.model.scott.LoadBank
+                 com.dic.bill.model.scott.LoadKartExt
+                 com.dic.bill.model.scott.Lst
+                 com.dic.bill.model.scott.LstTp
+                 com.dic.bill.model.scott.Meter
+                 com.dic.bill.model.scott.Nabor
+                 com.dic.bill.model.scott.Nabors
+                 com.dic.bill.model.scott.ObjPar
+                 com.dic.bill.model.scott.Org
+                 com.dic.bill.model.scott.OrgTp
+                 com.dic.bill.model.scott.Param
+                 com.dic.bill.model.scott.Pen
+                 com.dic.bill.model.scott.PenCorr
+                 com.dic.bill.model.scott.PenCur
+                 com.dic.bill.model.scott.PenDt
+                 com.dic.bill.model.scott.PenRef
+                 com.dic.bill.model.scott.PenUslCorr
+                 com.dic.bill.model.scott.Penya
+                 com.dic.bill.model.scott.PrepErr
+                 com.dic.bill.model.scott.Price
+                 com.dic.bill.model.scott.RedirPay
+                 com.dic.bill.model.scott.Relation
+                 com.dic.bill.model.scott.SaldoUsl
+                 com.dic.bill.model.scott.SessionDirect
+                 com.dic.bill.model.scott.Spk
+                 com.dic.bill.model.scott.SpkGr
+                 com.dic.bill.model.scott.SprGenItm
+                 com.dic.bill.model.scott.SprParam
+                 com.dic.bill.model.scott.SprPen
+                 com.dic.bill.model.scott.SprProcPay
+                 com.dic.bill.model.scott.Spul
+                 com.dic.bill.model.scott.StatePr
+                 com.dic.bill.model.scott.StateSch
+                 com.dic.bill.model.scott.Status
+                 com.dic.bill.model.scott.StatusPr
+                 com.dic.bill.model.scott.Stavr
+                 com.dic.bill.model.scott.Stub
+                 com.dic.bill.model.scott.TempObj
+                 com.dic.bill.model.scott.Tuser
+                 com.dic.bill.model.scott.UserPerm
+                 com.dic.bill.model.scott.Usl
+                 com.dic.bill.model.scott.UslRound
+                 com.dic.bill.model.scott.UslRoundId
+                 com.dic.bill.model.scott.VchangeDet
+                 com.dic.bill.model.scott.VchangeDetId
+                 com.dic.bill.model.scott.Vvod
+                 com.dic.bill.model.scott.Xitog3Lsk
+                 
+                 com.dic.bill.model.exs.DebSubRequest
+                 com.dic.bill.model.exs.Eolink
+                 com.dic.bill.model.exs.EolinkPar
+                 com.dic.bill.model.exs.EolinkToEolink
+                 com.dic.bill.model.exs.MeterVal
+                 com.dic.bill.model.exs.Notif    
+                 com.dic.bill.model.exs.Pdoc     
+                 com.dic.bill.model.exs.Task     
+                 com.dic.bill.model.exs.TaskPar  
+                 com.dic.bill.model.exs.TaskToTask
+                 com.dic.bill.model.exs.Ulist    
+                 com.dic.bill.model.exs.UlistTp  
+                 
+                 com.dic.bill.model.bs.AddrTp
+                 com.dic.bill.model.bs.Lst2
+                 com.dic.bill.model.bs.LstTp2
+                 com.dic.bill.model.bs.Par
+                 
+                 com.dic.bill.model.sec.User
+                """;
+
+        String[] str = classes.split("\n");
+
+        Set<Class<?>> set = new HashSet<>();
+        try {
+            for (String s : str) {
+                if (s.trim().length() > 0) {
+                    set.add(Class.forName(s.trim()));
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return set;
     }
 
     private boolean findAnnotationByName(Class<?> aClass, String annotationName) {
@@ -289,13 +404,14 @@ public class ConfigAppImpl implements ConfigApp {
         return false;
     }
 
-    private boolean findFieldByAnnotation(Class<?> aClass, Field[] fields, String annotationName) {
+    private void findAndSetFieldByAnnotation(Class<?> aClass, Field[] fields, String annotationName) {
         boolean found = false;
         for (Field fld : fields) {
             Annotation[] annotations = fld.getDeclaredAnnotations();
             for (Annotation annotation : annotations) {
                 if (annotation.annotationType().getName().equals(annotationName)) {
                     mapClassId.put(aClass.getName(), fld.getType());
+                    log.info("В кэш Id entities загружен class={}, Id type={}", aClass.getName(), fld.getType().getName());
                     found = true;
                     break;
                 }
@@ -303,7 +419,11 @@ public class ConfigAppImpl implements ConfigApp {
             if (found)
                 break;
         }
-        return found;
+        if (!found) {
+            String err = String.format("В классе %s не найдено поле с аннотацией @Id", aClass.getName());
+            log.error(err);
+            throw new RuntimeException(err);
+        }
     }
 
 }

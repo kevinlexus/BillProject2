@@ -1,6 +1,8 @@
 package com.dic.app.service.impl;
 
+import com.dic.app.gis.service.maintaners.impl.TaskController;
 import com.dic.app.service.ConfigApp;
+import com.dic.bill.model.exs.Task;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.SessionFactory;
@@ -19,6 +21,7 @@ public class CacheMng {
     private EntityManager em;
 
     private final ConfigApp configApp;
+    private final TaskController taskController;
 
     public String evictCacheByEntity(String entityClassName, String id) {
         Map<String, Object> mapClassId = configApp.getMapClassId();
@@ -51,6 +54,11 @@ public class CacheMng {
         } else {
             log.info("Hibernate L2 Кэш по {}, id={} очищен!", entityClassName, id);
         }
+        if (clasz.equals(Task.class)) {
+            // здесь не проверяется статус "INS", позже, в TaskProcessor
+            taskController.putTaskToWork(Integer.valueOf(id));
+        }
+
         return "OK";
     }
 

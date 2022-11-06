@@ -1076,17 +1076,34 @@ public class Utl {
         return mediaStream;
     }
 
+/*  не взлетело, не смог получать имена классов из jar в моменте исполнения
     public static Set<Class<?>> findAllClassesUsingClassLoader(String packageName) {
-        InputStream stream = ClassLoader.getSystemClassLoader()
+
+        InputStream stream = Thread.currentThread().getContextClassLoader()
                 .getResourceAsStream(packageName.replaceAll("[.]", "/"));
         assert stream != null;
         BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
         return reader.lines()
+                .peek(t->log.info("class={}", t))
                 .filter(line -> line.endsWith(".class"))
                 .map(line -> getClass(line, packageName))
                 .collect(Collectors.toSet());
-    }
 
+*/
+/*
+        HashSet<Class<?>> set = new HashSet<>();
+        try {
+            set.add(Class.forName("com.dic.bill.model.scott.Param"));
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return set;
+*//*
+
+    }
+*/
+
+/*
     private static Class<?> getClass(String className, String packageName) {
         try {
             return Class.forName(packageName + "."
@@ -1095,5 +1112,6 @@ public class Utl {
             throw new RuntimeException("Not found class by name:" + className + " in package:" + packageName);
         }
     }
+*/
 }
 

@@ -1,6 +1,6 @@
 package com.dic.app.service.impl;
 
-import com.dic.app.gis.service.maintaners.TaskControllers;
+import com.dic.app.gis.service.maintaners.impl.TaskController;
 import com.dic.app.gis.service.soap.impl.SoapConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,7 @@ import java.io.File;
 @RequiredArgsConstructor
 public class SchedulerService {
 
-    private final TaskControllers taskController;
+    private final TaskController taskController;
     private final ApplicationContext ctx;
     private final SoapConfig soapConfig;
 
@@ -34,7 +34,7 @@ public class SchedulerService {
         }
     }
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 120000) // раз в две минуты. Остальное - вызывается из сброса кэша CacheMng.evictCacheByEntity
     public void searchGisTasks() {
         File tempFile = new File("stopGis");
         boolean exists = tempFile.exists();

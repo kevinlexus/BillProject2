@@ -39,9 +39,9 @@ public class TaskProcessor {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void processTask(Integer taskId) {
-        // получить задание заново (могло измениться в базе) - WTF??? ред.05.09.2019
+        // получить задание заново (могло измениться в базе)
         Task task = em.find(Task.class, taskId);
-        log.trace("Обработка задания ID={}, CD={}, ActCD={}",
+        log.info("Обработка задания ID={}, CD={}, ActCD={}",
                 task.getId(), task.getCd(), task.getAct().getCd());
         if (Utl.in(task.getState(), "INS")) {
             taskMng.clearLagAndNextStart(task);

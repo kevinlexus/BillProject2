@@ -1,6 +1,5 @@
 package com.dic.app.gis.service.maintaners.impl;
 
-import com.dic.app.gis.service.maintaners.TaskControllers;
 import com.dic.app.service.ConfigApp;
 import com.dic.bill.dao.TaskDAO2;
 import com.dic.bill.model.exs.Task;
@@ -14,13 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.persistence.EntityManager;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-//import com.ric.bill.Config;
 
 
 /**
@@ -32,7 +30,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TaskController implements TaskControllers {
+public class TaskController {
 
     public static final int COUNT_OF_THREADS = 10;
     private final TaskDAO2 taskDao2;
@@ -42,7 +40,7 @@ public class TaskController implements TaskControllers {
     private static final Map<Integer, Integer> taskInWork = new ConcurrentHashMap<>();
     private final List<Thread> threads;
     private final ConfigApp configApp;
-
+    private final EntityManager em;
 
     @PostConstruct
     public void init() {
@@ -76,26 +74,25 @@ public class TaskController implements TaskControllers {
     /**
      * Поиск новых действий для обработки
      */
-    @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public void searchTask() {
         if (queueTask.size() < COUNT_OF_THREADS) {
             // перебрать все необработанные задания
             List<Task> unprocessedTasks;
             //log.info("queueTask.size()={}", queueTask.size());
-            List<Integer> taskIds;
+            List<Integer> activeTaskIds;
             if (queueTask.size() == 0) {
-                taskIds = List.of(0);
+                activeTaskIds = List.of(0);
             } else {
-                taskIds = new ArrayList<>(queueTask);
+                activeTaskIds = new ArrayList<>(queueTask);
             }
-            List<Task> predFilter;
-            predFilter = new ArrayList<>(taskDao2.getAllUnprocessedAndNotActive(taskIds));
-            unprocessedTasks = predFilter
-                    .stream()
+            List<Integer> taskIds = new ArrayList<>(taskDao2.getAllUnprocessedNotActiveTaskIds(activeTaskIds));
+            //log.info("1. taskIds size={}", taskIds.size());
+            unprocessedTasks = taskIds.stream().map(t -> em.find(Task.class, t))
                     .filter(t -> t.getPriority() != null || (t.getDtNextStart() == null || t.getDtNextStart().getTime() <= new Date().getTime())) //следующий старт
                     .sorted(Comparator.comparing((Task t) -> Utl.nvl(t.getPriority(), 0)).reversed().thenComparing(Task::getId))
                     .collect(Collectors.toList());
+            //log.info("2. unprocessedTasks size={}", unprocessedTasks.size());
 
             try {
                 for (Task unprocessedTask : unprocessedTasks) {
@@ -108,21 +105,22 @@ public class TaskController implements TaskControllers {
         }
     }
 
-    private int putTaskToWork(Integer taskId) {
-        AtomicInteger count = new AtomicInteger(0);
+    public synchronized void putTaskToWork(Integer taskId) {
+        //AtomicInteger count = new AtomicInteger(0);
         taskInWork.computeIfAbsent(taskId, t -> {
-            Optional<Task> task = taskDao2.findById(taskId);
-            task.ifPresent(d -> {
+            //Optional<Task> task = taskDao2.findById(taskId);
+            //Task task = em.find(Task.class, taskId);
+            //task.ifPresent(d -> {
                 try {
                     queueTask.put(taskId);
-                    count.incrementAndGet();
+          //          count.incrementAndGet();
                 } catch (InterruptedException e) {
-                    log.error("Ошибка отправки задачи в очередь", e);
+                    log.info("Ошибка отправки задачи в очередь", e);
                 }
                 log.trace("Задача id={}, ушла в очередь", taskId);
-            });
+            //});
             return taskId;
         });
-        return count.get();
+        //count.get();
     }
 }
