@@ -171,7 +171,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
     }
 
 
-    public void exportDebtSubrequest(Integer taskId) throws CantPrepSoap, WrongGetMethod, DatatypeConfigurationException, CantSendSoap {
+    public void exportDebtSubrequest(Integer taskId) throws CantPrepSoap, DatatypeConfigurationException, CantSendSoap {
         Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
         // Установить параметры SOAP
@@ -187,18 +187,21 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         req.setId("foo");
         req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
+        if (task.getNextBlockGuid() != null) {
+            req.setExportSubrequestGUID(task.getNextBlockGuid());
+        } else {
+            // дата начала - текущая дата - 1 месяц, дата окончания - текущая дата
+            XMLGregorianCalendar startDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.now().minusMonths(1)
+                    .atStartOfDay(ZoneId.systemDefault()).toInstant()));
+            XMLGregorianCalendar endDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.now()
+                    .atStartOfDay(ZoneId.systemDefault()).toInstant()));
 
-        // дата начала - текущая дата - 2 месяца, дата окончания - текущая дата
-        // брать не более 7 дней - иначе нужно дорабатывать обработчик возвращаемого в ответе идентификатора pagedOutput
-        XMLGregorianCalendar startDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.now().minusDays(7).atStartOfDay(ZoneId.systemDefault()).toInstant()));
-        XMLGregorianCalendar endDate = Utl.getXMLGregorianCalendarFromDate(Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-
-        Period period = new Period();
-        period.setStartDate(startDate);
-        period.setEndDate(endDate);
-        req.setPeriodOfSendingRequest(period);
-
-        req.getHouseGUID().add(task.getEolink().getGuid());
+            Period period = new Period();
+            period.setStartDate(startDate);
+            period.setEndDate(endDate);
+            req.setPeriodOfSendingRequest(period);
+            req.getHouseGUID().add(task.getEolink().getGuid());
+        }
         req.setIncludeResponses(true);
 
         try {
@@ -265,8 +268,12 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                         }
 
                         if (!pagedOutput.isLastPage()) {
-                            log.error("Нужна обработка идентификатора pagedOutput, будуты выгружены не все результаты!");
-                            debSubRequest.setResult("Будут выгружены не все результаты!");
+                            log.info("Ожидается следующий блок данных GUID={}", pagedOutput.getNextSubrequestGUID());
+                            task.setNextBlockGuid(pagedOutput.getNextSubrequestGUID());
+                            task.setState("INS"); // перевести опять в INS, чтобы принимался следующий блок данных
+                        } else {
+                            log.info("Все блоки данных получены");
+                            task.setNextBlockGuid(null);
                         }
                         // статус запроса в ГИС
                         debSubRequest.setStatusGis(DebtSubRequestStatuses.getByName(requestInfo.getStatus().value()).getId());
@@ -464,7 +471,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                 State state = new State();
                 state.setErrExist(true);
                 state.setErrorMessage("Ошибка при отправке XML: " + errMainStr);
-                markRequestsAsError(task, state);
+                markRequestsError(task, state);
                 task.setState("ERR");
                 task.setResult(state.getErrorMessage());
                 taskMng.logTask(task, false, false);
@@ -496,7 +503,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         if (state.processed) {
             if (state.isErrExist) {
                 // есть ошибки отправки запроса (например 400, Bad request)
-                markRequestsAsError(task, state);
+                markRequestsError(task, state);
             } else {
                 // Ошибок отправки нет, обработка
                 List<CommonResultType> importResult = state.getStateResult().getImportResult();
@@ -526,7 +533,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         }
     }
 
-    private void markRequestsAsError(Task task, State state) {
+    private void markRequestsError(Task task, State state) {
         List<DebSubRequest> debSubRequests = debSubRequestDAO.getAllByStatusInAndHouseIdAndProcUkId(
                 List.of(DebtSubRequestInnerStatuses.PROCESSING.getId()), task.getEolink().getId(), task.getProcUk().getId());
         debSubRequests.forEach(t -> {

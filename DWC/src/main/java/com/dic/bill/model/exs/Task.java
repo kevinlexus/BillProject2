@@ -127,6 +127,10 @@ public class Task implements java.io.Serializable {
     @Column(name = "TGUID")
     private String tguid;
 
+    // идентификатор, используемый для экспорта 2-го и последующих блоков данных
+    @Column(name = "NEXT_BLOCK_GUID")
+    private String nextBlockGuid;
+
     // пользователь (специально не стал делать MANY TO ONE - так как возможно не будет таблицы, куда TO ONE)
     @Column(name = "FK_USER", updatable = false, nullable = true)
     private Integer fk_user;
