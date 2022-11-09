@@ -1512,7 +1512,7 @@ public class HouseManagementAsyncBindingBuilder {
         ApartmentHouse ah = new ApartmentHouse();
 
         // установить базовые параметры
-        if (task.getAct().getCd().equals("GIS_ADD_HOUSE")) {
+        if (task.getAct().getCd().equals("GIS_ADD_HOUSE")) { // Эта ветка почему то не работает, работает только обновление
             // Добавить дом
             log.trace("Добавление дома, Task.id={}", task.getId());
             BasicCharacteristicts bc = new BasicCharacteristicts();
@@ -1645,7 +1645,7 @@ public class HouseManagementAsyncBindingBuilder {
 
         // Добавить подъезды
         taskDao.getByTaskAddrTp(task, "Подъезд", null,
-                        1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_ENTRY"))
+                        1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_ENTRY")) // todo проверить задания - их нет нигде!
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Добавление подъезда, Task.id={}", t.getId());
                     EntranceToCreate ec = new EntranceToCreate();
@@ -1670,7 +1670,7 @@ public class HouseManagementAsyncBindingBuilder {
                     ah.getEntranceToCreate().add(ec);
                 }));
         // Обновить подъезды
-        taskDao.getByTaskAddrTp(task, "Подъезд", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_ENTRY"))
+        taskDao.getByTaskAddrTp(task, "Подъезд", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_ENTRY")) // todo проверить задания - их нет нигде!
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Обновление подъезда, Task.id={}, Guid={}", t.getId(), t.getEolink().getGuid());
                     EntranceToUpdate eu = new EntranceToUpdate();
@@ -1697,7 +1697,7 @@ public class HouseManagementAsyncBindingBuilder {
                 }));
 
         // Добавить жилое помещение(ия)
-        taskDao.getByTaskAddrTp(task, "Квартира", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_PRMS"))
+        taskDao.getByTaskAddrTp(task, "Квартира", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_PRMS")) // todo проверить задания - их нет нигде!
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Добавление жилого помещения, Task.id={}", t.getId());
                     ResidentialPremises rp = new ResidentialPremises();
@@ -1759,7 +1759,7 @@ public class HouseManagementAsyncBindingBuilder {
                 }));
 
         // Добавить НЕжилое помещение(ия)
-        taskDao.getByTaskAddrTp(task, "Помещение нежилое", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_PRMS"))
+        taskDao.getByTaskAddrTp(task, "Помещение нежилое", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_ADD_PRMS")) // todo проверить задания - их нет нигде!
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Добавление НЕжилого помещения, Task.id={}", t.getId());
                     NonResidentialPremiseToCreate rc =
@@ -1797,7 +1797,7 @@ public class HouseManagementAsyncBindingBuilder {
                 }));
 
         // Обновить жилое помещение(ия)
-        taskDao.getByTaskAddrTp(task, "Квартира", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_PRMS"))
+        taskDao.getByTaskAddrTp(task, "Квартира", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_PRMS")) // todo проверить задания - их нет нигде!
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Обновление жилого помещения, Task.id={}, Guid={}", t.getId(), t.getEolink().getGuid());
                     ResidentialPremises rp = new ResidentialPremises();
@@ -1866,7 +1866,7 @@ public class HouseManagementAsyncBindingBuilder {
                 }));
 
         // Обновить НЕжилое помещение(ия)
-        taskDao.getByTaskAddrTp(task, "Помещение нежилое", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_PRMS"))
+        taskDao.getByTaskAddrTp(task, "Помещение нежилое", null, 1).stream().filter(t -> t.getAct().getCd().equals("GIS_UPD_PRMS"))  // todo проверить задания - их нет нигде!
                 .forEach(Errors.rethrow().wrap(t -> {
                     log.trace("Обновление НЕжилого помещения, Task.id={}, Guid={}", t.getId(), t.getEolink().getGuid());
                     NonResidentialPremiseToUpdate rc =

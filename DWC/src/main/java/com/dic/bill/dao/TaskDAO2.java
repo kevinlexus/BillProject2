@@ -16,7 +16,7 @@ public interface TaskDAO2 extends JpaRepository<Task, Integer> {
      * по разрешенным к обмену УК
      */
     @Query("select t.id from Task t left join t.master d left join t.procUk uk left join uk.org o " +
-            "where t.state in ('INS','ACK','RPT') and t.parent is null and t.id not in (:inWorkTaskId) " +
+            "where (t.state in ('INS','ACK','RPT') or t.act.cd in ('GIS_SYSTEM_RPT', 'GIS_SYSTEM_CHECK')) and t.parent is null and t.id not in (:inWorkTaskId) " +
             "and (uk is null or o.isExchangeGis = true) " // либо пусто в УК, либо разрешен обмен с ГИС
             + "and (t.master is null or t.master.state in ('ACP'))")
     List<Integer> getAllUnprocessedNotActiveTaskIds(@Param("inWorkTaskId") List<Integer> inWorkTaskId);
