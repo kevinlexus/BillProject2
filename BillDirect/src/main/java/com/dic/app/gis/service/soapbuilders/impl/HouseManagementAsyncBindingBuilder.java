@@ -618,7 +618,7 @@ public class HouseManagementAsyncBindingBuilder {
 
                 // НЕЖИЛЫЕ помещения
                 createNonResidentalPremises(par, houseEol, curDate, apartmentHouse);
-            } else if (livingHouse!=null) {
+            } else if (livingHouse != null) {
                 log.info("************ Частный дом, houseGUID={}", livingHouse.getHouseGUID()); // todo сделать признак, что Eolink - частный дом
             }
             // Установить статус выполнения задания
@@ -917,7 +917,6 @@ public class HouseManagementAsyncBindingBuilder {
 
     /**
      * Экспортировать лицевые счета
-     *
      */
 
     public void exportAccountData(Integer taskId) throws CantPrepSoap, CantSendSoap, WrongParam {
@@ -1119,7 +1118,6 @@ public class HouseManagementAsyncBindingBuilder {
 
     /**
      * Импортировать лицевые счета
-     *
      */
 
     public void importAccountData(Integer taskId) throws CantPrepSoap, CantSendSoap, WrongParam, UnusableCode {
@@ -2007,143 +2005,65 @@ public class HouseManagementAsyncBindingBuilder {
     }
 
 
-    /**
-     * Проверить наличие заданий
-     * и если их нет, - создать
-     *
-     */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void createTasks(String createTaskCd, boolean isPrivate, String rptTaskCd) {
+        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp(createTaskCd, isPrivate ? 1 : 0)) {
 
-    public void checkPeriodicHouseExp(Integer taskId) throws WrongParam {
-        Task task = em.find(Task.class, taskId);
+            Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
+            Eolink procUk = em.find(Eolink.class, t.getEolUkId());
+            Task newTask4 = ptb.setUp(eolHouse, null, null, createTaskCd, "STP",
+                    config.getCurUserGis().get().getId(), procUk);
+            ptb.save(newTask4);
+            log.info("Добавлено задание CD={}, по Дому Eolink.id={}, Task.procUk.id={}", createTaskCd, eolHouse.getId(), procUk.getId());
+            // добавить зависимое задание к системному повторяемому заданию
+            // (будет запускаться системным заданием)
+            ptb.addAsChild(newTask4, rptTaskCd);
 
-        // удалить задания, которые необходимо пересоздать
-        eolinkDao2.deleteTaskHouseWithMismatchUpdateDate();
-
-        // создать по всем домам задания на экспорт объектов дома, если их нет fixme Переделать! По Частному сектору не нужно создавать такие задания!
-        // создавать по 10 штук, иначе - блокировка Task (нужен коммит)
-        int a = 1;
-        for (Eolink e : eolinkDao.getEolinkByTpWoTaskTp("Дом", "GIS_EXP_HOUSE", "SYSTEM_RPT_HOUSE_EXP")) {
-            // статус - INS
-            Task parent = ptb.setUp(e, null, "GIS_EXP_HOUSE", "INS", config.getCurUserGis().get().getId());
-            // добавить как зависимое задание к системному повторяемому заданию
-            ptb.addAsChild(parent, "SYSTEM_RPT_HOUSE_EXP");
-            ptb.save(parent);
-            // сохранить ведущее задание
-
-            // создать зависимое задание, выгрузки счетчиков ИПУ. оно не должно запуститься до выполнения ведущего
-            Task newTask2 = ptb.setUp(e, null, parent, "GIS_EXP_METERS", "INS", config.getCurUserGis().get().getId(), null);
-            // добавить как зависимое задание к системному повторяемому заданию
-            ptb.addTaskPar(newTask2, "ГИС ЖКХ.Включая архивные", null, null, false, null);
-            ptb.addAsChild(newTask2, "SYSTEM_RPT_HOUSE_EXP");
-            ptb.save(newTask2);
-            log.info("Добавлено задание на экспорт счетчиков ИПУ по Дому Eolink.id={}", e.getId());
-
-            a++;
-            if (a >= 100) {
-                break;
-            }
         }
+    }
 
-        // создать зависимые задания по домам МКД, по экспорту лиц.счетов, с указанием Ук - владельца счета
-        // получить дома без заданий
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_EXP_HOUSE", "GIS_EXP_ACCS", 0)) {
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void createTasks(String parentCd, String createTaskCd, String rptTaskCd) {
+        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp(parentCd, createTaskCd, 0)) {
 
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
             Eolink procUk = em.find(Eolink.class, t.getEolUkId());
             Task masterTask = em.find(Task.class, t.getMasterTaskId());
-            Task newTask3 = ptb.setUp(eolHouse, null, masterTask, "GIS_EXP_ACCS", "INS",
+            Task newTask3 = ptb.setUp(eolHouse, null, masterTask, createTaskCd, "STP",
                     config.getCurUserGis().get().getId(), procUk);
             ptb.save(newTask3);
-            log.info("Добавлено задание на экспорт лиц.счетов по Дому Eolink.id={}, Task.procUk.id={}",
+            log.info("Добавлено задание CD={}, по Дому Eolink.id={}, Task.procUk.id={}", createTaskCd,
                     eolHouse.getId(), procUk.getId());
             // добавить зависимое задание к системному повторяемому заданию
             // (будет запускаться системным заданием)
-            ptb.addAsChild(newTask3, "SYSTEM_RPT_HOUSE_EXP");
+            ptb.addAsChild(newTask3, rptTaskCd);
 
         }
+    }
 
-        // создать независимые задания по Частному сектору, по экспорту лиц.счетов, с указанием Ук - владельца счета
-        // получить дома без заданий
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_EXP_ACCS", 1)) {
 
-            Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
-            Eolink procUk = em.find(Eolink.class, t.getEolUkId());
-            Task newTask4 = ptb.setUp(eolHouse, null, null, "GIS_EXP_ACCS", "INS",
-                    config.getCurUserGis().get().getId(), procUk);
-            ptb.save(newTask4);
-            log.info("Добавлено задание на экспорт лиц.счетов по Дому Eolink.id={}, Task.procUk.id={}",
-                    eolHouse.getId(), procUk.getId());
-            // добавить зависимое задание к системному повторяемому заданию
-            // (будет запускаться системным заданием)
-            ptb.addAsChild(newTask4, "SYSTEM_RPT_HOUSE_EXP");
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void createSetOfTasks(Eolink eolHouse, String rptTaskCd) throws WrongParam {
+        Task parent = createParentTask(eolHouse, rptTaskCd, "GIS_EXP_HOUSE");
+        log.info("Добавлено задание CD={}, по Дому Eolink.id={}", "GIS_EXP_HOUSE", eolHouse.getId());
+        // сохранить ведущее задание
 
-        }
+        // создать зависимое задание, выгрузки счетчиков ИПУ. оно не должно запуститься до выполнения ведущего GIS_EXP_HOUSE
+        Task newTask2 = ptb.setUp(eolHouse, null, parent, "GIS_EXP_METERS", "STP", config.getCurUserGis().get().getId(), null);
+        // добавить как зависимое задание к системному повторяемому заданию
+        ptb.addTaskPar(newTask2, "ГИС ЖКХ.Включая архивные", null, null, false, null);
+        ptb.addAsChild(newTask2, rptTaskCd);
+        ptb.save(newTask2);
+        log.info("Добавлено задание CD={}, по Дому Eolink.id={}", "GIS_EXP_METERS", eolHouse.getId());
+    }
 
-        // создать независимые задания по домам МКД, по импорту лиц.счетов, с указанием Ук - владельца счета
-        // получить дома без заданий
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_IMP_ACCS", 0)) {
-
-            Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
-            Eolink procUk = em.find(Eolink.class, t.getEolUkId());
-            Task newTask4 = ptb.setUp(eolHouse, null, null, "GIS_IMP_ACCS", "INS",
-                    config.getCurUserGis().get().getId(), procUk);
-            ptb.save(newTask4);
-            log.info("Добавлено задание на импорт лиц.счетов по Дому Eolink.id={}, Task.procUk.id={}",
-                    eolHouse.getId(), procUk.getId());
-            // добавить зависимое задание к системному повторяемому заданию
-            // (будет запускаться системным заданием)
-            ptb.addAsChild(newTask4, "SYSTEM_RPT_HOUSE_IMP");
-
-        }
-
-        // создать независимые задания по импорту ответов на запросы о задолженности от УСЗН
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_IMP_DEB_SUB_RESPONSE", 0)) {
-
-            //log.info("**** 1");
-            Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
-            //log.info("**** 2");
-            Eolink procUk = em.find(Eolink.class, t.getEolUkId());
-            //log.info("**** 3");
-            Task newTask4 = ptb.setUp(eolHouse, null, null, "GIS_IMP_DEB_SUB_RESPONSE", "INS",
-                    config.getCurUserGis().get().getId(), procUk);
-            //log.info("**** 4");
-            ptb.save(newTask4);
-            //log.info("**** 5");
-            log.info("Добавлено задание по импорту ответов на запросы о задолженности от УСЗН по Дому Eolink.id={}, Task.procUk.id={}",
-                    eolHouse.getId(), procUk.getId());
-
-            // добавить зависимое задание к системному повторяемому заданию
-            // будет переводиться в активное состояние, системным заданием
-            ptb.addAsChild(newTask4, "SYSTEM_RPT_DEB_SUB_EXCHANGE");
-
-        }
-
-        // создать ЗАВИСИМЫЕ задания по экспорту запросов о задолженности от УСЗН
-        // получить дома без заданий
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp("GIS_IMP_DEB_SUB_RESPONSE", "GIS_EXP_DEB_SUB_REQUEST", 0)) {
-
-            //log.info("**** 1.1");
-            Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
-            //log.info("**** 1.2");
-            Eolink procUk = em.find(Eolink.class, t.getEolUkId());
-            //log.info("**** 1.3");
-            Task masterTask = em.find(Task.class, t.getMasterTaskId());
-            //log.info("**** 1.4");
-            Task newTask3 = ptb.setUp(eolHouse, null, masterTask, "GIS_EXP_DEB_SUB_REQUEST", "INS",
-                    config.getCurUserGis().get().getId(), procUk);
-            //log.info("**** 1.5");
-            ptb.save(newTask3);
-            //log.info("**** 1.6");
-            log.info("Добавлено задание на экспорт лиц.счетов по Дому Eolink.id={}, Task.procUk.id={}",
-                    eolHouse.getId(), procUk.getId());
-            // добавить зависимое задание к заданию импорта ответов (сделано специально, чтобы после импорта, получить результаты)
-            // будет переводиться в активное состояние, системным заданием, но запускаться - после GIS_IMP_DEB_SUB_RESPONSE
-            //log.info("**** 1.7");
-            ptb.addAsChild(newTask3, "SYSTEM_RPT_DEB_SUB_EXCHANGE");
-        }
-
-        // Установить статус выполнения задания
-        task.setState("ACP");
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public Task createParentTask(Eolink eolHouse, String rptTaskCd, String taskCd) {
+        Task parent = ptb.setUp(eolHouse, null, taskCd, "STP", config.getCurUserGis().get().getId());
+        // добавить как зависимое задание к системному повторяемому заданию
+        ptb.addAsChild(parent, rptTaskCd);
+        ptb.save(parent);
+        return parent;
     }
 
 }

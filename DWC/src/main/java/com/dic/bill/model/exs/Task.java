@@ -61,7 +61,7 @@ public class Task implements java.io.Serializable {
     // зависимые задания ссылаются на данное
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "FK_PARENT", referencedColumnName = "ID")
-    private List<TaskToTask> inside = new ArrayList<TaskToTask>(0);
+    private List<TaskToTask> inside = new ArrayList<>(0);
 
     // данное задание ссылается на ведущее TASKXTASK
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)

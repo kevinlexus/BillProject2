@@ -256,8 +256,8 @@ public class NsiServiceAsyncBindingBuilder {
      * и если их нет, - создать
      */
 
-    public void checkPeriodicTask(Integer taskId) throws WrongParam {
-        Task task = em.find(Task.class, taskId);
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void checkPeriodicTask() throws WrongParam {
         // создать по всем организациям задания, если их нет
         // добавить как зависимое задание к системному повторяемому заданию
         String actTp = "GIS_EXP_DATA_PROVIDER_NSI_ITEM";
@@ -284,9 +284,6 @@ public class NsiServiceAsyncBindingBuilder {
                 break;
             }
         }
-        // Установить статус выполнения задания
-        task.setState("ACP");
-
     }
 
 }

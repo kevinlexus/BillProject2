@@ -252,6 +252,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                 // Ошибок нет, обработка
                 ExportDSRsResultType exportDSRsResult = state.getStateResult().getExportDSRsResult();
                 ExportDSRsResultType.PagedOutput pagedOutput = exportDSRsResult.getPagedOutput(); // todo подумать!
+
                 for (DSRType subrequest : exportDSRsResult.getSubrequestData()) {
                     DSRType.RequestInfo requestInfo = subrequest.getRequestInfo();
                     if (requestInfo != null) {
@@ -267,14 +268,6 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                             debSubRequest = requestOpt.get();
                         }
 
-                        if (!pagedOutput.isLastPage()) {
-                            log.info("Ожидается следующий блок данных GUID={}", pagedOutput.getNextSubrequestGUID());
-                            task.setNextBlockGuid(pagedOutput.getNextSubrequestGUID());
-                            task.setState("INS"); // перевести опять в INS, чтобы принимался следующий блок данных
-                        } else {
-                            log.info("Все блоки данных получены");
-                            task.setNextBlockGuid(null);
-                        }
                         // статус запроса в ГИС
                         debSubRequest.setStatusGis(DebtSubRequestStatuses.getByName(requestInfo.getStatus().value()).getId());
                         if (debSubRequest.getProcUk() == null) {
@@ -342,6 +335,16 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                         log.error("DSRType.RequestInfo requestInfo - пустой");
                     }
                 }
+
+                if (!pagedOutput.isLastPage()) {
+                    log.info("Ожидается следующий блок данных GUID={}", pagedOutput.getNextSubrequestGUID());
+                    task.setNextBlockGuid(pagedOutput.getNextSubrequestGUID());
+                    task.setState("INS"); // перевести опять в INS, чтобы принимался следующий блок данных
+                } else {
+                    log.info("Все блоки данных получены");
+                    task.setNextBlockGuid(null);
+                }
+
                 // Установить статус выполнения задания
                 task.setState("ACP");
                 taskMng.logTask(task, false, true);

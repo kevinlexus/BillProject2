@@ -328,14 +328,12 @@ public class HcsOrgRegistryAsyncBindingBuilder {
      *
      */
 
-    public void checkPeriodicTask(Integer taskId) {
-        Task task = em.find(Task.class, taskId);
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void checkPeriodicTask() {
 
         // создать по всем организациям задания, если у них нет родительской (по главным)
         createTask("GIS_EXP_ORG", "SYSTEM_RPT_ORG_EXP", "STP", "Организация",
                 "выгрузку параметров организации");
-        // Установить статус выполнения задания
-        task.setState("ACP");
     }
 
     private void createTask(String actTp, String parentCD, String state, String eolTp, String purpose) {

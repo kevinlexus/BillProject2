@@ -106,9 +106,9 @@ public class UlistMng {
     /**
      * Обновить справочник NSI
      *
-     * @param ulistTp - тип
-     * @param grp     - группа
-     * @param id      - Id справочника
+     * @param ulistTp тип
+     * @param grp     группа
+     * @param id      Id справочника
      */
     private void updNsiItem(Integer taskId, UlistTp ulistTp, String grp, BigInteger id) throws CantUpdNSI {
         // получить из ГИС справочник

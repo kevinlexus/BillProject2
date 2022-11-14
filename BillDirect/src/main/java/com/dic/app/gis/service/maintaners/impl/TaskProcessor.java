@@ -1,7 +1,6 @@
 package com.dic.app.gis.service.maintaners.impl;
 
 import com.dic.app.gis.service.maintaners.TaskMng;
-import com.dic.app.gis.service.soapbuilders.TaskServices;
 import com.dic.app.gis.service.soapbuilders.impl.*;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.TaskPar;
@@ -30,12 +29,10 @@ public class TaskProcessor {
     private final EntityManager em;
     private final HouseManagementAsyncBindingBuilder hb;
     private final DebtRequestsServiceAsyncBindingBuilder db;
-    private final HcsOrgRegistryAsyncBindingBuilder os;
     private final HcsOrgRegistryAsyncBindingSimpleBuilder osSimple;
     private final DeviceMeteringAsyncBindingBuilder dm;
-    private final HcsBillsAsyncBuilder bill;
-    private final TaskServices tb;
     private final NsiServiceAsyncBindingBuilder nsiSv;
+    private final HcsBillsAsyncBuilder bill;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void processTask(Integer taskId) {
@@ -77,59 +74,13 @@ public class TaskProcessor {
     private void process(Task task, String actCd, String state) throws WrongParam, WrongGetMethod, IOException, CantSendSoap, CantPrepSoap, UnusableCode, ErrorProcessAnswer, DatatypeConfigurationException, ParseException, CantUpdNSI {
         // Выполнить задание
         switch (actCd) {
-            case "GIS_SYSTEM_CHECK":
-                // Системные задания проверок
-                if (state.equals("INS")) {
-                    switch (task.getCd()) {
-                        case "SYSTEM_CHECK_HOUSE_EXP_TASK":
-                            // Проверка наличия заданий по экспорту объектов дома
-                            hb.checkPeriodicHouseExp(task.getId());
-                            break;
-                        case "SYSTEM_CHECK_MET_VAL_TASK":
-                            // Проверка наличия заданий по экспорту показаний счетчиков по помещениям дома
-                            dm.checkPeriodicTask(task.getId());
-                            break;
-                        case "SYSTEM_CHECK_ORG_EXP_TASK":
-                            // Проверка наличия заданий по экспорту параметров организаций
-                            os.checkPeriodicTask(task.getId());
-                            break;
-                        case "SYSTEM_CHECK_REF_EXP_TASK":
-                            // Проверка наличия заданий по экспорту справочников организации
-                            nsiSv.checkPeriodicTask(task.getId());
-                            break;
-                        case "SYSTEM_CHECK_IMP_PD":
-                            // Проверка наличия заданий по импорту ПД
-                            bill.checkPeriodicImpExpPd(task.getId());
-                            break;
-                        default:
-                            task.setState("ERR");
-                            task.setResult("Нет обработчика по заданию, необходимо проверить!");
-                            break;
-                    }
-                }
-                break;
             case "GIS_SAVE_FILE_VALS":
                 // Выгрузка показаний приборов учета в файл
                 if (state.equals("INS")) {
                     dm.saveValToFile(task.getId());
                 }
                 break;
-            case "GIS_SYSTEM_RPT":
-                // Запуск повторяемого задания, если задано
-                TaskPar taskPar = tb.getTrgTask(task);
-                if (taskPar != null) {
-                    // активировать все зависимые задания
-                    log.trace("******* Активировано повторяемое задание Task.id={}", task.getId());
-                    tb.activateRptTask(task);
-                    // добавить в список выполненных заданий
-                    tb.setProcTask(taskPar);
-                    // пометить статус повторяемого выполнения, на случай, если запускалось в ручную state--> "INS"
-                    if (task.getState().equals("INS")) {
-                        taskMng.setState(task, "RPT");
-                    }
-                }
-                break;
-            case "GIS_UPD_HOUSE":
+            case "GIS_UPD_HOUSE": // todo не вызывается и не создается нигде задание
                 // Импорт объектов дома
                 if (state.equals("INS")) {
                     // Обновление объектов дома
@@ -138,7 +89,6 @@ public class TaskProcessor {
                     // Запрос ответа
                     hb.importHouseUODataAsk(task.getId());
                 }
-
                 break;
             case "GIS_EXP_HOUSE":
                 // Экспорт из ГИС ЖКХ объектов дома
@@ -235,15 +185,6 @@ public class TaskProcessor {
                 }
                 break;
             case "GIS_EXP_ORG":
-                // Экспорт параметров организации
-/* старая версия, пока не удалять
-                osSimple.setUp(task);
-                if (state.equals("INS")) {
-                    osSimple.exportOrgRegistry(task);
-                } else if (state.equals("ACK")) {
-                    osSimple.exportOrgRegistryAsk(task);
-                }
-*/
                 if (state.equals("INS")) {
                     osSimple.exportOrgRegistry(task.getId());
                 } else if (state.equals("ACK")) {
@@ -266,20 +207,6 @@ public class TaskProcessor {
                     ulistMng.loadNsi(task.getId(), "NSI");
                     ulistMng.loadNsi(task.getId(), "NSIRAO");
                     taskMng.setState(task, "ACP");
-                }
-                break;
-            case "GIS_EXP_NOTIF_1":
-            case "GIS_EXP_NOTIF_8":
-            case "GIS_EXP_NOTIF_16":
-            case "GIS_EXP_NOTIF_24":
-                // Экспорт извещений исполнения документа по дням выгрузки
-                //bill.setUp(task);
-                if (state.equals("INS")) {
-                    // Экспорт извещений исполнения документа
-                    //bill.exportNotificationsOfOrderExecution(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    //bill.exportNotificationsOfOrderExecutionAsk(task.getId());
                 }
                 break;
             default:

@@ -71,7 +71,7 @@ public class NsiCommonAsyncBindingBuilder {
     /**
      * Получить список справочников
      *
-     * @param grp - вид справочника (NSI, NISRAO)
+     * @param grp вид справочника (NSI, NISRAO)
      */
     public NsiListType getNsiList(Integer taskId, String grp) throws CantSendSoap, ru.gosuslugi.dom.schema.integration.nsi_common_service_async.Fault, CantPrepSoap {
         // Установить параметры SOAP
@@ -116,7 +116,7 @@ public class NsiCommonAsyncBindingBuilder {
     /**
      * Получить справочник
      *
-     * @param grp - вид справочника (NSI, NISRAO)
+     * @param grp вид справочника (NSI, NISRAO)
      */
 
     public NsiItemType getNsiItem(Integer taskId, String grp, BigInteger id) throws CantSignSoap, CantSendSoap, ru.gosuslugi.dom.schema.integration.nsi_common_service_async.Fault, CantPrepSoap {

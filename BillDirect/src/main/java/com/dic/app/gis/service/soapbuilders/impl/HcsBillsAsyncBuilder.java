@@ -1508,73 +1508,18 @@ public class HcsBillsAsyncBuilder {
         }
     }
 
-    /**
-     * Проверить наличие заданий на импорт и экспорт ПД
-     * и если их нет, - создать
-     */
-
-    public void checkPeriodicImpExpPd(Integer taskId) {
-        Task task = em.find(Task.class, taskId);
-        // создать по всем домам задания на импорт ПД, если их нет
-        createTaskExpPayDoc("GIS_IMP_PAY_DOCS", "SYSTEM_RPT_IMP_PD", "STP",
-                "импорт ПД");
-        // создать по всем домам задания на экспорт ПД, если их нет
-        createTaskExpPayDoc("GIS_EXP_PAY_DOCS", "SYSTEM_RPT_EXP_PD", "STP",
-                "экспорт ПД");
-        // создать по всем УК задания на экспорт Извещений по ПД, если их нет, по дням выгрузки
-        createTask("GIS_EXP_NOTIF_1", "SYSTEM_RPT_EXP_NOTIF", "STP", "Организация",
-                "экспорт Извещений");
-        createTask("GIS_EXP_NOTIF_8", "SYSTEM_RPT_EXP_NOTIF", "STP", "Организация",
-                "экспорт Извещений");
-        createTask("GIS_EXP_NOTIF_16", "SYSTEM_RPT_EXP_NOTIF", "STP", "Организация",
-                "экспорт Извещений");
-        createTask("GIS_EXP_NOTIF_24", "SYSTEM_RPT_EXP_NOTIF", "STP", "Организация",
-                "экспорт Извещений");
-        // Установить статус выполнения задания
-        task.setState("ACP");
-    }
-
-    private void createTask(String actTp, String parentCD, String state, String eolTp, String purpose) {
-        int a;// создавать по 100 штук, иначе -блокировка Task (нужен коммит)
-        a = 1;
-        for (Eolink e : eolinkDao.getEolinkByTpWoTaskTp(eolTp, actTp, parentCD)) {
-            // статус - STP, остановлено (будет запускаться другим заданием)
-            Task newTask = ptb.setUp(e, null, actTp, state, config.getCurUserGis().get().getId());
-            // добавить как зависимое задание к системному повторяемому заданию
-            ptb.addAsChild(newTask, parentCD);
-            ptb.save(newTask);
-            log.info("Добавлено задание на {}, по объекту {}, Eolink.id={}", purpose, eolTp, e.getId());
-            a++;
-            if (a++ >= 100) {
-                break;
-            }
-        }
-    }
-
-    private void createTaskExpPayDoc(String actTp, String parentCD, String state, String purpose) {
-        // создать по всем домам задания, если их нет
-        // получить дома без заданий
-        List<HouseUkTaskRec> lst = eolinkDao2.getHouseByTpWoTaskTp(actTp, 0);
-        lst.addAll(eolinkDao2.getHouseByTpWoTaskTp(actTp, 1));
-        for (HouseUkTaskRec t : lst) {
-            int a;// создавать по 100 штук, иначе -блокировка Task (нужен коммит)
-            a = 1;
-            Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
-            Eolink procUk = em.find(Eolink.class, t.getEolUkId());
-            Task newTask = ptb.setUp(eolHouse, null, null, actTp, state,
-                    config.getCurUserGis().get().getId(), procUk);
-            ptb.save(newTask);
-            // добавить зависимое задание к системному повторяемому заданию
-            // (будет запускаться системным заданием)
-            ptb.addAsChild(newTask, parentCD);
-            log.info("Добавлено задание на {}, по объекту {}, Eolink.id={} Task.procUk={}", purpose, "Дом",
-                    eolHouse.getId(), procUk.getId());
-            a++;
-            if (a++ >= 100) {
-                break;
-            }
-        }
-
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void createPayDocSingleTask(String actTp, String parentCD, String state, String purpose, HouseUkTaskRec t) {
+        Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
+        Eolink procUk = em.find(Eolink.class, t.getEolUkId());
+        Task newTask = ptb.setUp(eolHouse, null, null, actTp, state,
+                config.getCurUserGis().get().getId(), procUk);
+        ptb.save(newTask);
+        // добавить зависимое задание к системному повторяемому заданию
+        // (будет запускаться системным заданием)
+        ptb.addAsChild(newTask, parentCD);
+        log.info("Добавлено задание на {}, по объекту {}, Eolink.id={} Task.procUk={}", purpose, "Дом",
+                eolHouse.getId(), procUk.getId());
     }
 
 

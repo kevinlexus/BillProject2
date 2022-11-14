@@ -1,27 +1,24 @@
 package com.dic.app.gis.service.maintaners.impl;
 
 
-import com.dic.app.gis.service.maintaners.TaskParMng;
-import com.dic.app.gis.service.soapbuilders.TaskServices;
-import com.dic.bill.dao.TaskDAO;
+import com.dic.app.gis.service.soapbuilders.impl.*;
+import com.dic.bill.dao.EolinkDAO;
+import com.dic.bill.dao.EolinkDAO2;
+import com.dic.bill.dao.TaskDAO2;
+import com.dic.bill.dto.HouseUkTaskRec;
+import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
-import com.dic.bill.model.exs.TaskPar;
 import com.ric.cmn.Utl;
-import com.ric.cmn.excp.WrongGetMethod;
+import com.ric.cmn.excp.WrongParam;
 import lombok.extern.slf4j.Slf4j;
-import org.quartz.CronExpression;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 /**
  * Сервисы обслуживания задач
@@ -31,54 +28,183 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class TaskService implements TaskServices {
+public class TaskService {
 
-    @PersistenceContext
-    private EntityManager em;
-    @Autowired
-    private TaskDAO taskDao;
-    @Autowired
-    private TaskParMng taskParMng;
-    // расписание
-    List<TaskPar> lstSched = new ArrayList<>(20);
-    // список сработавших событий в расписании
-    List<Integer> lstTrg = new ArrayList<>();
-    // список обработанных событий в расписании
-    List<Integer> lstTrgProc = new ArrayList<>();
+    private HouseManagementAsyncBindingBuilder houseTaskBuilder;
+    private final EolinkDAO eolinkDao;
+    private final EolinkDAO2 eolinkDao2;
+    private final HcsOrgRegistryAsyncBindingBuilder os;
+    private final NsiServiceAsyncBindingBuilder nsiSv;
+    private final HcsBillsAsyncBuilder billBuilder;
+    private final DeviceMeteringAsyncBindingBuilder deviceBuilder;
+    private final TaskDAO2 taskDAO2;
+
+    public TaskService(HouseManagementAsyncBindingBuilder houseTaskBuilder, EolinkDAO eolinkDao,
+                       EolinkDAO2 eolinkDao2, HcsOrgRegistryAsyncBindingBuilder os, NsiServiceAsyncBindingBuilder nsiSv, HcsBillsAsyncBuilder billBuilder, DeviceMeteringAsyncBindingBuilder deviceBuilder, TaskDAO2 taskDAO2) {
+        this.houseTaskBuilder = houseTaskBuilder;
+        this.eolinkDao = eolinkDao;
+        this.eolinkDao2 = eolinkDao2;
+        this.os = os;
+        this.nsiSv = nsiSv;
+        this.billBuilder = billBuilder;
+        this.deviceBuilder = deviceBuilder;
+        this.taskDAO2 = taskDAO2;
+    }
 
     /**
-     * Активация повторяемого задания
-     *
-     * @param task - повторяемое задание
+     * Проверить наличие заданий
+     * и если их нет, - создать
      */
-    @Override
+
+    @Scheduled(cron = "${crone.periodic.check}")
+    public void checkPeriodicTasks() throws WrongParam {
+        log.info("НАЧАЛО ПРОВЕРКИ ПЕРИОДИЧЕСКИХ ЗАДАНИЙ");
+        // удалить задания, которые необходимо пересоздать
+        //eolinkDao2.deleteTaskHouseWithMismatchUpdateDate(); // todo убрать удаление, надо что то другое
+
+        // создать по всем домам задания на экспорт объектов дома, счетчиков todo Переделать! По Частному сектору не нужно создавать такие задания!
+        createSetOfTasks("SYSTEM_RPT_HOUSE_EXP");
+
+        // создать независимые задания по всем домам, по импорту и экспорту показаний счетчиков
+        createParentTasks("GIS_IMP_METER_VALS", "SYSTEM_RPT_MET_IMP_VAL");
+        createParentTasks("GIS_EXP_METER_VALS", "SYSTEM_RPT_MET_EXP_VAL");
+
+        // создать зависимые задания по домам МКД, по экспорту лиц.счетов, с указанием Ук - владельца счета
+        houseTaskBuilder.createTasks("GIS_EXP_HOUSE", "GIS_EXP_ACCS", "SYSTEM_RPT_HOUSE_EXP");
+
+        // создать независимые задания, по частному сектору, по экспорту лиц.счетов, с указанием Ук - владельца счета
+        houseTaskBuilder.createTasks("GIS_EXP_ACCS", true, "SYSTEM_RPT_HOUSE_EXP");
+
+        // создать независимые задания по домам МКД, по импорту лиц.счетов, с указанием Ук - владельца счета
+        houseTaskBuilder.createTasks("GIS_IMP_ACCS", false, "SYSTEM_RPT_HOUSE_IMP");
+
+        // создать независимые задания по импорту ответов на запросы о задолженности от УСЗН
+        houseTaskBuilder.createTasks("GIS_IMP_DEB_SUB_RESPONSE", false, "SYSTEM_RPT_DEB_SUB_EXCHANGE");
+
+        // создать зависимые задания по экспорту запросов о задолженности от УСЗН
+        houseTaskBuilder.createTasks("GIS_IMP_DEB_SUB_RESPONSE", "GIS_EXP_DEB_SUB_REQUEST", "SYSTEM_RPT_DEB_SUB_EXCHANGE");
+
+        // Проверка наличия заданий по импорту ПД
+        checkPeriodicImpExpPd();
+
+        // Проверка наличия заданий по экспорту параметров организаций
+        os.checkPeriodicTask();
+        // Проверка наличия заданий по экспорту справочников организации
+        nsiSv.checkPeriodicTask();
+
+        log.info("ОКОНЧАНИЕ ПРОВЕРКИ ПЕРИОДИЧЕСКИХ ЗАДАНИЙ");
+    }
+
+    @Transactional
+    @Scheduled(cron = "${crone.house.exp}")
+    public void activateRptHouseExp() {
+        activateChildTasks("SYSTEM_RPT_HOUSE_EXP");
+    }
+
+    @Transactional
+    @Scheduled(cron = "${crone.house.imp}")
+    public void activateRptHouseImp() {
+        activateChildTasks("SYSTEM_RPT_HOUSE_IMP");
+    }
+
+    @Transactional
+    @Scheduled(cron = "${crone.deb.exch}")
+    public void activateRptDebSubExch() {
+        activateChildTasks("SYSTEM_RPT_DEB_SUB_EXCHANGE");
+    }
+
+    @Transactional
+    @Scheduled(cron = "${crone.met.val}")
+    public void activateRptMetVal() {
+        activateChildTasks("SYSTEM_RPT_MET_IMP_VAL");
+        activateChildTasks("SYSTEM_RPT_MET_EXP_VAL");
+    }
+
+    // создавать по одной, иначе - блокировка Task (нужен коммит)
+    private void createSetOfTasks(String rptTaskCd) throws WrongParam {
+        for (Eolink eolHouse : eolinkDao.getEolinkByTpWoTaskTp("Дом", "GIS_EXP_HOUSE", rptTaskCd)) {
+            houseTaskBuilder.createSetOfTasks(eolHouse, rptTaskCd);
+        }
+    }
+
+    // создавать по одной, иначе - блокировка Task (нужен коммит)
+    private void createParentTasks(String taskCd, String rptTaskCd) {
+        for (Eolink eolHouse : eolinkDao.getEolinkByTpWoTaskTp("Дом", taskCd, rptTaskCd)) {
+            houseTaskBuilder.createParentTask(eolHouse, rptTaskCd, taskCd);
+        }
+    }
+
+
+    /**
+     * Проверить наличие заданий на импорт и экспорт ПД
+     * и если их нет, - создать
+     */
+    private void checkPeriodicImpExpPd() {
+        // создать по всем домам задания на импорт ПД, если их нет
+        createPayDocTasks("GIS_IMP_PAY_DOCS", "SYSTEM_RPT_IMP_PD",
+                "импорт ПД");
+        // создать по всем домам задания на экспорт ПД, если их нет
+        createPayDocTasks("GIS_EXP_PAY_DOCS", "SYSTEM_RPT_EXP_PD",
+                "экспорт ПД");
+        // создать по всем УК задания на экспорт Извещений по ПД, если их нет, по дням выгрузки
+/*
+        createTask("GIS_EXP_NOTIF_1", "SYSTEM_RPT_EXP_NOTIF", "STP", "Организация",
+                "экспорт Извещений");
+        createTask("GIS_EXP_NOTIF_8", "SYSTEM_RPT_EXP_NOTIF", "STP", "Организация",
+                "экспорт Извещений");
+        createTask("GIS_EXP_NOTIF_16", "SYSTEM_RPT_EXP_NOTIF", "STP", "Организация",
+                "экспорт Извещений");
+        createTask("GIS_EXP_NOTIF_24", "SYSTEM_RPT_EXP_NOTIF", "STP", "Организация",
+                "экспорт Извещений");
+*/
+    }
+
+    private void createPayDocTasks(String actTp, String parentCD, String purpose) {
+        // создать по всем домам задания, если их нет
+        // получить дома без заданий
+        List<HouseUkTaskRec> lst = eolinkDao2.getHouseByTpWoTaskTp(actTp, 0);
+        lst.addAll(eolinkDao2.getHouseByTpWoTaskTp(actTp, 1));
+        for (HouseUkTaskRec t : lst) {
+            billBuilder.createPayDocSingleTask(actTp, parentCD, "STP", purpose, t);
+        }
+    }
+
+
+    /**
+     * Активация дочерних и зависимых заданий
+     */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void activateRptTask(Task task) {
-        Task foundTask = em.find(Task.class, task.getId());
-        log.trace("*** Task.id={}, Повторяемое задание CD={}", foundTask.getId(), foundTask.getAct().getCd());
-		/* найти все связи с зависимыми записями, в заданиях которых нет родителя (главные),
-		   а так же если у этих заданий либо не имеется зависимых заданий, либо имеются и
-		   они НЕ находятся в статусах INS, ACK (т.е. на обработке)
-		   (по определённому типу связи)
-		*/
-        //log.info("############# foundTask.id={}", foundTask.getId());
+    public void activateChildTasks(String taskCd) {
+        Optional<Task> foundTaskOpt = taskDAO2.findByCd(taskCd);
+        //List<Integer> taskIds = new ArrayList<>();
+        if (foundTaskOpt.isPresent()) {
+            Task foundTask = foundTaskOpt.get();
+            log.info("*** Task.id={}, Повторяемое задание CD={}", foundTask.getId(), foundTask.getAct().getCd());
+            /* найти все связи с зависимыми записями, в заданиях которых нет родителя (главные),
+               а так же если у этих заданий либо не имеется зависимых заданий, либо имеются и
+               они НЕ находятся в статусах INS, ACK (т.е. на обработке)
+               (по определённому типу связи)
+            */
+            foundTask.getInside().stream()
+                    .filter(t -> t.getTp().getCd().equals("Связь повторяемого задания"))
+                    .filter(t -> t.getChild().getParent() == null) // только главные
+                    .filter(t -> t.getChild().getMaster() == null) // только независимые (где не заполнен DEP_ID)
+                    .forEach(t -> {
 
-        foundTask.getInside().stream()
-                .filter(t -> t.getTp().getCd().equals("Связь повторяемого задания"))
-                .filter(t -> t.getChild().getParent() == null) // только главные
-                .filter(t -> t.getChild().getMaster() == null) // только независимые (где не заполнен DEP_ID)
-                .forEach(t -> {
-
-                    log.trace("*** t.getChild().getId()={}", t.getChild().getId());
-                    ArrayList<Task> taskLst = new ArrayList<>(10);
-                    if (activateTask(t.getChild(), taskLst)) {
-                        // разрешить запуск по всем дочерним заданиям
-                        taskLst.forEach(t2 -> {
-                            t2.setState("INS");
-                            log.trace("*** Разрешено!!!!!!!: id={}", t2.getId());
-                        });
-                    }
-                });
+                        log.trace("*** t.getChild().getId()={}", t.getChild().getId());
+                        ArrayList<Task> taskLst = new ArrayList<>(10);
+                        if (activateTask(t.getChild(), taskLst)) {
+                            // разрешить запуск по всем дочерним заданиям
+                            taskLst.forEach(t2 -> {
+                                t2.setState("INS");
+                                //taskIds.add(t2.getId());
+                                log.trace("*** Разрешено!!!!!!!: id={}", t2.getId());
+                            });
+                        }
+                    });
+        } else {
+            log.error("Не найдено повторяемое задание с CD={}", taskCd);
+        }
     }
 
     /**
@@ -116,111 +242,4 @@ public class TaskService implements TaskServices {
             return true;
         }
     }
-
-    /**
-     * Загрузка списка запланированных задач
-     */
-    @Scheduled(fixedDelay = 20000)
-    @Override
-    @Transactional
-    public void loadTasksByTimer() throws WrongGetMethod {
-        loadSchedules();
-    }
-
-    /**
-     * Определить статусы заданий
-     */
-    @Scheduled(fixedDelay = 1000)
-    @Override
-    @Transactional
-    public void checkSchedule() throws java.text.ParseException {
-        Date dt = new Date();
-        synchronized (lstSched) {
-            for (TaskPar t : lstSched) {
-                //log.info("Expression TaskPar.id={} s1={}", t.getId(), t.getS1());
-                CronExpression exp = new CronExpression(t.getS1());
-                // либо удовлетворено условие по дате-времени, либо ручной запуск state --> "INS"
-                if (exp.isSatisfiedBy(dt) || t.getTask().getState().equals("INS")) {
-                    //log.info("Запустить задание!");
-                    // Запустить задание, если уже не запущено
-                    if (!lstTrg.contains(t.getId())) {
-                        //log.info("Задание запущено!");
-                        // добавить отметку о необходимости выполнения
-                        lstTrg.add(t.getId());
-                    } else {
-                        //log.info("Уже запущено!");
-                    }
-                } else {
-                    // Убрать все отметки если есть отметка о выполнении задания
-                    if (lstTrgProc.contains(t.getId())) {
-                        //log.info("Убрать отметки!");
-
-                        lstTrg.removeIf(integer -> integer.equals(t.getId()));
-                        lstTrgProc.removeIf(integer -> integer.equals(t.getId()));
-                    }
-                }
-            }
-        }
-    }
-
-
-    /**
-     * Проверить, выполнять ли задание
-     */
-    @Override
-    @Transactional
-    public TaskPar getTrgTask(Task task) {
-        // проверить, если поступило в обработку, но еще не выполнено
-        for (TaskPar t : task.getTaskPar().stream()
-                .filter(t -> t.getPar().getCd().equals("ГИС ЖКХ.Crone"))
-                .collect(Collectors.toList())) {
-            if (lstTrg.contains(t.getId()) && !lstTrgProc.contains(t.getId())) {
-                //log.info("..............Выполнить задание TaskPar.id={}", t.getId());
-                return t;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Отметить выполненное задание
-     *
-     * @param taskPar - параметр задания
-     */
-    @Override
-    @Transactional
-    public void setProcTask(TaskPar taskPar) {
-        //log.info("..............Попытка отметить что выполнено задание!");
-        //log.info("..............Попытка отметить что выполнено задание TaskPar.id={}", taskPar.getId());
-        // проверить, что еще не выполнено
-        if (!lstTrgProc.contains(taskPar.getId())) {
-            // добавить отметку о выполнении
-            lstTrgProc.add(taskPar.getId());
-            //log.info("..............Отмечено что выполнено задание TaskPar.id={}", taskPar.getId());
-            //log.info("..............Отмечено что выполнено задание!");
-        }
-    }
-
-    /**
-     * Загрузить расписания работы всех заданий типа GIS_SYSTEM_RPT
-     */
-    private void loadSchedules() throws WrongGetMethod {
-        // Получить все параметры определённого типа по всем задачам
-        synchronized (lstSched) {
-            lstSched = new ArrayList<>(0);
-            List<Task> lstTask = new ArrayList<>(taskDao.getByTp("GIS_SYSTEM_RPT"));
-            for (Task task : lstTask) {
-                TaskPar par = task.getTaskPar().stream()
-                        .filter(d -> d.getPar().getCd().equals("ГИС ЖКХ.Crone"))
-                        .findFirst().orElse(null);
-                if (par != null) {
-                    lstSched.add(par);
-                } else {
-                    log.warn("Не обнаружен параметр \"ГИС ЖКХ.Crone\" по повторяемому заданию с типом \"GIS_SYSTEM_RPT\" task.id={}, будет создан по умолчанию", task.getId());
-                    taskParMng.setStr(task, "ГИС ЖКХ.Crone", "0 0 1 * * ?");
-                }
-            }
-        }
-    }
-
 }

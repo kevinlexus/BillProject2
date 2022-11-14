@@ -690,36 +690,5 @@ public class DeviceMeteringAsyncBindingBuilder {
         foundTask.setState("ACP"); */
     }
 
-    /**
-     * Проверить наличие заданий на выгрузку показаний по счетчикам, по домам
-     * и если их нет, - создать
-     */
-
-    public void checkPeriodicTask(Integer taskId) {
-        Task task = em.find(Task.class, taskId);
-        // создать по всем домам задания, если их нет
-        createTask("GIS_EXP_METER_VALS", "SYSTEM_RPT_MET_EXP_VAL", "STP", "Дом",
-                "выгрузку показаний приборов учета");
-        // Установить статус выполнения задания
-        task.setState("ACP");
-    }
-
-    private void createTask(String actTp, String parentCD, String state, String eolTp, String purpose) {
-        int a;// создавать по 100 штук, иначе -блокировка Task (нужен коммит)
-        a = 1;
-        for (Eolink e : eolinkDao.getEolinkByTpWoTaskTp(eolTp, actTp, parentCD)) {
-            // статус - STP, остановлено (будет запускаться другим заданием)
-            Task newTask = ptb.setUp(e, null, actTp, state, 1);
-            // добавить как зависимое задание к системному повторяемому заданию
-            ptb.addAsChild(newTask, parentCD);
-            ptb.save(newTask);
-            log.info("Добавлено задание на {}, по объекту {}, Eolink.id={}", purpose, eolTp, e.getId());
-            a++;
-            if (a++ >= 100) {
-                break;
-            }
-        }
-    }
-
 
 }

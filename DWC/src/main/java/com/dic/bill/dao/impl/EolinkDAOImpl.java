@@ -200,9 +200,9 @@ public class EolinkDAOImpl implements EolinkDAO {
 	/**
 	 * Получить все объекты, определенного типа, по которым
 	 * НЕТ созданных заданий определенного типа действия
-	 * @param eolTp - тип объекта
-	 * @param actTp - тип действия
-	 * @param parentCD - CD родительского задания
+	 * @param eolTp тип объекта
+	 * @param actTp тип действия
+	 * @param parentCD CD родительского задания
 	 */
 	@Override
 	public List<Eolink> getEolinkByTpWoTaskTp(String eolTp, String actTp, String parentCD) {
