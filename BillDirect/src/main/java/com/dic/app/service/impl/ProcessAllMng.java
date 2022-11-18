@@ -125,7 +125,7 @@ public class ProcessAllMng {
     private List<LskChargeUsl> selectInvokeProcess(RequestConfigDirect reqConf) throws ErrorWhileGen {
         List<LskChargeUsl> resultLskChargeUsl = new ArrayList<>();
         switch (reqConf.getTp()) { // начисление для распределения по вводу
-            case CHARGE_0, DEBT_PEN_1, DIST_VOL_2, CHARGE_FOR_DIST_2, CHARGE_SINGLE_USL_4 -> {
+            case CHARGE_0, DEBT_PEN_1, DIST_VOL_2, CHARGE_FOR_DIST_3, CHARGE_SINGLE_USL_4 -> {
                 // перебрать все объекты для расчета
                 Long id = null;
                 try {
@@ -137,7 +137,7 @@ public class ProcessAllMng {
                                 log.info("Процесс {} был ПРИНУДИТЕЛЬНО остановлен", reqConf.getTpName());
                                 break;
                             }
-                            if (Utl.in(reqConf.getTp(), CHARGE_0, DEBT_PEN_1, CHARGE_FOR_DIST_2, CHARGE_SINGLE_USL_4)) {
+                            if (Utl.in(reqConf.getTp(), CHARGE_0, DEBT_PEN_1, CHARGE_FOR_DIST_3, CHARGE_SINGLE_USL_4)) {
                                 // Начисление и начисление для распределения объемов, расчет пени
                                 if (reqConf.isSingleObjectCalc()) {
                                     log.info("****** {} фин.лиц.сч. klskId={} - начало    ******",
@@ -162,7 +162,7 @@ public class ProcessAllMng {
                                 i2++;
                             } else if (reqConf.getTp() == DIST_VOL_2) {
                                 // Распределение объемов
-                                distVolMng.distVolByVvodTrans(reqConf, id);
+                                distVolMng.distVolByVvod(reqConf, id);
                             }
                         } else {
                             // перебраны все id, выход
