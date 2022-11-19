@@ -76,6 +76,8 @@ public class GenPartImpl implements GenPart {
         List<Nabor> lstNabor = naborMng.getActualNabor(ko, curDt);
         // объем по услуге, за рассчитанный день
         Map<String, UslPriceVolKart> mapUslPriceVol = new HashMap<>(30);
+        // объемы по х.в. г.в. ОДН
+        BigDecimal dayColdHotWaterVolODN = BigDecimal.ZERO;
 
         for (Nabor nabor : lstNabor) {
             String uslId = nabor.getUsl().getId();
@@ -396,7 +398,7 @@ public class GenPartImpl implements GenPart {
                         if (isMeterExist) {
                             // получить объем по счетчику в пропорции на 1 день его работы
                             UslMeterDateVol partVolMeter = lstDayMeterVol.stream()
-                                    .filter(t -> t.usl.equals(nabor.getUsl().getMeterUslVol()) && t.dt.compareTo(curDt)==0)
+                                    .filter(t -> t.usl.equals(nabor.getUsl().getMeterUslVol()) && t.dt.compareTo(curDt) == 0)
                                     .findFirst().orElse(null);
                             if (partVolMeter != null) {
                                 tempVol = partVolMeter.vol;
@@ -472,6 +474,11 @@ public class GenPartImpl implements GenPart {
                         }
                     }
                     dayVol = naborVolAdd.multiply(reqConf.getPartDayMonth());
+
+                    if (fkCalcTp == 20) {
+                        // для ОДН Водоотведения
+                        dayColdHotWaterVolODN = dayColdHotWaterVolODN.add(dayVol);
+                    }
                 } else if (Utl.in(fkCalcTp, 34)) {
                     // Повыш.коэфф Полыс
                     if (nabor.getUsl().getParentUsl() != null) {
@@ -480,6 +487,10 @@ public class GenPartImpl implements GenPart {
                         throw new ErrorWhileChrg("ОШИБКА! По услуге usl.id=" + uslId +
                                 " отсутствует PARENT_USL");
                     }
+                } else if (Utl.in(fkCalcTp, 22)) {
+                    // ОДН Водоотведения (ТСЖ, от 19.11.2022)
+                    // получить объем из Х.в.ОДН, Г.в.ОДН
+                    dayVol = dayColdHotWaterVolODN;
                 } else if (Utl.in(fkCalcTp, 44)) {
                     // Повыш.коэфф Кис
                     // получить объем из родительской услуги
@@ -583,7 +594,7 @@ public class GenPartImpl implements GenPart {
                     }
 */
 
-          }
+            }
         }
 
     }
@@ -705,19 +716,19 @@ public class GenPartImpl implements GenPart {
     /**
      * Построить объем для начисления
      *
-     * @param curDt              дата расчета
-     * @param reqConf            запрос
-     * @param nabor              строка набора
-     * @param kartMain           лиц.счет
-     * @param detailUslPrice     инф. о расценке
-     * @param countPers          инф. о кол.прожив.
-     * @param socStandart        соцнорма
-     * @param isMeterExist       наличие счетчика
-     * @param dayVol             объем
-     * @param dayVolOverSoc      объем свыше соц.нормы
-     * @param kartArea           площадь
-     * @param areaOverSoc        площадь свыше соц.нормы
-     * @param isForChrg          сохранять в начислении? (C_CHARGE)
+     * @param curDt          дата расчета
+     * @param reqConf        запрос
+     * @param nabor          строка набора
+     * @param kartMain       лиц.счет
+     * @param detailUslPrice инф. о расценке
+     * @param countPers      инф. о кол.прожив.
+     * @param socStandart    соцнорма
+     * @param isMeterExist   наличие счетчика
+     * @param dayVol         объем
+     * @param dayVolOverSoc  объем свыше соц.нормы
+     * @param kartArea       площадь
+     * @param areaOverSoc    площадь свыше соц.нормы
+     * @param isForChrg      сохранять в начислении? (C_CHARGE)
      */
     private UslPriceVolKart buildVol(Date curDt, RequestConfigDirect reqConf, Nabor nabor, Boolean isLinkedEmpty,
                                      Boolean isLinkedExistMeter, Kart kartMain, DetailUslPrice detailUslPrice,

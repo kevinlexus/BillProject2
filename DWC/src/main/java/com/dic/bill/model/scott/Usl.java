@@ -206,7 +206,7 @@ public class Usl implements java.io.Serializable {
      */
     @Transient
     public boolean isKindOfODPU() {
-        return Utl.in(getFkCalcTp(), 3, 4, 17, 18, 31, 38, 40);
+        return Utl.in(getFkCalcTp(), 3, 4, 17, 18, 31, 38, 40, 55, 56);
     }
 
     /**
@@ -214,7 +214,7 @@ public class Usl implements java.io.Serializable {
      */
     @Transient
     public boolean isKindOfWaterAndODPU() {
-        return Utl.in(getFkCalcTp(), 3, 4, 17, 18, 38, 40);
+        return Utl.in(getFkCalcTp(), 3, 4, 17, 18, 38, 40, 55, 56);
     }
 
     /**

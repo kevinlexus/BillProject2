@@ -2,7 +2,7 @@ delete
 from exs.task t
 where t.fk_act in
       (select s.id
-       from list s
+       from bs.list s
        where s.cd in ('GIS_EXP_HOUSE',
                       'GIS_EXP_METERS',
                       'GIS_IMP_ACCS',

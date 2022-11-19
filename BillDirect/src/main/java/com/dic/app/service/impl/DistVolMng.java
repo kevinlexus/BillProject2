@@ -649,9 +649,9 @@ public class DistVolMng implements CommonConstants {
     /**
      * Добавить итоговые, распределенные объемы
      *
-     * @param amnt          - объект с итоговыми значениями
-     * @param volDist       - объем распределения
-     * @param uslVolKartGrp - строка объема
+     * @param amnt          объект с итоговыми значениями
+     * @param volDist       объем распределения
+     * @param uslVolKartGrp строка объема
      */
     private void addAmnt(Amnt amnt, BigDecimal volDist, UslVolKartGrp uslVolKartGrp) {
         Usl usl = uslVolKartGrp.getUsl();
