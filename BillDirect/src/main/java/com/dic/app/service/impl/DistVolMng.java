@@ -171,6 +171,8 @@ public class DistVolMng implements CommonConstants {
                     // объем
                     amnt.volAmnt = vvod.getKubNorm().add(vvod.getKubSch()).add(vvod.getKubAr())
                             .setScale(5, BigDecimal.ROUND_HALF_UP);
+                    amnt.volSchAmnt = vvod.getKubSch()
+                            .setScale(5, BigDecimal.ROUND_HALF_UP);
                     amnt.volNormAmnt = vvod.getKubNorm()
                             .setScale(5, BigDecimal.ROUND_HALF_UP);
                     // объем кроме арендаторов
@@ -355,6 +357,9 @@ public class DistVolMng implements CommonConstants {
                     // кол-во лицевых
                     vvod.setSchCnt(vvod.getSchCnt().add(new BigDecimal("1")));
                 } else {
+                    log.warn("ВНИМАНИЕ! ПО лс={} установлен признак \"Нежилое помещение\" и не обнаружен счетчик!\r\n" +
+                                    "может не сойтись площадь по вводу vvodId={}",
+                            uslVolKartGrp.getKart().getLsk(), vvodId);
                     // по нормативам ??? здесь только счетчики должны быть!
                     // кол-во лицевых
                     vvod.setCntLsk(vvod.getCntLsk().add(new BigDecimal("1")));
