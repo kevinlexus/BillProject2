@@ -1,0 +1,1 @@
+grant execute on scott.scripts to base_connect;
