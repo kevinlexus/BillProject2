@@ -67,8 +67,10 @@ public class RequestConfigDirect implements Cloneable {
     boolean isMultiThreads = true;
     // кол-во потоков (по умолчанию =1)
     int cntThreads = 1;
+    //final int CNT_THREADS_FOR_COMMON_TASKS = Runtime.getRuntime().availableProcessors(); todo временно убрал, у Полыс стало тормозить
     final int CNT_THREADS_FOR_COMMON_TASKS = 15;
     // кол-во потоков для начисления по распределению объемов
+    //final int CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS = Runtime.getRuntime().availableProcessors();todo временно убрал, у Полыс стало тормозить
     final int CNT_THREADS_FOR_CHARGE_FOR_DIST_VOLS = 20;
     // объекты формирования:
     // УК
@@ -283,7 +285,7 @@ public class RequestConfigDirect implements Cloneable {
         } else {
             throw new IllegalArgumentException("Параметр tp=" + tp + " не обслуживается методом");
         }
-
+        log.info("Для процесса tp={} будет использовано {} кол-во ядер", tp, cntThreads);
     }
 
     /**

@@ -497,9 +497,9 @@ public class GenMainMngImpl implements GenMainMng, CommonConstants {
      * Проверка ошибок
      * вернуть false - если нет ошибок
      *
-     * @param menuCheckBG - строка меню
-     * @param t           - тип возвращаемых объектов из REFCURSOR
-     * @param var         - вариант проверки в процедуре SCOTT.P_THREAD.EXTENDED_CHK
+     * @param menuCheckBG строка меню
+     * @param t           тип возвращаемых объектов из REFCURSOR
+     * @param var         вариант проверки в процедуре SCOTT.P_THREAD.EXTENDED_CHK
      */
     private <T> boolean checkErrVar(SprGenItm menuCheckBG, Class<T> t, int var, String strMes) throws WrongParam {
         log.info("Выполняется проверка var={}", var);
