@@ -67,8 +67,10 @@ public class TaskProcessor {
                 }
                 taskMng.setResult(task, errMess);
             }
+        } else {
+            log.error("******** ЗАДАНИЕ ID={}, CD={}, ActCD={}, State={}, НЕ БЫЛО ОТПРАВЛЕНО НА ВЫПОЛНЕНИЕ ********",
+                    task.getId(), task.getCd(), task.getAct().getCd(), task.getState());
         }
-
     }
 
     private void process(Task task, String actCd, String state) throws WrongParam, WrongGetMethod, IOException, CantSendSoap, CantPrepSoap, UnusableCode, ErrorProcessAnswer, DatatypeConfigurationException, ParseException, CantUpdNSI {

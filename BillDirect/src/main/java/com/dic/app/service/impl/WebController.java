@@ -455,7 +455,8 @@ public class WebController implements CommonConstants {
     }
     @RequestMapping(value = "/evictL2CEntity/{fullEntityClassName}/{id}", method = RequestMethod.GET)
     public String evictL2CEntity(@PathVariable("fullEntityClassName") String fullEntityClassName, @PathVariable("id") String id) {
-        return cacheMng.evictCacheByEntity(fullEntityClassName, id);
+        cacheMng.evictCacheByEntity(fullEntityClassName, id);
+        return "OK";
     }
 
     @RequestMapping(value = "/evictL2CRegion/{regionName}", method = RequestMethod.GET)
