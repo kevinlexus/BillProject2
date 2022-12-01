@@ -121,6 +121,7 @@ public class TaskController {
             //});
             return taskId;
         });
+        log.trace("Задача id={}, в работе, невозможна отправка в очередь", taskId);
         //count.get();
     }
 }
