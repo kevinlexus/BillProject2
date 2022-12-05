@@ -38,10 +38,10 @@ public class ProcessAllMng {
     /**
      * Отдельный поток для расчета длительных процессов
      *
-     * @param reqConf - конфиг запроса
+     * @param reqConf конфиг запроса
      */
     @Async
-    @Transactional(propagation = Propagation.REQUIRES_NEW,
+    @Transactional(propagation = Propagation.REQUIRES_NEW, // todo todo todo todo зачем здесь REQUIRES_NEW ?? может для потока?
             rollbackFor = Exception.class)
     public CompletableFuture<CommonResult> process(RequestConfigDirect reqConf) throws ErrorWhileGen {
         long startTime = System.currentTimeMillis();

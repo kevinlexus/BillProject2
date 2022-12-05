@@ -74,7 +74,7 @@ public class DistVolMng implements CommonConstants {
      * @param vvodId  ввод
      */
     @Transactional(
-            propagation = Propagation.REQUIRED,
+            propagation = Propagation.REQUIRES_NEW, // todo todo todo подумать, зачем было Propagation.REQUIRED?? - возможно вызывало торможение
             rollbackFor = Exception.class)
     public void distVolByVvod(RequestConfigDirect reqConf, Long vvodId)
             throws ErrorWhileDist {
