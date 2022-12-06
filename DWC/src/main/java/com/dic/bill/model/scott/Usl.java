@@ -177,7 +177,7 @@ public class Usl implements java.io.Serializable {
      */
     @Transient
     public boolean isBaseWaterCalc2() {
-        return Utl.in(getFkCalcTp(), 17, 18, 31, 52);
+        return Utl.in(getFkCalcTp(), 17, 18, 31, 52, 59);
     }
 
     /**
@@ -198,11 +198,11 @@ public class Usl implements java.io.Serializable {
 
 
     /**
-     * Расчет по услугам, содержащим счетчики? или calc_tp in (14, 17, 18, 31, 52, 53, 54, 55, 56)
+     * Расчет по услугам, содержащим счетчики
      */
     @Transient
     public boolean isCounterCalc() {
-        return isBaseWaterCalc() || Utl.in(getFkCalcTp(), 14, 31, 52, 53, 54);
+        return isBaseWaterCalc() || Utl.in(getFkCalcTp(), 14, 31, 52, 53, 54, 59);
     }
 
     /**
@@ -210,7 +210,7 @@ public class Usl implements java.io.Serializable {
      */
     @Transient
     public boolean isKindOfODPU() {
-        return Utl.in(getFkCalcTp(), 3, 4, 17, 18, 31, 38, 40, 55, 56);
+        return Utl.in(getFkCalcTp(), 3, 4, 17, 18, 31, 38, 40, 55, 56, 59);
     }
 
     /**

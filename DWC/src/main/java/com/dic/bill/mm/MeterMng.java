@@ -1,11 +1,10 @@
 package com.dic.bill.mm;
 
-import com.dic.bill.dto.CalcStore;
 import com.dic.bill.dto.MeterData;
+import com.dic.bill.dto.UslMeterVol;
 import com.ric.dto.ListMeter;
 import com.ric.dto.MapMeter;
 import com.ric.dto.SumMeterVol;
-import com.dic.bill.dto.UslMeterDateVol;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.scott.Ko;
 import com.dic.bill.model.scott.Meter;
@@ -37,7 +36,7 @@ public interface MeterMng {
 
     Optional<Meter> getActualMeterByKo(Ko koPremis, String usl, Date dt);
 
-    List<UslMeterDateVol> getPartDayMeterVol(List<SumMeterVol> lstMeterVol, Date dtFrom, Date dtTo);
+    UslMeterVol getPartDayMeterVol(List<SumMeterVol> lstMeterVol, Date dtFrom, Date dtTo);
 
     boolean isExistAnyMeter(List<SumMeterVol> lstMeterVol, String uslId, Date dt);
 

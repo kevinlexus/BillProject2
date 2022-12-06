@@ -244,7 +244,7 @@ public class KartPrMngImpl implements KartPrMng {
                 norm = getCommonSocStdt(countPers.kprNorm);
                 break;
             }
-            case 31: { // эл.эн
+            case 31: case 59: { // эл.эн
                 // соцнорма по справочнику
                 norm = getElectrSocStdt(countPers);
                 break;

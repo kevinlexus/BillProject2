@@ -109,8 +109,9 @@ public class GenChrgProcessMngImpl {
                         t.getMeterId(), t.getUslId(), t.getDtTo(), t.getDtFrom(), t.getVol());
             }*/
             // получить объемы по счетчикам в пропорции на 1 день их работы
-            List<UslMeterDateVol> lstDayMeterVol = meterMng.getPartDayMeterVol(lstMeterVol,
+            UslMeterVol uslMeterVol = meterMng.getPartDayMeterVol(lstMeterVol,
                     reqConf.getCurDt1(), reqConf.getCurDt2());
+            //List<UslMeterDateVol> lstDayMeterVol = uslMeterVol.getLstDayMeterVol();
 
             // очистить информационные строки по льготам, по инф.для отопления
             List<Nabor> lstNabor = naborMng.getActualNabor(ko, null);
@@ -127,7 +128,7 @@ public class GenChrgProcessMngImpl {
                  date.isBefore(LocalDate.ofInstant(reqConf.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
                  date = date.plusDays(1)) {
                 genPart.genVolPart(chrgCountAmountLocal, reqConf, parVarCntKpr,
-                        parCapCalcKprTp, ko, lstMeterVol, lstSelUsl, lstDayMeterVol,
+                        parCapCalcKprTp, ko, lstMeterVol, lstSelUsl, uslMeterVol,
                         Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant()), part);
             }
 
@@ -146,7 +147,7 @@ public class GenChrgProcessMngImpl {
                      date.isBefore(LocalDate.ofInstant(reqConf.getCurDt2().toInstant(), ZoneId.systemDefault()).plusDays(1));
                      date = date.plusDays(1)) {
                     genPart.genVolPart(chrgCountAmountLocal, reqConf, parVarCntKpr,
-                            parCapCalcKprTp, ko, lstMeterVol, lstSelUsl, lstDayMeterVol,
+                            parCapCalcKprTp, ko, lstMeterVol, lstSelUsl, uslMeterVol,
                             Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant()), part);
                 }
 

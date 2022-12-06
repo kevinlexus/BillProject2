@@ -12,6 +12,7 @@ import com.ric.cmn.excp.ErrorWhileChrg;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.dto.SumMeterVol;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,7 +62,7 @@ public class GenPartImpl implements GenPart {
      * @param ko                   объект Ko помещения
      * @param lstMeterVol          объемы по счетчикам
      * @param lstSelUsl            список услуг для расчета
-     * @param lstDayMeterVol       хранилище объемов по счетчикам
+     * @param uslMeterVol       хранилище объемов по счетчикам
      * @param curDt                дата расчета
      * @param part                 группа расчета (услуги рассчитываемые до(1) /после(2) расчета ОДН
      * @throws ErrorWhileChrg ошибка во время расчета
@@ -71,7 +72,7 @@ public class GenPartImpl implements GenPart {
     public void genVolPart(ChrgCountAmountLocal chrgCountAmountLocal,
                            RequestConfigDirect reqConf, int parVarCntKpr,
                            int parCapCalcKprTp, Ko ko, List<SumMeterVol> lstMeterVol, List<Usl> lstSelUsl,
-                           List<UslMeterDateVol> lstDayMeterVol, Date curDt, int part)
+                           UslMeterVol uslMeterVol, Date curDt, int part)
             throws ErrorWhileChrg, WrongParam {
 
         List<Nabor> lstNabor = naborMng.getActualNabor(ko, curDt);
@@ -79,6 +80,7 @@ public class GenPartImpl implements GenPart {
         Map<String, UslPriceVolKart> mapUslPriceVol = new HashMap<>(30);
         // объемы по х.в. г.в. ОДН
         BigDecimal dayColdHotWaterVolODN = BigDecimal.ZERO;
+        List<UslMeterDateVol> lstDayMeterVol = uslMeterVol.getLstDayMeterVol();
 
         for (Nabor nabor : lstNabor) {
             String uslId = nabor.getUsl().getId();
@@ -128,8 +130,6 @@ public class GenPartImpl implements GenPart {
                     // основные лиц.счета - взять текущий лиц.счет
                     kartMain = nabor.getKart();
                 }
-                // получить цены по услуге по лицевому счету из набора услуг!
-                final DetailUslPrice detailUslPrice = naborMng.getDetailUslPrice(kartMain, nabor);
 
                 // наличие счетчика
                 boolean isMeterExist = false;
@@ -161,6 +161,7 @@ public class GenPartImpl implements GenPart {
                             nabor, kartMain, isMeterExist);
                 }
 
+
                 SocStandart socStandart = null;
                 // наличие счетчика х.в.
                 boolean isColdMeterExist = false;
@@ -182,6 +183,9 @@ public class GenPartImpl implements GenPart {
                 BigDecimal areaOverSoc = BigDecimal.ZERO;
                 int vvodDistTp = naborMng.getVvodDistTp(lstNabor, nabor.getUsl().getParentUsl());
                 boolean isMunicipal = nabor.getKart().getStatus().getId().equals(1);
+
+                // получить цены по услуге по лицевому счету из набора услуг!
+                final DetailUslPrice detailUslPrice = getDetailUslPrice(uslMeterVol, nabor, kartMain, countPers);
 
                 // расчет
                 if (Utl.in(fkCalcTp, 25) // Текущее содержание и подобные услуги (без свыше соц.нормы и без 0 проживающих)
@@ -219,9 +223,9 @@ public class GenPartImpl implements GenPart {
                         dayVol = kartArea.multiply(reqConf.getPartDayMonth());
                     }
                 } else if (nabor.getUsl().isBaseWaterCalc2()) {
-                    // Х.В., Г.В., без уровня соцнормы/свыше, электроэнергия
+                    // Х.В., Г.В., без уровня соцнормы/свыше, электроэнергия (в т.ч. эл.эн. ТСЖ)
                     // получить объем по нормативу в доле на 1 день
-                    if (Utl.in(fkCalcTp, 17, 31) || (Utl.in(fkCalcTp, 18, 52) &&
+                    if (Utl.in(fkCalcTp, 17, 31, 59) || (Utl.in(fkCalcTp, 18, 52) &&
                             (!Utl.nvl(kartMain.getIsKran1(), false) ||
                                     isMeterExist || Utl.between(curDt, sprParamMng.getD1("MONTH_HEAT1"),// кран из системы отопления (не счетчик) -
                                     sprParamMng.getD1("MONTH_HEAT2")) // начислять только в отопительный период
@@ -544,6 +548,8 @@ public class GenPartImpl implements GenPart {
                     dayVol = new BigDecimal(countPers.kprNorm).multiply(reqConf.getPartDayMonth());
                 }
 
+
+                // сохранить, сгруппировать расчёт
                 UslPriceVolKart uslPriceVolKart;
                 if (Utl.in(nabor.getUsl().getFkCalcTp(), 19, 57)) {
                     // водоотведение, добавить составляющие по х.в. и г.в.
@@ -603,6 +609,17 @@ public class GenPartImpl implements GenPart {
             }
         }
 
+    }
+
+    private DetailUslPrice getDetailUslPrice(UslMeterVol uslMeterVol, Nabor nabor, Kart kartMain,
+                                             CountPers countPers) throws ErrorWhileChrg {
+        final BigDecimal kartArea = Utl.nvl(nabor.getKart().getOpl(), BigDecimal.ZERO);
+        SocStandart socStandart = kartPrMng.getSocStdtVol(kartArea, nabor, countPers);
+        // итоговый объем
+        ывывыв
+        BigDecimal amountVol = ObjectUtils.firstNonNull(uslMeterVol.getAmountVol().get(nabor.getUsl()), BigDecimal.ZERO)
+                .add(ObjectUtils.firstNonNull(socStandart.vol, BigDecimal.ZERO));
+        return naborMng.getDetailUslPrice(kartMain, nabor, amountVol);
     }
 
     /**

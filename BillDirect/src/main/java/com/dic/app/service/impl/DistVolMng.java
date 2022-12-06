@@ -108,7 +108,7 @@ public class DistVolMng implements CommonConstants {
                 if (usl.isKindOfWaterAndODPU()) {
                     // х.в., г.в.
                     tpTmp = 0;
-                } else if (Utl.in(usl.getFkCalcTp(), 31)) {
+                } else if (Utl.in(usl.getFkCalcTp(), 31, 59)) {
                     // эл.эн.
                     tpTmp = 2;
                 }
@@ -667,7 +667,7 @@ public class DistVolMng implements CommonConstants {
         } else if (Utl.in(usl.getFkCalcTp(), 4, 18, 40) && kart.isExistHotWaterMeter()) {
             // объем по счетчику
             amnt.distSchFact = amnt.distSchFact.add(volDist);
-        } else if (Utl.in(usl.getFkCalcTp(), 31) && kart.isExistElMeter()) {
+        } else if (Utl.in(usl.getFkCalcTp(), 31, 59) && kart.isExistElMeter()) {
             // объем по счетчику
             amnt.distSchFact = amnt.distSchFact.add(volDist);
         } else {
@@ -1032,7 +1032,7 @@ public class DistVolMng implements CommonConstants {
             case 30:
                 val = 3.0;
                 break;
-            case 31:
+            case 31: case 59:
                 val = 2.9;
                 break;
             case 32:
