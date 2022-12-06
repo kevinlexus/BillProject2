@@ -12,6 +12,7 @@ import com.ric.cmn.excp.ErrorWhileChrg;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.dto.SumMeterVol;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -101,9 +102,6 @@ public class GenPartImpl implements GenPart {
                 final BigDecimal naborNorm = Utl.nvl(nabor.getNorm(), BigDecimal.ZERO);
                 final BigDecimal naborVol = Utl.nvl(nabor.getVol(), BigDecimal.ZERO);
                 final BigDecimal naborVolAdd = Utl.nvl(nabor.getVolAdd(), BigDecimal.ZERO);
-                // услуга с которой получить объем (иногда выполняется перенаправление, например для fkCalcTp=31)
-                final Usl factUslVol = nabor.getUsl().getMeterUslVol() != null ?
-                        nabor.getUsl().getMeterUslVol() : nabor.getUsl();
                 // ввод
                 final Vvod vvod = nabor.getVvod();
                 final boolean isForChrg = nabor.isActive(false);
@@ -136,6 +134,9 @@ public class GenPartImpl implements GenPart {
                 // наличие счетчика
                 boolean isMeterExist = false;
                 if (nabor.getUsl().isCounterCalc()) {
+                    // услуга с которой получить объем (иногда выполняется перенаправление, например для fkCalcTp=31)
+                    final Usl factUslVol = nabor.getUsl().getMeterUslVol() != null ?
+                            nabor.getUsl().getMeterUslVol() : nabor.getUsl();
                     // х.в.,г.в узнать, работал ли хоть один счетчик в данном дне
                     isMeterExist = meterMng.isExistAnyMeter(lstMeterVol, factUslVol.getId(), curDt);
                 }
@@ -493,9 +494,14 @@ public class GenPartImpl implements GenPart {
                     dayVol = dayColdHotWaterVolODN;
                 } else if (Utl.in(fkCalcTp, 44)) {
                     // Повыш.коэфф Кис
-                    // получить объем из родительской услуги
-                    dayVol = getParentVol(mapUslPriceVol, naborNorm, "015");
-                    dayVol = dayVol.add(getParentVol(mapUslPriceVol, naborNorm, "162"));
+                    // получить объем из указанных услуг (Например 015+162 объемы услуг)
+                    String str = nabor.getUsl().getUslVolList();
+                    if (Strings.isNotBlank(str)) {
+                        String[] uslList = str.split(",");
+                        for (String uslStr : uslList) {
+                            dayVol = dayVol.add(getParentVol(mapUslPriceVol, naborNorm, uslStr));
+                        }
+                    }
                 } else if (fkCalcTp.equals(49)) {
                     // Вывоз мусора - кол-во прожив * цену (Кис.)
                     //area = kartArea;

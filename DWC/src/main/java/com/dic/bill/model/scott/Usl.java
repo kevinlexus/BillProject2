@@ -144,6 +144,10 @@ public class Usl implements java.io.Serializable {
     @Column(name = "MAX_VOL")
     private BigDecimal maxVol;
 
+    // список услуг, через запятую, для получения объема
+    @Column(name = "USL_VOL_LIST")
+    private String uslVolList;
+
     /**
      * Получить фактическую услугу, поставляющую объем (иногда нужно, например для услуги fkCalcTp=31)
      */
