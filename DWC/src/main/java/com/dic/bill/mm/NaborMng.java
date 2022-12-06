@@ -7,6 +7,7 @@ import com.ric.cmn.excp.ErrorWhileChrg;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 public interface NaborMng {
 
@@ -18,7 +19,7 @@ public interface NaborMng {
 
     Integer getVvodDistTp(List<Nabor> lstNabor, Usl usl);
 
-    DetailUslPrice getDetailUslPrice(Kart kartMain, Nabor nabor) throws ErrorWhileChrg;
+    DetailUslPrice getDetailUslPrice(Kart kartMain, Nabor nabor, BigDecimal amountVol) throws ErrorWhileChrg;
 
     Nabor createNabor(Kart kart, Usl usl, Org org,
                       BigDecimal koeff, BigDecimal norm,
