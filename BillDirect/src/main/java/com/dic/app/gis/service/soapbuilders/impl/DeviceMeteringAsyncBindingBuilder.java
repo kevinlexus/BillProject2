@@ -355,7 +355,11 @@ public class DeviceMeteringAsyncBindingBuilder {
         ExportMeteringDeviceHistoryRequest req = new ExportMeteringDeviceHistoryRequest();
 
         req.setId("foo");
-        req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
+        //req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
+
+        // требование гис передать именно так версию
+        req.setVersion("13.1.3.1");
+
         req.getFIASHouseGuid().add(par.reqProp.getHouseGuid());
 
         // индивидуальные приборы учета
