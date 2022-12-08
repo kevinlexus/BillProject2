@@ -198,7 +198,7 @@ public class HouseManagementAsyncBindingBuilder {
      * Экспортировать данные счетчиков
      */
 
-    public void exportDeviceData(Integer taskId) throws CantPrepSoap, WrongGetMethod, DatatypeConfigurationException, CantSendSoap {
+    public void exportDeviceData(Integer taskId) throws CantPrepSoap, DatatypeConfigurationException, CantSendSoap {
         Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
         // Установить параметры SOAP
@@ -230,9 +230,9 @@ public class HouseManagementAsyncBindingBuilder {
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.YEAR, -1);
         Date prevYear = cal.getTime();
-        req.setSearchArchived(true);
-        req.setArchiveDateFrom(getXMLGregorianCalendarFromDate(prevYear));
-        req.setArchiveDateTo(getXMLGregorianCalendarFromDate(new Date()));
+        req.setSearchArchived(false);
+        NsiRef tp = ulistMng.getNsiElem("NSI", 27, "Тип прибора учета", "Индивидуальный");
+        req.setMeteringDeviceType(tp);
 
         try {
             ack = par.port.exportMeteringDeviceData(req);
