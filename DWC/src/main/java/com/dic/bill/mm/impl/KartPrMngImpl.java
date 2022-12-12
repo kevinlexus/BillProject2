@@ -222,37 +222,12 @@ public class KartPrMngImpl implements KartPrMng {
     @Override
     public SocStandart getSocStdtVol(BigDecimal factVol, Nabor nabor, CountPers countPers) throws ErrorWhileChrg {
         SocStandart socStandart = new SocStandart();
-        BigDecimal norm;
+        BigDecimal norm = BigDecimal.ZERO;
         socStandart.vol = BigDecimal.ZERO;
         switch (nabor.getUsl().getFkCalcTp()) {
-            case 17: // х.в.
-            case 18: // г.в.
-            case 19: // водоотв.
-            case 55: // х.в. с соц.н./свыше
-            case 56: // г.в. с соц.н./свыше
-            case 57: // водоотв. с соц.н./свыше
-            case 52: // ХВС для гвс
-            case 53: // компонент тепл.энерг.для г.в.
-            {
-                // соцнорма из набора
-                norm = Utl.nvl(nabor.getNorm(), BigDecimal.ZERO);
-                break;
-            }
-            case 54: // отопление гкал. по норме/свыше (по гигакал. расчет)
-            case 58: // отопление по норме/свыше (по м2 расчет)
-            case 25: {  // тек содерж
-                norm = getCommonSocStdt(countPers.kprNorm);
-                break;
-            }
-            case 31: case 59: { // эл.эн
-                // соцнорма по справочнику
-                norm = getElectrSocStdt(countPers);
-                break;
-            }
-            default: {
-                throw new ErrorWhileChrg("ОШИБКА! По услуге fkCalcTp=" + nabor.getUsl().getFkCalcTp() +
-                        " не определён блок switch в KartPrMngImpl.getSocStdtVol");
-            }
+            case 17, 18, 19, 55, 56, 57, 52, 53 -> norm = Utl.nvl(nabor.getNorm(), BigDecimal.ZERO);
+            case 54, 58, 25 -> norm = getCommonSocStdt(countPers.kprNorm);
+            case 31, 59 -> norm = getElectrSocStdt(countPers);
         }
 
         // кол-во прож. * соцнорму
@@ -261,7 +236,7 @@ public class KartPrMngImpl implements KartPrMng {
 
         socStandart.procNorm = BigDecimal.ONE;
         // отопление гкал. по норме/свыше, х.в. г.в., водоотв.
-        if (!countPers.isEmpty && factVol.compareTo(BigDecimal.ZERO)>0 && Utl.in(nabor.getUsl().getFkCalcTp(), 54, 55, 56, 57, 58)) {
+        if (!countPers.isEmpty && factVol.compareTo(BigDecimal.ZERO) > 0 && Utl.in(nabor.getUsl().getFkCalcTp(), 54, 55, 56, 57, 58)) {
             BigDecimal proc = socStandart.vol.divide(factVol, 10, RoundingMode.HALF_UP);
             if (proc.compareTo(BigDecimal.ONE) < 1) {
                 socStandart.procNorm = proc;

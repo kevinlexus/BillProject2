@@ -13,5 +13,6 @@ end usl_adu_l2c;
 
 /
 
-update usl t set t.usl_vol_list='015, 062' where t.fk_calc_tp=44;
+-- исправил услуги, откорректировать checksum во flyway (Кис)!
+update usl t set t.usl_vol_list='015,162' where t.fk_calc_tp=44;
 
