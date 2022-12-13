@@ -1,4 +1,5 @@
 import com.dic.app.config.Config;
+import com.dic.app.gis.service.soapbuilders.impl.DeviceMeteringAsyncBindingBuilder;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dto.MeterData;
 import com.dic.bill.mm.MeterMng;
@@ -22,6 +23,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.xml.datatype.XMLGregorianCalendar;
 import java.text.ParseException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -46,6 +49,8 @@ public class TestMeterMng {
 	private MeterDAO meterDao;
 	@Autowired
 	private MeterMng meterMng;
+	@Autowired
+	private DeviceMeteringAsyncBindingBuilder deviceMeteringAsyncBindingBuilder;
 
 	/**
 	 * Тест на наличие показаний счетчика по GUID и Timestamp
@@ -124,6 +129,16 @@ public class TestMeterMng {
 		Ko ko = meterEol.getKoObj();
 		Meter meter = ko.getMeter();
 		log.info("actual dt1={}, dt2={}", meter.getDt1(), meter.getDt2());
+	}
+
+	@Test
+	@Rollback(true)
+	public void isWorkingsaveMeterData() throws Exception
+	{
+		Eolink meterEol = em.find(Eolink.class, 708441);
+		XMLGregorianCalendar ts = Utl.getXMLDate(Date.from(LocalDate.of(2014, 4, 15)
+				.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+		deviceMeteringAsyncBindingBuilder.saveMeterData(meterEol, "325.25", ts);
 	}
 
 

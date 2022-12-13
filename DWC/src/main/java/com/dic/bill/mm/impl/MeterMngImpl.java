@@ -235,8 +235,8 @@ public class MeterMngImpl implements MeterMng {
     /**
      * Проверить, возможно ли сохранить показания по счетчику в Директ
      *
-     * @param meterEol - счетчик Eolink
-     * @param dt       - проверочная дата
+     * @param meterEol счетчик Eolink
+     * @param dt       проверочная дата
      */
     @Override
     public boolean getCanSaveDataMeter(Eolink meterEol, Date dt) {
