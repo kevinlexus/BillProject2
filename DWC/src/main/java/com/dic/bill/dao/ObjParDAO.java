@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public interface ObjParDAO extends JpaRepository<ObjPar, Integer> {
@@ -16,9 +15,13 @@ public interface ObjParDAO extends JpaRepository<ObjPar, Integer> {
 
     @Query("select t.ko from ObjPar t join fetch t.ko.kart where t.lst.cd = :cd and t.s1 = :s1")
     List<Ko> getKoByObjPar(@Param("cd") String cd, @Param("s1") String s1);
+
     @Query("select t.ko from ObjPar t join fetch t.ko.kart where t.lst.cd = :cd and t.s1 like %:s1%")
     List<Ko> getKoByObjParLike(@Param("cd") String cd, @Param("s1") String s1);
 
     @Query("select t from ObjPar t where t.lst.cd = :cd")
     List<ObjPar> getAllByCd(@Param("cd") String cd);
+
+    ObjPar findByTguid(String guid);
+
 }

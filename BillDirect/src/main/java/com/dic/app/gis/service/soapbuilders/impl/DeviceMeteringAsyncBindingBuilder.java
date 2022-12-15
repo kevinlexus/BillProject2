@@ -11,16 +11,15 @@ import com.dic.app.gis.service.soap.SoapConfigs;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.service.ConfigApp;
 import com.dic.bill.UlistDAO;
-import com.dic.bill.dao.EolinkDAO;
-import com.dic.bill.dao.MeterDAO;
-import com.dic.bill.dao.TaskDAO;
-import com.dic.bill.dao.TuserDAO;
+import com.dic.bill.dao.*;
 import com.dic.bill.dto.MeterData;
+import com.dic.bill.dto.MeterValue;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.MeterVal;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.Ulist;
+import com.dic.bill.model.scott.ObjPar;
 import com.dic.bill.model.scott.Tuser;
 import com.ric.cmn.CommonErrs;
 import com.ric.cmn.Utl;
@@ -56,7 +55,6 @@ import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -65,6 +63,10 @@ import java.util.stream.Collectors;
 public class DeviceMeteringAsyncBindingBuilder {
 
     public static final String USER_GIS_CD = "GIS";
+    private static final Integer STATUS_CREATED = 0; // 0-добавлен на загрузку в ГИС
+    private static final Integer STATUS_PROCESS = 1; // 1-в процессе загрузки в ГИС
+    private static final Integer STATUS_LOADED = 2;  // 2-загружен в ГИС
+    public static final Integer STATUS_LOADED_FROM_GIS = 3; // 3-принят из ГИС
     private final EntityManager em;
     private final UlistMng ulistMng;
     private final TaskParMng taskParMng;
@@ -79,8 +81,8 @@ public class DeviceMeteringAsyncBindingBuilder {
     private final MeterDAO meterDao;
     private final MeterMng meterMng;
     private final TuserDAO tuserDAO;
+    private final ObjParDAO objParDAO;
 
-    private final Integer LOADED_FROM_GIS = 3;
 
     @AllArgsConstructor
     static class SoapPar {
@@ -202,7 +204,7 @@ public class DeviceMeteringAsyncBindingBuilder {
      * @param taskId Id задания
      */
 
-    public Boolean importMeteringDeviceValues(Integer taskId) throws WrongGetMethod, DatatypeConfigurationException, CantPrepSoap, CantSendSoap {
+    public void importMeteringDeviceValues(Integer taskId) throws DatatypeConfigurationException, CantPrepSoap, CantSendSoap {
         Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
 
@@ -219,52 +221,44 @@ public class DeviceMeteringAsyncBindingBuilder {
         req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
         req.setFIASHouseGuid(par.reqProp.getHouseGuid());
 
-        List<Task> lstTask = taskDao.getByTaskAddrTp(task, "СчетчикФизический", null, 1).stream()
-                .filter(t -> t.getAct().getCd().equals("GIS_ADD_METER_VAL")).collect(Collectors.toList());
-        for (Task t : lstTask) {
-            // Транспортный GUID
+        Eolink house = task.getEolink();
+        List<Integer> statuses = List.of(STATUS_CREATED, STATUS_PROCESS); // 0-добавлен на загрузку в ГИС, 1-в процессе загрузки в ГИС
+        List<MeterValue> meterValues = meterDao.getHouseMeterValue(house.getGuid(), config.getPeriod(), statuses);
+        for (MeterValue meterValue : meterValues) {
+
+            ObjPar objPar = em.find(ObjPar.class, meterValue.getId());
             String tguid = Utl.getRndUuid().toString();
-            t.setTguid(tguid);
+            objPar.setTguid(tguid);
+            objPar.setStatus(STATUS_PROCESS); // статус 1-в процессе загрузки в ГИС
 
             // счетчик физический (корневой)
-            Eolink meter = t.getEolink();
-
-            Date dtGet = taskParMng.getDate(t, "Счетчик.ДатаСнятияПоказания");
+            Eolink meter = em.find(Eolink.class, meterValue.getEolinkId());
             MeteringDevicesValues val = new MeteringDevicesValues();
             val.setMeteringDeviceRootGUID(meter.getGuid());
-            //val.setMeteringDeviceVersionGUID(meterVers.getGuid());
 
+            log.info("Найден счетчик, eolink.id={}, usl={}", meter.getId(), meter.getUsl());
             if (ulistMng.getResType(meter.getUsl()) == 1) {
                 ElectricDeviceValue elVal = new ElectricDeviceValue();
                 ElectricDeviceValue.CurrentValue currElVal = new ElectricDeviceValue.CurrentValue();
 
                 // Дата снятия показания
-                currElVal.setDateValue(Utl.getXMLDate(dtGet));
+                currElVal.setDateValue(Utl.getXMLDate(meterValue.getDtCrt()));
 
                 // показания по тарифам
-                Double metVal = taskParMng.getDbl(t, "Счетчик.Показ(Т1)");
-                currElVal.setMeteringValueT1(String.valueOf(metVal));
-                metVal = taskParMng.getDbl(t, "Счетчик.Показ(Т2)");
-                if (metVal != null) {
-                    currElVal.setMeteringValueT2(String.valueOf(metVal));
-                }
-                metVal = taskParMng.getDbl(t, "Счетчик.Показ(Т3)");
-                if (metVal != null) {
-                    currElVal.setMeteringValueT3(String.valueOf(metVal));
-                }
+                currElVal.setMeteringValueT1(meterValue.getN1().toString());
 
                 currElVal.setTransportGUID(tguid);
                 elVal.setCurrentValue(currElVal);
                 // эл.энерг.
                 val.setElectricDeviceValue(elVal);
+                log.info("Отправлены в ГИС: Эл.Эн. счетчик, eolink.id={}, usl={}, показание={}", meter.getId(), meter.getUsl(), meterValue.getN1());
             } else if (ulistMng.getResType(meter.getUsl()) == 0) {
                 OneRateDeviceValue oneRateVal = new OneRateDeviceValue();
                 OneRateDeviceValue.CurrentValue currOneRateVal = new OneRateDeviceValue.CurrentValue();
-                currOneRateVal.setDateValue(Utl.getXMLDate(dtGet));
+                currOneRateVal.setDateValue(Utl.getXMLDate(meterValue.getDtCrt()));
 
                 // показания по тарифам
-                Double metVal = taskParMng.getDbl(t, "Счетчик.Показ(Т1)");
-                currOneRateVal.setMeteringValue(String.valueOf(metVal));
+                currOneRateVal.setMeteringValue(meterValue.getN1().toString());
 
                 // Получить ресурс по коду USL
                 NsiRef mres = ulistMng.getResourceByUsl(meter.getUsl());
@@ -275,8 +269,10 @@ public class DeviceMeteringAsyncBindingBuilder {
                 // г.в., х.в.
                 val.setOneRateDeviceValue(oneRateVal);
             }
+            log.info("Отправлены в ГИС: счетчик ресурса, eolink.id={}, usl={}, показание={}", meter.getId(), meter.getUsl(), meterValue.getN1());
             req.getMeteringDevicesValues().add(val);
         }
+
         try {
             ack = par.port.importMeteringDeviceValues(req);
         } catch (Fault e) {
@@ -297,8 +293,6 @@ public class DeviceMeteringAsyncBindingBuilder {
             taskMng.logTask(task, false, true);
 
         }
-        return err;
-
     }
 
     /**
@@ -316,27 +310,25 @@ public class DeviceMeteringAsyncBindingBuilder {
         // получить состояние
         GetStateResult retState = getState2(task);
 
-        if (retState == null) {
-            // не обработано
-            return;
-        } else if (!task.getState().equals("ERR") && !task.getState().equals("ERS")) {
-            retState.getImportResult().stream().forEach(t -> {
-                log.trace("После импорта объектов по Task.id={} и TGUID={}, получены следующие параметры:",
-                        task.getId(), t.getTransportGUID());
-                log.trace("UniqueNumber={}, Дата обновления={}", t.getUniqueNumber(), Utl.getDateFromXmlGregCal(t.getUpdateDate()));
-                // Найти элемент задания по Транспортному GUID
-                Task task2 = taskMng.getByTguid(task, t.getTransportGUID());
-                // Переписать значения параметров в eolink из task
-                teParMng.acceptPar(task2);
-                task2.setState("ACP");
+        if (retState != null) {
+            if (!task.getState().equals("ERR") && !task.getState().equals("ERS")) {
+                retState.getImportResult().forEach(t -> {
+                    log.trace("После импорта объектов по Task.id={} и TGUID={}, получены следующие параметры:",
+                            task.getId(), t.getTransportGUID());
+                    log.trace("UniqueNumber={}, Дата обновления={}", t.getUniqueNumber(), Utl.getDateFromXmlGregCal(t.getUpdateDate()));
+                    // Найти показания по Транспортному GUID
+                    ObjPar objpar = objParDAO.findByTguid(t.getTransportGUID());
+                    objpar.setStatus(STATUS_LOADED);
 
-            });
+                    task.setState("ACP");
 
-            // Установить статус выполнения задания
-            task.setState("ACP");
-            taskMng.logTask(task, false, true);
+                });
 
+                // Установить статус выполнения задания
+                task.setState("ACP");
+                taskMng.logTask(task, false, true);
 
+            }
         }
     }
 
@@ -403,7 +395,7 @@ public class DeviceMeteringAsyncBindingBuilder {
         // включать ли архивные счетчики
         req.setSerchArchived(false);
         // исключать показания отправленные информационной системой
-        req.setExcludeISValues(false);
+        req.setExcludeISValues(true);
 
         // дата с которой получить показания
         // использовать период экспорта извещений (должна совпадать)
@@ -444,7 +436,7 @@ public class DeviceMeteringAsyncBindingBuilder {
      */
 
     @CacheEvict(value = {"EolinkDAOImpl.getEolinkByGuid"}, allEntries = true) // здесь Evict потому что
-    // пользователь может обновить Ko объекта счетчика мз Директа(осуществить привязку)
+    // пользователь может обновить Ko объекта счетчика из Директа(осуществить привязку)
     // и тогда должен быть получен обновленный объект! ред.07.12.18
     public void exportMeteringDeviceValuesAsk(Integer taskId) throws WrongGetMethod, CantPrepSoap, WrongParam, UnusableCode, CantSendSoap {
         Task task = em.find(Task.class, taskId);
@@ -508,7 +500,7 @@ public class DeviceMeteringAsyncBindingBuilder {
                                                 e.getEnterIntoSystem(), e.getOrgPPAGUID(), e.getReadingsSource(),
                                                 e.getMeteringValue());
                                         // сохранить показание по счетчику в базу
-                                        saveMeterData(meterEol, e.getMeteringValue(), e.getEnterIntoSystem());
+                                        saveMeterData(meterEol, e.getMeteringValue(), e.getEnterIntoSystem(), STATUS_LOADED_FROM_GIS);
                                     }
                                 }
                             }
@@ -523,7 +515,7 @@ public class DeviceMeteringAsyncBindingBuilder {
                                                 t.getMeteringDeviceRootGUID(), e.getDateValue(), e.getEnterIntoSystem(),
                                                 e.getMeteringValueT1());
                                         // сохранить показание по счетчику в базу
-                                        saveMeterData(meterEol, e.getMeteringValueT1(), e.getEnterIntoSystem());
+                                        saveMeterData(meterEol, e.getMeteringValueT1(), e.getEnterIntoSystem(), STATUS_LOADED_FROM_GIS);
                                     }
                                 }
 
@@ -554,8 +546,9 @@ public class DeviceMeteringAsyncBindingBuilder {
      * @param meter счетчик
      * @param num1  показание
      * @param ts    timestamp
+     * @param status Id статуса
      */
-    public void saveMeterData(Eolink meter, String num1, XMLGregorianCalendar ts) throws UnusableCode, WrongParam {
+    public void saveMeterData(Eolink meter, String num1, XMLGregorianCalendar ts, Integer status) throws UnusableCode, WrongParam {
         // усечь до секунд
         Date dt = Utl.truncDateToSeconds(Utl.getDateFromXmlGregCal(ts));
         // погасить ошибку записи в базу
@@ -583,7 +576,7 @@ public class DeviceMeteringAsyncBindingBuilder {
         qr.setParameter(1, meter.getKoObj().getId());
         qr.setParameter(3, Double.valueOf(num1));
         qr.setParameter(4, dt);
-        qr.setParameter(6, LOADED_FROM_GIS);
+        qr.setParameter(6, status);
         qr.setParameter(7, user.getId());
         qr.execute();
         Long ret = (Long) qr.getOutputParameterValue(12);

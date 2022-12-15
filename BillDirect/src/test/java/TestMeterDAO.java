@@ -1,6 +1,7 @@
 import com.dic.app.config.Config;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dto.MeterData;
+import com.dic.bill.dto.MeterValue;
 import com.ric.dto.SumMeterVol;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.model.scott.Meter;
@@ -21,33 +22,34 @@ import javax.persistence.PersistenceContext;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Тестирование DAO Meter
- * @author lev
  *
+ * @author lev
  */
 @RunWith(SpringRunner.class)
-@ContextConfiguration(classes=Config.class)
+@ContextConfiguration(classes = Config.class)
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @DataJpaTest
 @Slf4j
 public class TestMeterDAO {
 
-	@PersistenceContext
+    @PersistenceContext
     private EntityManager em;
-	@Autowired
-	private MeterDAO meterDao;
-	@Autowired
-	private MeterMng meterMng;
+    @Autowired
+    private MeterDAO meterDao;
+    @Autowired
+    private MeterMng meterMng;
 
-	/**
-	 * Тест запроса на поиск счетчика по коду услуги и объекту Ko
-	 * @throws Exception
-	 */
-	@Test
-	@Rollback(true)
+    /**
+     * Тест запроса на поиск счетчика по коду услуги и объекту Ko
+     *
+     * @throws Exception
+     */
+    @Test
+    @Rollback(true)
     public void isWorkKartDAOFindByKulNdKw() throws Exception {
 
 /*
@@ -73,43 +75,52 @@ public class TestMeterDAO {
 */
     }
 
-	@Test
-	@Rollback(true)
-	public void isWorkFindMeterVolByKlsk() throws Exception {
-		Date dtFrom = Utl.getDateFromStr("01.04.2014");
-		Date dtTo = Utl.getDateFromStr("30.04.2014");
-		List<SumMeterVol> lstVol = meterDao.getMeterVolByKlskId(104882L, dtFrom, dtTo);
-		lstVol.forEach(t-> {
-				log.info("t.getMeterId()={}, t.getDtFrom={}, t.getDtTo={}, t.getVol()={}",
-						t.getMeterId(), t.getDtFrom(), t.getDtTo(), t.getVol());
-				}
-			);
-	}
+    @Test
+    @Rollback(true)
+    public void isWorkFindMeterVolByKlsk() throws Exception {
+        Date dtFrom = Utl.getDateFromStr("01.04.2014");
+        Date dtTo = Utl.getDateFromStr("30.04.2014");
+        List<SumMeterVol> lstVol = meterDao.getMeterVolByKlskId(104882L, dtFrom, dtTo);
+        lstVol.forEach(t -> {
+                    log.info("t.getMeterId()={}, t.getDtFrom={}, t.getDtTo={}, t.getVol()={}",
+                            t.getMeterId(), t.getDtFrom(), t.getDtTo(), t.getVol());
+                }
+        );
+    }
 
-	/**
-	 * Тест запроса на поиск счетчика по коду услуги и объекту Ko
-	 * @throws Exception
-	 */
-	@Test
-	@Rollback(true)
-	public void isWorkFindTimesampByUser() throws Exception {
+    /**
+     * Тест запроса на поиск счетчика по коду услуги и объекту Ko
+     *
+     * @throws Exception
+     */
+    @Test
+    @Rollback(true)
+    public void isWorkFindTimesampByUser() throws Exception {
 
-		int i=0, i2 = 0;
-		log.info("-----------------Begin");
-		String period = "201404";
-		// найти показания счетчиков
-		List<MeterData> lst = meterDao.findMeteringDataTsUsingUser("GIS", "ins_sch", period);
-		for (MeterData t : lst) {
-			System.out.println(t.getTs()+" "+t.getGuid());
-			i++;
-		}
-		log.info("-----------------End");
-	}
+        int i = 0, i2 = 0;
+        log.info("-----------------Begin");
+        String period = "201404";
+        // найти показания счетчиков
+        List<MeterData> lst = meterDao.findMeteringDataTsUsingUser("GIS", "ins_sch", period);
+        for (MeterData t : lst) {
+            System.out.println(t.getTs() + " " + t.getGuid());
+            i++;
+        }
+        log.info("-----------------End");
+    }
 
-	@Test
-	public void testLock() throws Exception {
-		List<Meter> lst = meterMng.findMeter(72802, 72805);
+    @Test
+    public void testLock() throws Exception {
+        List<Meter> lst = meterMng.findMeter(72802, 72805);
 
-	}
+    }
 
+    @Test
+    public void testGetValuesToGis() {
+        // получить показания счетчиков, для отправки в ГИС
+        List<Integer> statuses = List.of(0, 1); // 0-добавлен на загрузку в ГИС, 1-в процессе загрузки в ГИС
+        List<MeterValue> lst = meterDao.getHouseMeterValue("1ef87d3f-9049-4ead-b3b7-fd8cadc421ad", "201404", statuses);
+        lst.forEach(t -> log.info("check id={}, dtCrt={}, n1={}, GUID={}, eolinkId={}", t.getId(), t.getDtCrt(), t.getN1(), t.getGuid(), t.getEolinkId()));
+        assertEquals(3, lst.size());
+    }
 }

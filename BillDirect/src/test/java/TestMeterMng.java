@@ -138,7 +138,7 @@ public class TestMeterMng {
 		Eolink meterEol = em.find(Eolink.class, 708441);
 		XMLGregorianCalendar ts = Utl.getXMLDate(Date.from(LocalDate.of(2014, 4, 15)
 				.atStartOfDay(ZoneId.systemDefault()).toInstant()));
-		deviceMeteringAsyncBindingBuilder.saveMeterData(meterEol, "325.25", ts);
+		deviceMeteringAsyncBindingBuilder.saveMeterData(meterEol, "325.25", ts, DeviceMeteringAsyncBindingBuilder.STATUS_LOADED_FROM_GIS);
 	}
 
 

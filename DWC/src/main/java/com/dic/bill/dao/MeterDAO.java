@@ -1,6 +1,7 @@
 package com.dic.bill.dao;
 
 import com.dic.bill.dto.MeterData;
+import com.dic.bill.dto.MeterValue;
 import com.ric.dto.SumMeterVol;
 import com.dic.bill.model.scott.Meter;
 import com.ric.dto.SumMeterVolExt;
@@ -8,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.LockModeType;
@@ -107,6 +109,27 @@ public interface MeterDAO extends JpaRepository<Meter, Integer> {
             "(t.dt1 between ?2 and ?3 or t.dt2 between ?2 and ?3)) " +
             "group by t.id, t.usl.id, t.dt1, t.dt2, t.n1, t.usl.nameForBot")
     List<SumMeterVolExt> getMeterVolExtByKlskId(Long koObjId, Date dtFrom, Date dtTo);
+
+
+    /**
+     * Получить показания по счетчикам, не отправленные в ГИС, по дому todo - сделать по помещениям, не входящим в подъезд!
+     */
+    @Query(value = """
+            select t.id, t.n1, t.dt_crt as dtCrt, e.guid, e.id as eolinkId
+                                   from t_objxpar t
+                                            join u_list u on t.fk_list = u.id and u.cd = 'ins_sch'
+                                            join meter m on t.fk_k_lsk = m.k_lsk_id and m.gis_conn_tp in (2,3) -- счетчик подключен для отправки показаний в ГИС
+                                            join exs.eolink e on m.k_lsk_id = e.fk_klsk_obj -- счетчик
+                                            join exs.eolink e2 on e.parent_id=e2.id -- помещение, входящее в подъезд
+                                            join exs.eolink e3 on e2.parent_id=e3.id -- подъезд
+                                            join exs.eolink e4 on e3.parent_id=e4.id and e4.guid=:houseGuid -- дом
+                                   where t.status in (:statuses)
+                                     and t.mg = :period 
+                                     and t.n1 != 0
+                                     order by e.guid, t.id"""
+            , nativeQuery = true
+    )
+    List<MeterValue> getHouseMeterValue(@Param("houseGuid") String houseGuid, @Param("period") String period, @Param("statuses") List<Integer> statuses);
 
 }
 
