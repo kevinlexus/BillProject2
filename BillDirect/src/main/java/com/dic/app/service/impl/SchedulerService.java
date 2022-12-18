@@ -34,7 +34,7 @@ public class SchedulerService {
         }
     }
 
-    @Scheduled(fixedDelay = 120000) // раз в две минуты. Остальное - вызывается из сброса кэша CacheMng.evictCacheByEntity
+    @Scheduled(cron = "${crone.task.check.rate}") // желательно раз в две минуты, иначе flush cache и warning в log. Остальное - вызывается из сброса кэша CacheMng.evictCacheByEntity
     public void searchGisTasks() {
         File tempFile = new File("stopGis");
         boolean exists = tempFile.exists();

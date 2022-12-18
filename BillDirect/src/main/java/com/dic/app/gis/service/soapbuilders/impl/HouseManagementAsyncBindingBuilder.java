@@ -27,6 +27,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -91,6 +92,8 @@ public class HouseManagementAsyncBindingBuilder {
     private final MeterMng meterMng;
     private final PseudoTaskBuilder ptb;
     private final EolinkParMng eolParMng;
+    @Value("${parameters.gis.meter.usl.check.energ}")
+    private String energyUsl;
 
     @Getter
     @Setter
@@ -227,12 +230,12 @@ public class HouseManagementAsyncBindingBuilder {
 
         // искать архивные - ред.12.08.20 сделал принудительно выгрузку архивных,
         // так как не помечались архивными в exs.eolink счетчики
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.YEAR, -1);
-        Date prevYear = cal.getTime();
-        req.setSearchArchived(true);
-        req.setArchiveDateFrom(getXMLGregorianCalendarFromDate(prevYear));
-        req.setArchiveDateTo(getXMLGregorianCalendarFromDate(new Date()));
+        //Calendar cal = Calendar.getInstance();
+        //cal.add(Calendar.YEAR, 1); // искать архивные счетчики, в т.ч. созданные 1 год назад
+        //Date prevYear = cal.getTime();
+        req.setSearchArchived(false);
+        //req.setArchiveDateFrom(getXMLGregorianCalendarFromDate(prevYear));
+        //req.setArchiveDateTo(getXMLGregorianCalendarFromDate(new Date()));
 
         try {
             ack = par.port.exportMeteringDeviceData(req);
@@ -427,21 +430,13 @@ public class HouseManagementAsyncBindingBuilder {
                         }
                     } else if (munResEl != null) {
                         // Электроэнергия
-                        usl = "024";
-                        //servCd = "Электроснабжение";
+                        usl = energyUsl;
                     }
                 }
 
-                if (rootEol.getUsl() == null) {
-                    rootEol.setUsl(usl);
-                    log.trace("Попытка отметить счетчик кодом услуги usl={}", usl);
-                }
-                if (rootEol.getComm() == null) {
-                    Usl serv = em.find(Usl.class, usl);
-                    rootEol.setComm(serv.getNm2());
-                    log.trace("Попытка отметить счетчик наименованием услуги usl={}", serv.getNm2());
-                }
-
+                rootEol.setUsl(usl);
+                Usl serv = em.find(Usl.class, usl);
+                rootEol.setComm(serv.getNm2());
 
                 // найти Ko счетчика, по Ko помещения и коду услуги
                 // связывание, пользователь будет сам связывать в Директ

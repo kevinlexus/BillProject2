@@ -543,9 +543,9 @@ public class DeviceMeteringAsyncBindingBuilder {
     /**
      * Сохранение показания по счетчику в базу
      *
-     * @param meter счетчик
-     * @param num1  показание
-     * @param ts    timestamp
+     * @param meter  счетчик
+     * @param num1   показание
+     * @param ts     timestamp
      * @param status Id статуса
      */
     public void saveMeterData(Eolink meter, String num1, XMLGregorianCalendar ts, Integer status) throws UnusableCode, WrongParam {
@@ -553,69 +553,30 @@ public class DeviceMeteringAsyncBindingBuilder {
         Date dt = Utl.truncDateToSeconds(Utl.getDateFromXmlGregCal(ts));
         // погасить ошибку записи в базу
         soapConfig.saveError(meter, CommonErrs.ERROR_WHILE_SAVING_DATA, false);
-
         Tuser user = tuserDAO.getByCd(USER_GIS_CD);
         if (user == null)
             throw new WrongParam(String.format("Не найден пользователь для ГИС: scott.t_user.cd='%s'", USER_GIS_CD));
 
         // default параметры тоже должны быть перечислены!
         StoredProcedureQuery qr = em.createStoredProcedureQuery("scott.p_meter.ins_data_meter");
-        qr.registerStoredProcedureParameter(1, Long.class, ParameterMode.IN); // p_met_klsk
-        qr.registerStoredProcedureParameter(2, Long.class, ParameterMode.IN); // p_meter_id
-        qr.registerStoredProcedureParameter(3, Double.class, ParameterMode.IN); // p_n1
-        qr.registerStoredProcedureParameter(4, Date.class, ParameterMode.IN); // p_ts
-        qr.registerStoredProcedureParameter(5, String.class, ParameterMode.IN); // p_period
-        qr.registerStoredProcedureParameter(6, Integer.class, ParameterMode.IN); // p_status
-        qr.registerStoredProcedureParameter(7, Integer.class, ParameterMode.IN); // p_user
-        qr.registerStoredProcedureParameter(8, Long.class, ParameterMode.IN); // p_control
-        qr.registerStoredProcedureParameter(9, Long.class, ParameterMode.IN); // p_is_set_prev
-        qr.registerStoredProcedureParameter(10, String.class, ParameterMode.IN); // p_lsk
-        qr.registerStoredProcedureParameter(11, Long.class, ParameterMode.IN); // p_doc_par_id
-        qr.registerStoredProcedureParameter(12, Long.class, ParameterMode.OUT);// p_ret
+        qr.registerStoredProcedureParameter("p_met_klsk", Long.class, ParameterMode.IN); // p_met_klsk
+        qr.registerStoredProcedureParameter("p_n1", Double.class, ParameterMode.IN); // p_n1
+        qr.registerStoredProcedureParameter("p_ts", Date.class, ParameterMode.IN); // p_ts
+        qr.registerStoredProcedureParameter("p_status", Integer.class, ParameterMode.IN); // p_status
+        qr.registerStoredProcedureParameter("p_user", Integer.class, ParameterMode.IN); // p_user
+        qr.registerStoredProcedureParameter("p_ret", Long.class, ParameterMode.OUT);// p_ret
 
-        qr.setParameter(1, meter.getKoObj().getId());
-        qr.setParameter(3, Double.valueOf(num1));
-        qr.setParameter(4, dt);
-        qr.setParameter(6, status);
-        qr.setParameter(7, user.getId());
+        qr.setParameter("p_met_klsk", meter.getKoObj().getId());
+        qr.setParameter("p_n1", Double.valueOf(num1));
+        qr.setParameter("p_ts", dt);
+        qr.setParameter("p_status", status);
+        qr.setParameter("p_user", user.getId());
         qr.execute();
-        Long ret = (Long) qr.getOutputParameterValue(12);
+        Long ret = (Long) qr.getOutputParameterValue("p_ret");
         if (!ret.equals(0L)) {
             soapConfig.saveError(meter, CommonErrs.ERROR_WHILE_SAVING_DATA, true);
         }
         log.trace("Результат исполнения scott.p_meter.ins_data_meter={}", ret);
-    }
-
-    /**
-     * Записать показание по счетчику
-     *
-     * @param meter      счетчик
-     * @param val        принятое от ГИС показание
-     * @param dtVal      дата снятия
-     * @param dtEnter    дата внесения в ГИС
-     * @param orgGUID    организация которая внесла
-     * @param readingSrc кем внесено
-     */
-    private void saveVal(Eolink meter, String val, Date dtVal,
-                         Date dtEnter, String orgGUID, String readingSrc,
-                         NsiRef munRes)
-            throws WrongGetMethod, IOException, WrongParam {
-        if (val != null) {
-            Double valD = Double.parseDouble(val);
-            Ulist lst = null;
-            if (munRes != null) {
-                lst = ulistDao.getListElemByGUID(munRes.getGUID());
-            }
-            MeterVal meterVal = MeterVal.MeterValBuilder.aMeterVal()
-                    .withDtEnter(dtEnter)
-                    .withEolink(meter)
-                    .withOrgGuid(orgGUID)
-                    .withReadingSource(readingSrc)
-                    .withUlist(lst)
-                    .withVal(new BigDecimal(val))
-                    .build();
-            em.persist(meterVal);
-        }
     }
 
     /**
