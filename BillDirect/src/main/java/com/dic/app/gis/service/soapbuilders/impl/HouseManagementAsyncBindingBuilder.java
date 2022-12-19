@@ -2006,7 +2006,7 @@ public class HouseManagementAsyncBindingBuilder {
 
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
             Eolink procUk = em.find(Eolink.class, t.getEolUkId());
-            Task newTask4 = ptb.setUp(eolHouse, null, null, createTaskCd, "STP",
+            Task newTask4 = ptb.setUp(eolHouse, null, null, createTaskCd, "ACP",
                     config.getCurUserGis().get().getId(), procUk);
             ptb.save(newTask4);
             log.info("Добавлено задание CD={}, по Дому Eolink.id={}, Task.procUk.id={}", createTaskCd, eolHouse.getId(), procUk.getId());
@@ -2024,7 +2024,7 @@ public class HouseManagementAsyncBindingBuilder {
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
             Eolink procUk = em.find(Eolink.class, t.getEolUkId());
             Task masterTask = em.find(Task.class, t.getMasterTaskId());
-            Task newTask3 = ptb.setUp(eolHouse, null, masterTask, createTaskCd, "STP",
+            Task newTask3 = ptb.setUp(eolHouse, null, masterTask, createTaskCd, "ACP",
                     config.getCurUserGis().get().getId(), procUk);
             ptb.save(newTask3);
             log.info("Добавлено задание CD={}, по Дому Eolink.id={}, Task.procUk.id={}", createTaskCd,
@@ -2044,7 +2044,7 @@ public class HouseManagementAsyncBindingBuilder {
         // сохранить ведущее задание
 
         // создать зависимое задание, выгрузки счетчиков ИПУ. оно не должно запуститься до выполнения ведущего GIS_EXP_HOUSE
-        Task newTask2 = ptb.setUp(eolHouse, null, parent, "GIS_EXP_METERS", "STP", config.getCurUserGis().get().getId(), null);
+        Task newTask2 = ptb.setUp(eolHouse, null, parent, "GIS_EXP_METERS", "ACP", config.getCurUserGis().get().getId(), null);
         // добавить как зависимое задание к системному повторяемому заданию
         ptb.addTaskPar(newTask2, "ГИС ЖКХ.Включая архивные", null, null, false, null);
         ptb.addAsChild(newTask2, rptTaskCd);
@@ -2054,7 +2054,7 @@ public class HouseManagementAsyncBindingBuilder {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public Task createParentTask(Eolink eolHouse, String rptTaskCd, String taskCd) {
-        Task parent = ptb.setUp(eolHouse, null, taskCd, "STP", config.getCurUserGis().get().getId());
+        Task parent = ptb.setUp(eolHouse, null, taskCd, "ACP", config.getCurUserGis().get().getId());
         // добавить как зависимое задание к системному повторяемому заданию
         ptb.addAsChild(parent, rptTaskCd);
         ptb.save(parent);
