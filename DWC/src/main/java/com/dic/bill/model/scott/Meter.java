@@ -45,7 +45,7 @@ public class Meter implements java.io.Serializable {
 	private Date dt1;
 
 	// дата окончания работы
-	@Column(name = "DT2", updatable = false)
+	@Column(name = "DT2")
 	private Date dt2;
 
 	// Ko счетчика

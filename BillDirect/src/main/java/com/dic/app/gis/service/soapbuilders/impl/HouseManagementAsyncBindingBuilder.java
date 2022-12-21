@@ -53,13 +53,16 @@ import ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.ws.BindingProvider;
 import java.math.BigDecimal;
 import java.text.ParseException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.ric.cmn.Utl.getXMLGregorianCalendarFromDate;
 
 /**
  * Сервис обмена информацией с ГИС ЖКХ по Дому
@@ -90,10 +93,17 @@ public class HouseManagementAsyncBindingBuilder {
     private final LstMng lstMng;
     private final SoapConfigs soapConfig;
     private final MeterMng meterMng;
+    private final MeterDAO meterDAO;
     private final PseudoTaskBuilder ptb;
     private final EolinkParMng eolParMng;
     @Value("${parameters.gis.meter.usl.check.energ}")
     private String energyUsl;
+
+    private final class PremiseWithMeter {
+        String premiseGUID;
+        int meterTp = 0;
+        boolean skip = false;
+    }
 
     @Getter
     @Setter
@@ -287,69 +297,34 @@ public class HouseManagementAsyncBindingBuilder {
             Boolean autoBind = taskParMng.getBool(task, "ГИС ЖКХ.AUTO_CONNECT_DIRECT");
             log.trace("autoBind={}", autoBind);
             // Ошибок не найдено
-            for (ExportMeteringDeviceDataResultType t : retState.getExportMeteringDeviceDataResult()) {
+            for (ExportMeteringDeviceDataResultType meterType : retState.getExportMeteringDeviceDataResult()) {
                 // тип счетчика: 0 - жилой ИПУ, 1 - не жилой ИПУ, 2 - общедомовой ПУ
-                int meterTp;
                 log.trace("Получен счетчик:");
-                log.trace("Root GUID={}", t.getMeteringDeviceRootGUID());
-                log.trace("Version GUID={}", t.getMeteringDeviceVersionGUID());
-                log.trace("GISGKHNumber={}", t.getMeteringDeviceGISGKHNumber());
-                log.trace("Серийный номер={}", t.getBasicChatacteristicts().getMeteringDeviceNumber());
+                log.trace("Root GUID={}", meterType.getMeteringDeviceRootGUID());
+                log.trace("Version GUID={}", meterType.getMeteringDeviceVersionGUID());
+                log.trace("GISGKHNumber={}", meterType.getMeteringDeviceGISGKHNumber());
+                MeteringDeviceBasicCharacteristicsType basicChar = meterType.getBasicChatacteristicts();
+                log.trace("Серийный номер={}", basicChar.getMeteringDeviceNumber());
 
-                String premiseGUID;
-                if (t.getBasicChatacteristicts().getResidentialPremiseDevice() != null) {
-                    // Счетчик жилого помещения
-                    // получить GUID помещения
-                    meterTp = 0;
-                    // получить первый элемент (в биллинге Директ, только привязка One to One)
-                    premiseGUID = t.getBasicChatacteristicts().getResidentialPremiseDevice().getPremiseGUID().get(0);
-                    log.trace("Cчетчик ЖИЛОГО помещения, GUID={}", premiseGUID);
-                } else if (t.getBasicChatacteristicts().getNonResidentialPremiseDevice() != null) {
-                    // Счетчик нежилого помещения
-                    // получить GUID помещения
-                    // получить первый элемент (в биллинге Директ, только привязка One to One)
-                    premiseGUID = t.getBasicChatacteristicts().getNonResidentialPremiseDevice().getPremiseGUID().get(0);
-                    log.trace("Cчетчик НЕЖИЛОГО помещения, GUID={}", premiseGUID);
-                    meterTp = 1;
-                } else if (t.getBasicChatacteristicts().getApartmentHouseDevice() != null) {
-                    log.error("Необрабатываемый тип счетчика - ПУ жилого дома: Root GUID={}",
-                            t.getMeteringDeviceRootGUID());
+                PremiseWithMeter premiseWithMeter = getPremiseWithMeter(basicChar, houseEol, meterType);
+                if (premiseWithMeter.skip)
                     continue;
-                } else if (t.getBasicChatacteristicts().getCollectiveApartmentDevice() != null) {
-                    log.error("Необрабатываемый тип счетчика - общеквартирный ПУ "
-                            + "(для квартир коммунального заселения): Root GUID={}", t.getMeteringDeviceRootGUID());
-                    continue;
-                } else if (t.getBasicChatacteristicts().getCollectiveDevice() != null) {
-                    log.trace("Счетчик - общедомовой ПУ: GUID={}", houseEol.getGuid());
-                    premiseGUID = houseEol.getGuid();
-                    meterTp = 2;
-                } else if (t.getBasicChatacteristicts().getLivingRoomDevice() != null) {
-                    log.error("Необрабатываемый тип счетчика - комнатный ПУ "
-                            + ": Root GUID={}", t.getMeteringDeviceRootGUID());
-                    continue;
-                } else {
-                    // Прочие типы не обрабатывать
-                    log.error("Необрабатываемый тип счетчика прочего типа: Root GUID={}",
-                            t.getMeteringDeviceRootGUID());
-                    continue;
-                }
-
                 // найти корневую запись счетчика
-                Eolink rootEol = eolinkDao.getEolinkByGuid(t.getMeteringDeviceRootGUID());
+                Eolink rootEol = eolinkDao.getEolinkByGuid(meterType.getMeteringDeviceRootGUID());
                 // найти версию счетчика, по GUID
-                Eolink versionEol = eolinkDao.getEolinkByGuid(t.getMeteringDeviceVersionGUID());
+                Eolink versionEol = eolinkDao.getEolinkByGuid(meterType.getMeteringDeviceVersionGUID());
                 // найти помещение, к которому прикреплен счетчик
-                Eolink premiseEol = eolinkDao.getEolinkByGuid(premiseGUID);
+                Eolink premiseEol = eolinkDao.getEolinkByGuid(premiseWithMeter.premiseGUID);
 
                 if (rootEol == null) {
                     // не найдено, создать новую корневую запись счетчика
                     AddrTp addrTp = lstMng.getAddrTpByCD("СчетчикФизический");
 
-                    if (meterTp == 0 || meterTp == 1) {
+                    if (premiseWithMeter.meterTp == 0 || premiseWithMeter.meterTp == 1) {
                         // счетчик жилых или нежилых помещений
                         rootEol = Eolink.builder()
-                                .withGuid(t.getMeteringDeviceRootGUID())
-                                .withUn(t.getMeteringDeviceGISGKHNumber())
+                                .withGuid(meterType.getMeteringDeviceRootGUID())
+                                .withUn(meterType.getMeteringDeviceGISGKHNumber())
                                 .withObjTp(addrTp)
                                 .withParent(premiseEol)
                                 .withUser(config.getCurUserGis().get())
@@ -357,44 +332,36 @@ public class HouseManagementAsyncBindingBuilder {
                     } else {
                         // счетчик общедомовой
                         rootEol = Eolink.builder()
-                                .withGuid(t.getMeteringDeviceRootGUID())
-                                .withUn(t.getMeteringDeviceGISGKHNumber())
+                                .withGuid(meterType.getMeteringDeviceRootGUID())
+                                .withUn(meterType.getMeteringDeviceGISGKHNumber())
                                 .withObjTp(addrTp)
                                 .withParent(premiseEol)
                                 .withUser(config.getCurUserGis().get())
                                 .withStatus(1).build();
                     }
 
-                    log.trace("Попытка создать запись корневого счетчика в Eolink: GUID={}", t.getMeteringDeviceRootGUID());
+                    log.trace("Попытка создать запись корневого счетчика в Eolink: GUID={}", meterType.getMeteringDeviceRootGUID());
                     em.persist(rootEol);
 
                 }
 
                 // обновить параметры созданного счетчика или уже имеющегося
-                if (Utl.nvl(rootEol.getStatus(), 0) == 1 && t.getStatusRootDoc().equals("Archival")) {
+                if (Utl.nvl(rootEol.getStatus(), 0) == 1 && meterType.getStatusRootDoc().equals("Archival")) {
                     // счетчик активный, отметить архивным
                     rootEol.setStatus(0);
                     log.trace("Попытка отметить счетчик АРХИВНЫМ");
-                } else if (Utl.nvl(rootEol.getStatus(), 0) != 1 && t.getStatusRootDoc().equals("Active")) {
+                } else if (Utl.nvl(rootEol.getStatus(), 0) != 1 && meterType.getStatusRootDoc().equals("Active")) {
                     // счетчик архивный, отметить активным
                     rootEol.setStatus(1);
                     log.trace("Попытка отметить счетчик АКТИВНЫМ");
                 }
 
-/*
-                if (rootEol.getGuid().equals("7552c05e-d80b-4573-a2ba-6a99d587274f")
-                        || rootEol.getGuid().equals("108f346e-a33b-4c43-a345-bfd011c7af19")) {
-                    log.trace("--------------{}, {}----{}------",
-                            t.getMunicipalResourceEnergy(), t.getMunicipalResourceNotEnergy(), t.getMunicipalResources());
-                }
-
-*/
                 log.trace("isConsumedVolume={}",
-                        t.getBasicChatacteristicts().isConsumedVolume());
+                        basicChar.isConsumedVolume());
 
                 String usl = null;
                 // счетчик предоставляет ОБЪЕМ
-                for (DeviceMunicipalResourceType d : t.getMunicipalResources()) {
+                for (DeviceMunicipalResourceType d : meterType.getMunicipalResources()) {
                     try {
                         usl = ulistMng.getUslByResource(d.getMunicipalResource());
                     } catch (WrongParam wrongParam) {
@@ -409,9 +376,9 @@ public class HouseManagementAsyncBindingBuilder {
                 if (usl == null) {
                     // счетчик предоставляет ПОКАЗАНИЯ
                     List<MunicipalResourceNotElectricExportType> munResNenerg
-                            = t.getMunicipalResourceNotEnergy();
+                            = meterType.getMunicipalResourceNotEnergy();
                     MunicipalResourceElectricExportType munResEl
-                            = t.getMunicipalResourceEnergy();
+                            = meterType.getMunicipalResourceEnergy();
                     // проверить, заполнить usl
                     if (munResNenerg.size() > 0) {
                         // Коммунальные услуги, получить первый попавшийся код усл
@@ -440,7 +407,7 @@ public class HouseManagementAsyncBindingBuilder {
 
                 // найти Ko счетчика, по Ko помещения и коду услуги
                 // связывание, пользователь будет сам связывать в Директ
-                if (autoBind != null && autoBind) {
+                if (autoBind != null && autoBind) { // fixme проверить что такое autobind у клиентов???
                     soapConfig.saveError(premiseEol, CommonErrs.ERR_EMPTY_KLSK | CommonErrs.ERR_METER_NOT_FOUND,
                             false);
                     if (premiseEol.getKoObj() == null) {
@@ -455,7 +422,7 @@ public class HouseManagementAsyncBindingBuilder {
                     } else {
                         Optional<Meter> meter = meterMng.getActualMeterByKo(premiseEol.getKoObj(), usl,
                                 new Date());
-                        if (!meter.isPresent()) {
+                        if (meter.isEmpty()) {
                             log.error("ОШИБКА! По помещению Eolink.id={} не найден счетчик usl={}, в карточке Лиц.счета.",
                                     premiseEol.getId(), usl);
                             soapConfig.saveError(premiseEol, CommonErrs.ERR_METER_NOT_FOUND, true);
@@ -470,43 +437,45 @@ public class HouseManagementAsyncBindingBuilder {
                         }
                     }
                 }
-                // привязать счетчик к лиц.счетам
-                /* FIXME Временно убрал - так как счетчик привязан к помещению ред.03.12.2018.
-                   разобраться или удалить!
-                */
-                /*if (meterTp == 0 || meterTp == 1) {
-                    Eolink lskEol = null;
-                    // счетчик жилых или нежилых помещений
-                    for (String lskGUID : lstAccGuid) {
-                        lskEol = eolinkDao.getEolinkByGuid(lskGUID);
-                        eolToEolMng.saveParentChild(lskEol, rootEol, "Логическая связь");
-                    }
 
-                    // заполнить Ko счетчика по последнему лицевому счету
-                    // (нельзя ко всем, так как Eolink - Ko - связь один к одному
-                    if (servCd != null && lskEol != null && lskEol.getKoObj() != null && rootEol.getKoObj() == null) {
-                        Ko meterKo = meterLogMng.getKoByLskNum(lskEol.getKoObj(),
-                                t.getBasicChatacteristicts().getMeteringDeviceNumber(), servCd);
-                        rootEol.setKoObj(meterKo);
+                if (rootEol.getKoObj() != null) {
+                    // параметры счетчика, если счетчик привязан
+                    XMLGregorianCalendar verificationDateCal = basicChar.getFirstVerificationDate();
+                    if (verificationDateCal != null) {
+                        Date verificationDate = Utl.getDateFromXmlGregCal(verificationDateCal);
+                        NsiRef verificationInterval = basicChar.getVerificationInterval();
+                        String verificationIntervalCode = verificationInterval.getCode();
+                        if (verificationIntervalCode != null) {
+                            int intervalYear = Integer.parseInt(verificationIntervalCode);
+                            LocalDate verificationLocalDate = LocalDate.ofInstant(verificationDate.toInstant(), ZoneId.systemDefault());
+                            LocalDate nextVerificationDate = verificationLocalDate.plusYears(intervalYear);
+                            Optional<Meter> meter = meterDAO.getActualByKlskId(rootEol.getKoObj().getId(), new Date());
+                                meter.ifPresent(t -> {
+                                    ZonedDateTime dateTime = nextVerificationDate.atStartOfDay(ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS);
+                                    Date endDate = Date.from(dateTime.toInstant());
+                                    log.info("По счетчику Meter.id={} установлена дата Окончания работы={}", meter.get().getId(), endDate);
+                                    t.setDt2(endDate);
+                                });
+                        }
                     }
-                }*/
+                }
 
-                // параметры счетчика
-                eolinkParMng.setStr(rootEol, "Счетчик.НомерПУ", t.getBasicChatacteristicts().getMeteringDeviceNumber());
-                eolinkParMng.setStr(rootEol, "Счетчик.Модель", t.getBasicChatacteristicts().getMeteringDeviceModel());
-                eolinkParMng.setStr(rootEol, "ПУ.Марка", t.getBasicChatacteristicts().getMeteringDeviceStamp());
+
+                eolinkParMng.setStr(rootEol, "Счетчик.НомерПУ", basicChar.getMeteringDeviceNumber());
+                eolinkParMng.setStr(rootEol, "Счетчик.Модель", basicChar.getMeteringDeviceModel());
+                eolinkParMng.setStr(rootEol, "ПУ.Марка", basicChar.getMeteringDeviceStamp());
                 eolinkParMng.setDate(rootEol, "Счетчик.ДатаВводаЭкс",
-                        Utl.getDateFromXmlGregCal(t.getBasicChatacteristicts().getCommissioningDate()));
+                        Utl.getDateFromXmlGregCal(basicChar.getCommissioningDate()));
                 eolinkParMng.setDate(rootEol, "Счетчик.ДатаУстановки",
-                        Utl.getDateFromXmlGregCal(t.getBasicChatacteristicts().getInstallationDate()));
-                eolinkParMng.setBool(rootEol, "ГИС ЖКХ.Признак_ПУ_КР", t.getBasicChatacteristicts().isConsumedVolume());
+                        Utl.getDateFromXmlGregCal(basicChar.getInstallationDate()));
+                eolinkParMng.setBool(rootEol, "ГИС ЖКХ.Признак_ПУ_КР", basicChar.isConsumedVolume());
 
                 if (versionEol == null) {
                     // не найдена версия счетчика, создать
                     AddrTp addrTp = lstMng.getAddrTpByCD("СчетчикВерсия");
 
                     versionEol = Eolink.builder()
-                            .withGuid(t.getMeteringDeviceVersionGUID())
+                            .withGuid(meterType.getMeteringDeviceVersionGUID())
                             .withObjTp(addrTp)
                             .withParent(rootEol)
                             .withUser(config.getCurUserGis().get())
@@ -514,13 +483,58 @@ public class HouseManagementAsyncBindingBuilder {
 
                     // пометить прочие записи неактивными
                     eolinkMng.setChildActive(rootEol, "СчетчикВерсия", 0);
-                    log.trace("Попытка создать запись версии счетчика в Eolink: GUID={}", t.getMeteringDeviceVersionGUID());
+                    log.trace("Попытка создать запись версии счетчика в Eolink: GUID={}", meterType.getMeteringDeviceVersionGUID());
                     em.persist(versionEol);
                 }
             }
             task.setState("ACP");
             taskMng.logTask(task, false, true);
         }
+    }
+
+    private PremiseWithMeter getPremiseWithMeter(MeteringDeviceBasicCharacteristicsType basicChar, Eolink houseEol, ExportMeteringDeviceDataResultType meterType) {
+        PremiseWithMeter premiseWithMeter = new PremiseWithMeter();
+        if (basicChar.getResidentialPremiseDevice() != null) {
+            // Счетчик жилого помещения
+            // получить GUID помещения
+            premiseWithMeter.meterTp = 0;
+            // получить первый элемент (в биллинге Директ, только привязка One to One)
+            premiseWithMeter.premiseGUID = basicChar.getResidentialPremiseDevice().getPremiseGUID().get(0);
+            log.trace("Cчетчик ЖИЛОГО помещения, GUID={}", premiseWithMeter.premiseGUID);
+        } else if (basicChar.getNonResidentialPremiseDevice() != null) {
+            // Счетчик нежилого помещения
+            // получить GUID помещения
+            // получить первый элемент (в биллинге Директ, только привязка One to One)
+            premiseWithMeter.premiseGUID = basicChar.getNonResidentialPremiseDevice().getPremiseGUID().get(0);
+            log.trace("Cчетчик НЕЖИЛОГО помещения, GUID={}", premiseWithMeter.premiseGUID);
+            premiseWithMeter.meterTp = 1;
+        } else if (basicChar.getApartmentHouseDevice() != null) {
+            log.error("Необрабатываемый тип счетчика - ПУ жилого дома: Root GUID={}",
+                    meterType.getMeteringDeviceRootGUID());
+            premiseWithMeter.skip = true;
+//            continue;
+        } else if (basicChar.getCollectiveApartmentDevice() != null) {
+            log.error("Необрабатываемый тип счетчика - общеквартирный ПУ "
+                    + "(для квартир коммунального заселения): Root GUID={}", meterType.getMeteringDeviceRootGUID());
+            premiseWithMeter.skip = true;
+//            continue;
+        } else if (basicChar.getCollectiveDevice() != null) {
+            log.trace("Счетчик - общедомовой ПУ: GUID={}", houseEol.getGuid());
+            premiseWithMeter.premiseGUID = houseEol.getGuid();
+            premiseWithMeter.meterTp = 2;
+        } else if (basicChar.getLivingRoomDevice() != null) {
+            log.error("Необрабатываемый тип счетчика - комнатный ПУ "
+                    + ": Root GUID={}", meterType.getMeteringDeviceRootGUID());
+            premiseWithMeter.skip = true;
+//            continue;
+        } else {
+            // Прочие типы не обрабатывать
+            log.error("Необрабатываемый тип счетчика прочего типа: Root GUID={}",
+                    meterType.getMeteringDeviceRootGUID());
+            premiseWithMeter.skip = true;
+//            continue;
+        }
+        return premiseWithMeter;
     }
 
     /**

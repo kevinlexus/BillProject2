@@ -55,8 +55,9 @@ public class UserInteractionImpl {
             Map.of(0, MeterValSaveState.SUCCESSFUL,
                     3, MeterValSaveState.VAL_SAME_OR_LOWER,
                     4, MeterValSaveState.METER_NOT_FOUND,
-                    5, MeterValSaveState.VAL_TOO_BIG,
-                    6, MeterValSaveState.RESTRICTED_BY_DAY_OF_MONTH
+                    5, MeterValSaveState.VAL_TOO_HIGH,
+                    6, MeterValSaveState.RESTRICTED_BY_DAY_OF_MONTH,
+                    7, MeterValSaveState.VAL_OUT_OF_RANGE
             );
 
 
@@ -236,7 +237,7 @@ public class UserInteractionImpl {
             msg.append("Некорректное показание по счетчику\\!");
         } else if (status.equals(MeterValSaveState.VAL_SAME_OR_LOWER)) {
             msg.append("Показания те же или меньше текущих\\!");
-        } else if (status.equals(MeterValSaveState.VAL_TOO_BIG)) {
+        } else if (status.equals(MeterValSaveState.VAL_TOO_HIGH)) {
             msg.append("Показания слишком большие\\!");
         } else if (status.equals(MeterValSaveState.VAL_TOO_BIG_OR_LOW)) {
             msg.append("Показания вне допустимого диапазона\\!");

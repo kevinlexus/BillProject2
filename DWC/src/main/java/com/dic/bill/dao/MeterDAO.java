@@ -16,6 +16,7 @@ import javax.persistence.LockModeType;
 import javax.persistence.QueryHint;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * DAO сущности Meter
@@ -39,15 +40,15 @@ public interface MeterDAO extends JpaRepository<Meter, Integer> {
     List<Meter> findActualByKoUsl(Long koId, String uslId, Date dt);
 
     /**
-     * Получить все актуальные счетчики по объекту Ko
+     * Получить актуальный счетчик по klskId
      *
-     * @param koId - объект Ko, к которому прикреплен счетчик
+     * @param klskId klskId объекта, к которому прикреплен счетчик
      * @param dt   дата актуальности
      */
     @Query(value = "select t from Meter t "
-            + "where t.koObj.id = ?1 " +
+            + "where t.ko.id = ?1 " +
             "and ?2 between t.dt1 and t.dt2")
-    List<Meter> findActualByKo(Long koId, Date dt);
+    Optional<Meter> getActualByKlskId(Long klskId, Date dt);
 
     /**
      * Получить все актуальные счетчики по объекту Ko, по действующим, основным лиц.счетам

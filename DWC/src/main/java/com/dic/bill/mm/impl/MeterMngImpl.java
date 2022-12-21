@@ -52,9 +52,9 @@ public class MeterMngImpl implements MeterMng {
     /**
      * Получить первый попавшийся актуальный счетчик по параметрам
      *
-     * @param ko  - Ko объекта, где установлен счетчик
-     * @param usl - код услуги
-     * @param dt  - дата на которую получить
+     * @param ko  Ko объекта, где установлен счетчик
+     * @param usl код услуги
+     * @param dt  дата на которую получить
      */
 
     @Override
@@ -65,9 +65,9 @@ public class MeterMngImpl implements MeterMng {
     /**
      * Получить первый попавшийся актуальный счетчик по помещению
      *
-     * @param ko  - Ko помещения., где установлен счетчик
-     * @param usl - код услуги
-     * @param dt  - дата на которую получить
+     * @param ko  Ko помещения., где установлен счетчик
+     * @param usl код услуги
+     * @param dt  дата на которую получить
      */
 
     @Override
@@ -156,8 +156,8 @@ public class MeterMngImpl implements MeterMng {
     /**
      * Узнать, работал ли хоть один счетчик в данном дне
      *
-     * @param uslId - код услуги
-     * @param dt    - дата на которую проверить
+     * @param uslId код услуги
+     * @param dt    дата на которую проверить
      * @return
      */
     @Override

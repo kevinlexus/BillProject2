@@ -79,10 +79,10 @@ public class CacheMng {
         } else {
            // log.info("Hibernate L2 Кэш по {}, id={} очищен!", entityClassName, id);
         }
-        if (clasz.equals(Task.class)) {
+        //if (clasz.equals(Task.class)) { note не надо здесь вызывать ничего, задание само отправится через 5 секунд
             // здесь не проверяется статус "INS", позже, в TaskProcessor
-            taskController.putTaskToWork(Integer.valueOf(id));
-        }
+            //taskController.putTaskToWork(Integer.valueOf(id));
+        //}
 
     }
 
