@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.beans.IntrospectionException;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,25 +39,33 @@ public class ChargeReport extends BotReportBase {
 
         // рассчитать макс.размер столбцов
         setMaxColumSize(lst, columns, SumChargeRec.class);
-        columns.get(VOL).size += columns.get(UNIT).size + 2; // добавляем ед.изм, так как вместе идут эти поля в отчёте +2 - точка и пробел
+        Column columnVol = columns.get(VOL);
+        columnVol.size += columns.get(UNIT).size + 2; // добавляем ед.изм, так как вместе идут эти поля в отчёте +2 - точка и пробел
 
         StringBuilder msg = new StringBuilder();
         msg.append("Начисление\r\n");
         StringBuilder preFormatted = new StringBuilder("");
-        String uslHeader = columns.get(USL).getCaptionWithPrefix();
-        String volHeader = columns.get(VOL).getCaptionWithPrefix();
-        String priceHeader = columns.get(PRICE).getCaptionWithPrefix();
-        String summaHeader = columns.get(SUMMA).getCaptionWithPrefix();
-
+        Column columnUsl = columns.get(USL);
+        String uslHeader = columnUsl.getCaptionWithPrefix();
+        String volHeader = columnVol.getCaptionWithPrefix();
+        Column columnPrice = columns.get(PRICE);
+        String priceHeader = columnPrice.getCaptionWithPrefix();
+        Column columnSumma = columns.get(SUMMA);
+        String summaHeader = columnSumma.getCaptionWithPrefix();
+        BigDecimal amnt = BigDecimal.ZERO;
         preFormatted.append(String.format("|%s|%s|%s|%s|\r\n", uslHeader, volHeader, priceHeader, summaHeader));
         for (SumCharge row : lst) {
-            String usl = columns.get(USL).getStrFormatted(row.getName());
-            String vol = columns.get(VOL).getStrFormatted(Utl.getMoneyStrWithLpad(row.getVol(), 0, null, MONEY_PATTERN) +
+            amnt = amnt.add(BigDecimal.valueOf(row.getSumma()));
+
+            String usl = columnUsl.getStrFormatted(row.getName());
+            String vol = columnVol.getStrFormatted(Utl.getMoneyStrWithLpad(row.getVol(), 0, null, MONEY_PATTERN) +
                     ", " + row.getUnit());
-            String price = columns.get(PRICE).getValueFormatted(row.getPrice(), MONEY_PATTERN);
-            String summa = columns.get(SUMMA).getValueFormatted(row.getSumma(), MONEY_PATTERN);
+            String price = columnPrice.getValueFormatted(row.getPrice(), MONEY_PATTERN);
+            String summa = columnSumma.getValueFormatted(row.getSumma(), MONEY_PATTERN);
             preFormatted.append(String.format("|%s|%s|%s|%s|\r\n", usl, vol, price, summa));
         }
+        preFormatted.append(String.format("|%s|%s|%s|%s|\r\n", columnUsl.getStrFormatted(""), columnVol.getStrFormatted(""),
+                columnPrice.getStrFormatted("Итого"), columnSumma.getValueFormatted(amnt.doubleValue(), MONEY_PATTERN)));
         msg.append(preFormatted);
         return msg;
     }

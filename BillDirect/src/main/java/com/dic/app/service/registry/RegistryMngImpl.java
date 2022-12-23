@@ -46,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -1521,12 +1522,12 @@ public class RegistryMngImpl {
     }
 
     public StringBuilder getPaymentFormatted(Long klskId, String periodFrom, String periodTo) {
-        List<SumPayment> payments = akwtpDAO.getByKlskIdPeriod(klskId, periodFrom, periodTo);
-        payments.addAll(kwtpDAO.getByKlskId(klskId));
         StringBuilder str;
         try {
+            List<SumPayment> payments = akwtpDAO.getByKlskIdPeriod(klskId, periodFrom, Utl.addMonths(periodTo, -1));
+            payments.addAll(kwtpDAO.getByKlskId(klskId));
             str = paymentReport.getStrPaymentFormatted(payments);
-        } catch (IntrospectionException | InvocationTargetException | IllegalAccessException e) {
+        } catch (IntrospectionException | InvocationTargetException | IllegalAccessException | ParseException e) {
             throw new RuntimeException(e);
         }
         return str;
