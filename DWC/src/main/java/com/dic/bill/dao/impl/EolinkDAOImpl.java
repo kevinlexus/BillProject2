@@ -225,23 +225,4 @@ public class EolinkDAOImpl implements EolinkDAO {
 		query.setParameter("parentCD", parentCD);
 		return query.getResultList();
 	}
-
-	/**
-	 * Получить объект по GUID
-	 * @param guid - GUID
-	 */
-	@Override
-	//@Cacheable(cacheNames="EolinkDAOImpl.getEolinkByGuid", key="{#guid }", unless = "#result == null")
-	//  note Нельзя кэшировать! приводит к тому что не перечитываются изменения сделанные в Bexs
-	public Eolink getEolinkByGuid(String guid) {
-		//log.info("GUID={}", guid);
-		javax.persistence.Query query =em.createQuery("select t from com.dic.bill.model.exs.Eolink t where t.guid = :guid");
-		query.setParameter("guid", guid);
-		try {
-			return (Eolink) query.getSingleResult();
-		} catch (NoResultException e) {
-			return null;
-		}
-	}
-
 }

@@ -69,12 +69,8 @@ public class DeviceMeteringAsyncBindingBuilder {
     public static final Integer STATUS_LOADED_FROM_GIS = 3; // 3-принят из ГИС
     private final EntityManager em;
     private final UlistMng ulistMng;
-    private final TaskParMng taskParMng;
     private final TaskMng taskMng;
-    private final TaskDAO taskDao;
-    private final EolinkDAO eolinkDao;
-    private final UlistDAO ulistDao;
-    private final TaskEolinkParMng teParMng;
+    private final EolinkDAO2 eolinkDAO2;
     private final SoapConfigs soapConfig;
     private final ConfigApp config;
     private final EolinkParMng eolParMng;
@@ -472,7 +468,7 @@ public class DeviceMeteringAsyncBindingBuilder {
             List<MeterData> mdLst = meterDao.findMeteringDataTsUsingUser(USER_GIS_CD, "ins_sch", period);
             for (ExportMeteringDeviceHistoryResultType t : retState.getExportMeteringDeviceHistoryResult()) {
                 // найти счетчик по GUID
-                Eolink meterEol = eolinkDao.getEolinkByGuid(t.getMeteringDeviceRootGUID());
+                Eolink meterEol = eolinkDAO2.findEolinkByGuid(t.getMeteringDeviceRootGUID());
                 if (meterEol == null) {
                     // счетчик не найден, записать по дому сообщение об ошибке
                     soapConfig.saveError(house, CommonErrs.ERR_METER_NOT_FOUND_BY_GUID, true);

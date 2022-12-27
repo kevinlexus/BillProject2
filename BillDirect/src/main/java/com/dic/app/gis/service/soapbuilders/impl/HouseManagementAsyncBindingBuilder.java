@@ -310,11 +310,11 @@ public class HouseManagementAsyncBindingBuilder {
                 if (premiseWithMeter.skip)
                     continue;
                 // найти корневую запись счетчика
-                Eolink rootEol = eolinkDao.getEolinkByGuid(meterType.getMeteringDeviceRootGUID());
+                Eolink rootEol = eolinkDao2.findEolinkByGuid(meterType.getMeteringDeviceRootGUID());
                 // найти версию счетчика, по GUID
-                Eolink versionEol = eolinkDao.getEolinkByGuid(meterType.getMeteringDeviceVersionGUID());
+                Eolink versionEol = eolinkDao2.findEolinkByGuid(meterType.getMeteringDeviceVersionGUID());
                 // найти помещение, к которому прикреплен счетчик
-                Eolink premiseEol = eolinkDao.getEolinkByGuid(premiseWithMeter.premiseGUID);
+                Eolink premiseEol = eolinkDao2.findEolinkByGuid(premiseWithMeter.premiseGUID);
 
                 if (rootEol == null) {
                     // не найдено, создать новую корневую запись счетчика
@@ -641,7 +641,7 @@ public class HouseManagementAsyncBindingBuilder {
         for (NonResidentialPremises t : apartmentHouse.getNonResidentialPremises()) {
             log.trace("Нежилое помещение: №={}, UniqNumber={}, GUID={}, CadastralNumber={}",
                     t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID(), t.getCadastralNumber());
-            Eolink premisEol = eolinkDao.getEolinkByGuid(t.getPremisesGUID());
+            Eolink premisEol = eolinkDao2.findEolinkByGuid(t.getPremisesGUID());
             // обработка номера помещения
             String num;
             num = prepNum(t);
@@ -718,7 +718,7 @@ public class HouseManagementAsyncBindingBuilder {
         for (ExportHouseResultType.ApartmentHouse.ResidentialPremises t : apartmentHouse.getResidentialPremises()) {
             log.trace("Жилое помещение: №={}, UniqNumber={}, GUID={}, CadastralNumber={}",
                     t.getPremisesNum(), t.getPremisesUniqueNumber(), t.getPremisesGUID(), t.getCadastralNumber());
-            Eolink premisEol = eolinkDao.getEolinkByGuid(t.getPremisesGUID());
+            Eolink premisEol = eolinkDao2.findEolinkByGuid(t.getPremisesGUID());
             // обработка номера помещения
             String num;
             num = prepNum(t);
@@ -754,7 +754,7 @@ public class HouseManagementAsyncBindingBuilder {
             for (ExportHouseResultType.ApartmentHouse.ResidentialPremises.LivingRoom r : t.getLivingRoom()) {
                 log.trace("Комната, UniqNumber={}, GUID={}, CadastralNumber={} ",
                         r.getLivingRoomUniqueNumber(), r.getLivingRoomGUID(), t.getCadastralNumber());
-                Eolink roomEol = eolinkDao.getEolinkByGuid(r.getLivingRoomGUID());
+                Eolink roomEol = eolinkDao2.findEolinkByGuid(r.getLivingRoomGUID());
                 if (roomEol == null) {
                     // не найдено, создать комнату
                     roomEol = Eolink.builder()
@@ -838,7 +838,7 @@ public class HouseManagementAsyncBindingBuilder {
         List<String> lstEntryGuid = new ArrayList<>();
         for (Entrance t : apartmentHouse.getEntrance()) {
             log.trace("Подъезд: №={}, GUID={}", t.getEntranceNum(), t.getEntranceGUID());
-            Eolink entryEol = eolinkDao.getEolinkByGuid(t.getEntranceGUID());
+            Eolink entryEol = eolinkDao2.findEolinkByGuid(t.getEntranceGUID());
             lstEntryGuid.add(t.getEntranceGUID());
             if (entryEol == null) {
                 // не найдено, создать подъезд
@@ -1021,7 +1021,7 @@ public class HouseManagementAsyncBindingBuilder {
                 }
 
                 // найти лицевой счет
-                Eolink lskEol = eolinkDao.getEolinkByGuid(t.getAccountGUID());
+                Eolink lskEol = eolinkDao2.findEolinkByGuid(t.getAccountGUID());
                 String num;
                 // усечь № лиц.счета до 8 знаков
                 if (t.getAccountNumber().length() > 8) {
@@ -1040,7 +1040,7 @@ public class HouseManagementAsyncBindingBuilder {
                     // Создать новый лицевой счет
 
                     // Найти объект на который ссылаться
-                    Eolink parentEol = eolinkDao.getEolinkByGuid(guid);
+                    Eolink parentEol = eolinkDao2.findEolinkByGuid(guid);
                     if (parentEol == null) {
                         log.warn("Не найдено помещение c GUID=" + guid + ", для прикрепления лицевого счета, " +
                                 "попробуйте выполнить экспорт объектов дома!");
@@ -1457,7 +1457,7 @@ public class HouseManagementAsyncBindingBuilder {
                 for (GetStateResult.ImportResult.CommonResult d : t.getCommonResult()) {
 
                     // найти элемент лиц.счета по Транспортному GUID
-                    Eolink lskEol = eolinkDao2.getEolinkByTGUID(d.getTransportGUID());
+                    Eolink lskEol = eolinkDao2.findEolinkByTguid(d.getTransportGUID());
                     // погасить ошибки
                     soapConfig.saveError(lskEol, CommonErrs.ERR_IMPORT, false);
 

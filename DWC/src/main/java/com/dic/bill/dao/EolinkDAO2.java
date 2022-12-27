@@ -174,13 +174,11 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
     List<String> getKartActiveNotExistsInEolinkWOEntry(@Param("eolHouseId") Integer eolHouseId,
                                                        @Param("eolUkId") Integer eolUkId);
 
-    /**
-     * Получить объект по TGUID
-     *
-     * @param tguid - TGUID
-     */
-    @Query("select t from Eolink t where t.tguid=:tguid")
-    Eolink getEolinkByTGUID(@Param("tguid") String tguid);
+    Eolink findEolinkByGuid(String guid);
+
+    Eolink findEolinkByTguid(String tguid);
+
+    Eolink findEolinkByGuidGis(String guid);
 
     /**
      * Получить Eolink УК

@@ -643,7 +643,7 @@ public class HcsBillsAsyncBuilder {
                     // вообще нет документа в биллинге - создать
                     if (!Utl.nvl(paymentDocument.isWithdraw(), false)) {
                         // только активные ПД - найти лс
-                        Eolink acc = eolinkDao.getEolinkByGuid(paymentDocument.getAccountGuid());
+                        Eolink acc = eolinkDao2.findEolinkByGuid(paymentDocument.getAccountGuid());
                         if (acc != null) {
                             pdoc = Pdoc.PdocBuilder.aPdoc()
                                     .withEolink(acc)

@@ -6,8 +6,6 @@ import java.util.List;
 
 public interface EolinkDAO {
 
-    Eolink getEolinkByGuid(String guid);
-
     List<Eolink> getChildByTp(Eolink parent, String tp);
 
     Eolink getEolinkByReuKulNdTp(String reu, String kul, String nd,

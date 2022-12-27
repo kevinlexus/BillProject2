@@ -23,6 +23,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -61,7 +62,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
     private final ConfigApp config;
     private final TaskMng taskMng;
     private final EolinkParMng eolParMng;
-    private final EolinkDAO eolinkDAO;
+    private final EolinkDAO2 eolinkDAO2;
     private final DebSubRequestDAO debSubRequestDAO;
     private final TuserDAO tuserDAO;
     private final UserPermDAO userPermDAO;
@@ -200,7 +201,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
             period.setStartDate(startDate);
             period.setEndDate(endDate);
             req.setPeriodOfSendingRequest(period);
-            req.getHouseGUID().add(task.getEolink().getGuid());
+            req.getHouseGUID().add(ObjectUtils.firstNonNull(task.getEolink().getGuidGis(), task.getEolink().getGuid()));
         }
         req.setIncludeResponses(true);
 
@@ -284,7 +285,9 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                             debSubRequest.setRequestGuid(subrequest.getSubrequestGUID());
                             debSubRequest.setRequestNumber(requestInfo.getRequestNumber());
 
-                            Eolink house = eolinkDAO.getEolinkByGuid(housingFundObject.getFiasHouseGUID());
+                            Eolink house = eolinkDAO2.findEolinkByGuid(housingFundObject.getFiasHouseGUID());
+                            if (house == null)
+                                house = eolinkDAO2.findEolinkByGuidGis(housingFundObject.getFiasHouseGUID());
                             debSubRequest.setHouse(house);
                             if (house == null) {
                                 debSubRequest.setResult("Дом не найден в базе EOLINK, по GUID=" + housingFundObject.getFiasHouseGUID());
@@ -319,7 +322,9 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                         } else {
                             if (debSubRequest.getHouse() == null) {
                                 // не был проставлен дом, по причине отсутствия по GUID
-                                Eolink house = eolinkDAO.getEolinkByGuid(housingFundObject.getFiasHouseGUID());
+                                Eolink house = eolinkDAO2.findEolinkByGuid(housingFundObject.getFiasHouseGUID());
+                                if (house == null)
+                                    house = eolinkDAO2.findEolinkByGuidGis(housingFundObject.getFiasHouseGUID());
                                 debSubRequest.setHouse(house);
                                 if (house == null) {
                                     debSubRequest.setResult("Дом не найден в базе EOLINK, по GUID=" + housingFundObject.getFiasHouseGUID());
@@ -407,11 +412,6 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                     debSubRequest.setIsErrorOnResponse(true);
                     debSubRequest.setResult("Кол-во подписывающих документ > 1 в справочнике пользователей");
                     log.error("По DEBT_SUB_REQUEST.ID={}, кол-во подписывающих документ > 1 в справочнике пользователей", debSubRequest.getId());
-                    continue;
-                } else if (debSubRequest.getHouse() == null) {
-                    debSubRequest.setIsErrorOnResponse(true);
-                    debSubRequest.setResult("Не установлен (не корректен) GUID дома, необходимо исправить и повторить отправку запроса");
-                    log.error("По DEBT_SUB_REQUEST.ID={}, не установлен FK_EOLINK_HOUSE, необходимо исправить EOLINK.GUID дома, и повторить выгрузку запросов", debSubRequest.getId());
                     continue;
                 } else {
                     Tuser userSigner = userPerm.get(0).getUser();
