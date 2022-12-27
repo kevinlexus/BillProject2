@@ -35,6 +35,10 @@ public class Meter implements java.io.Serializable {
     @Column(name = "id", updatable = false, nullable = false)
 	private Integer id; // id записи
 
+	// № п.п.
+	@Column(name = "NPP")
+	private Integer npp;
+
 	// услуга
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name="FK_USL", referencedColumnName="USL", nullable = false)

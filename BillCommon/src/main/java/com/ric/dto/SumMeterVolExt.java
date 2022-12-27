@@ -13,6 +13,8 @@ public class SumMeterVolExt {
 
     Integer meterId;
     String uslId;
+    Integer npp;
+    Integer serviceNpp;
     Date dtFrom;
     Date dtTo;
     BigDecimal vol;

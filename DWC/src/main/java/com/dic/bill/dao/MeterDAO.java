@@ -101,14 +101,14 @@ public interface MeterDAO extends JpaRepository<Meter, Integer> {
     List<Meter> findMeter(int n1, int n2);
 
     @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
-    @Query(value = "select new com.ric.dto.SumMeterVolExt(t.id, t.usl.id, t.dt1, t.dt2, " +
+    @Query(value = "select new com.ric.dto.SumMeterVolExt(t.id, t.usl.id, t.npp, t.usl.npp, t.dt1, t.dt2, " +
             "coalesce(sum(o.n1),0), coalesce(t.n1,0), t.usl.nameForBot) " +
             "from Meter t " +
             "left join t.objPar o with o.mg = TO_CHAR(?2,'YYYYMM') and o.lst.cd='ins_vol_sch' "
             + "where t.koObj.id = ?1 " +
             "and ((?2 between t.dt1 and t.dt2 or ?3 between t.dt1 and t.dt2) or " +
             "(t.dt1 between ?2 and ?3 or t.dt2 between ?2 and ?3)) " +
-            "group by t.id, t.usl.id, t.dt1, t.dt2, t.n1, t.usl.nameForBot")
+            "group by t.id, t.usl.npp, t.npp, t.usl.id, t.dt1, t.dt2, t.n1, t.usl.nameForBot")
     List<SumMeterVolExt> getMeterVolExtByKlskId(Long koObjId, Date dtFrom, Date dtTo);
 
 

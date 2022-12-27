@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.dic.app.telegram.bot.service.menu.Buttons.*;
 
@@ -96,15 +97,18 @@ public class UserInteractionImpl {
         // настройки, для выбора счетчиков
         MessageStore messageStore = new MessageStore(update);
         if (klskId != null) {
-            for (SumMeterVolExt sumMeterVol : env.getMetersByKlskId().get(klskId).getMapKoMeter().values()) {
+            for (SumMeterVolExt sumMeterVol : env.getMetersByKlskId().get(klskId).getMapKoMeter().values().stream()
+                    .sorted(Comparator.comparing(SumMeterVolExt::getServiceNpp).thenComparing(SumMeterVolExt::getNpp))
+                    .collect(Collectors.toList())) {
                 String serviceName = sumMeterVol.getServiceName();
-                msg.append(serviceName);
+                msg.append(sumMeterVol.getNpp()).append(". ").append(serviceName);
                 msg.append(", текущ: показания:");
-                msg.append("*" + sumMeterVol.getN1().toString() + "*");
+                msg.append("*").append(sumMeterVol.getN1().toString()).append("*");
                 msg.append(", расход:");
-                msg.append("*" + sumMeterVol.getVol().toString() + "*");
+                msg.append("*").append(sumMeterVol.getVol().toString()).append("*");
                 msg.append("\r\n");
-                messageStore.addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(), serviceName != null ? serviceName : sumMeterVol.getUslId());
+                messageStore.addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(),
+                        sumMeterVol.getNpp() + ". " + (serviceName != null ? serviceName : sumMeterVol.getUslId()));
             }
         } else {
             log.error("Не определен klskId");
@@ -201,8 +205,8 @@ public class UserInteractionImpl {
                     .getMapKoMeter();
             SumMeterVolExt sumMeterVolExt = mapKoMeter.get(meterId);
             env.getMeterVolExtByMeterId().put(meterId, sumMeterVolExt);
-            msg.append("Введите новое показание счетчика по услуге: ");
-            msg.append(sumMeterVolExt.getServiceName());
+            msg.append("Введите новое показание счетчика: ");
+            msg.append(sumMeterVolExt.getNpp()).append(". ").append(sumMeterVolExt.getServiceName());
             msg.append(", текущие показания: ");
             msg.append(sumMeterVolExt.getN1().toString());
             msg.append(", расход: ");
@@ -226,7 +230,9 @@ public class UserInteractionImpl {
         SumMeterVolExt sumMeterVolExt = env.getUserCurrentMeter().get(userId);
         StringBuilder msg = new StringBuilder();
         if (status.equals(MeterValSaveState.SUCCESSFUL)) {
-            msg.append("Показания по услуге ")
+            msg.append("Показания по счетчику ")
+                    .append(sumMeterVolExt.getNpp())
+                    .append(". ")
                     .append(sumMeterVolExt.getServiceName())
                     .append(": ").append(result.getValue1()
                     ).append(": ").append(" приняты");
