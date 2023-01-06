@@ -220,6 +220,10 @@ public class DeviceMeteringAsyncBindingBuilder {
         Eolink house = task.getEolink();
         List<Integer> statuses = List.of(STATUS_CREATED, STATUS_PROCESS); // 0-добавлен на загрузку в ГИС, 1-в процессе загрузки в ГИС
         List<MeterValue> meterValues = meterDao.getHouseMeterValue(house.getGuid(), config.getPeriod(), statuses);
+        if (meterValues.size()==0) {
+            log.info("Нет показаний счетчиков на отправку");
+            return;
+        }
         for (MeterValue meterValue : meterValues) {
 
             ObjPar objPar = em.find(ObjPar.class, meterValue.getId());
