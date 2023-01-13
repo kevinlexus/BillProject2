@@ -1,4 +1,5 @@
 import com.dic.app.config.Config;
+import com.dic.app.gis.service.maintaners.impl.UlistMng;
 import com.dic.bill.dao.*;
 import com.dic.bill.mm.ObjParMng;
 import com.ric.cmn.excp.WrongGetMethod;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = Config.class)
@@ -34,6 +36,8 @@ public class TestDAO {
     private CorrectPayDAO correctPayDao;
     @Autowired
     private SaldoUslDAO saldoUslDao;
+    @Autowired
+    private UlistMng ulistMng;
     @Autowired
     private ObjParMng objParMng;
 
@@ -113,4 +117,13 @@ public class TestDAO {
         Assertions.assertFalse(isBillAlreadySended);
     }
 
+    @Test
+    public void checkGisNsi() {
+        NsiRef mres = ulistMng.getResourceByUsl("011");
+        log.info("011 mres.code={}, mres.name={}", mres.getCode(), mres.getName());
+        mres = ulistMng.getResourceByUsl("015");
+        log.info("015 mres.code={}, mres.name={}", mres.getCode(), mres.getName());
+        mres = ulistMng.getResourceByUsl("024");
+        log.info("024 mres.code={}, mres.name={}", mres.getCode(), mres.getName());
+    }
 }

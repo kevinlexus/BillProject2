@@ -580,11 +580,11 @@ public class UlistMng {
             case "015":
                 tp = 0;
                 break;
-            case "024":
+            case "024", "038":
                 tp = 1;
                 break;
             default:
-                break;
+                throw new RuntimeException("Не обнаружен тип ресурса по usl=" + usl);
         }
         return tp;
     }
