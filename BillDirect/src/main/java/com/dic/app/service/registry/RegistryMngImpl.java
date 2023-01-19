@@ -1479,8 +1479,29 @@ public class RegistryMngImpl {
         return str;
     }
 
-    public StringBuilder getChargeFormatted(Long klskId) {
+    public StringBuilder getChargeFormatted(Long klskId, String period) {
         Ko ko = em.find(Ko.class, klskId);
+        List<SumChargeRec> chargeLst;
+        if (configApp.getPeriod().equals(period)) {
+            // текущий период
+            chargeLst = getChargesCurrentPeriod(klskId, ko);
+        } else {
+            // архивный период
+            List<SumChargeNpp> charges = chargeDAO.getChargeByKlskAndPeriod(klskId, Integer.parseInt(period));
+            chargeLst = charges.stream().map(t -> new SumChargeRec(t.getName(), t.getNpp(), t.getVol(), t.getPrice(),
+                    t.getUnit(), t.getSumma())).collect(Collectors.toList());
+        }
+        StringBuilder str;
+        try {
+            str = chargeReport.getStrChargeFormatted(chargeLst, period);
+        } catch (IntrospectionException | InvocationTargetException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+        return str;
+    }
+
+    private List<SumChargeRec> getChargesCurrentPeriod(Long klskId, Ko ko) {
+        List<SumChargeRec> chargeLst = new ArrayList<>();
         RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
                 .withTp(CHARGE_0)
                 .withGenDt(configApp.getCurDt2())
@@ -1501,24 +1522,17 @@ public class RegistryMngImpl {
             charges = genChrgProcessMng.genChrg(reqConf, klskId);
         } catch (ErrorWhileChrg e) {
             log.error("Ошибка получения начисления по klskId={}", klskId, e);
-            return null;
+            return chargeLst;
         }
 
-        List<SumChargeRec> chargeLst = charges.stream().map(t -> {
+        chargeLst = charges.stream().map(t -> {
                     Usl usl = em.find(Usl.class, t.getUslId());
                     return new SumChargeRec(usl.getNameForBot() != null ? usl.getNameForBot() : usl.getId(), usl.getNpp(),
                             t.getVol().doubleValue(), t.getPrice().doubleValue(),
                             usl.getUnitVol(), t.getSumma().doubleValue());
                 }
         ).sorted(Comparator.comparing(SumChargeRec::getNpp)).collect(Collectors.toList());
-
-        StringBuilder str;
-        try {
-            str = chargeReport.getStrChargeFormatted(chargeLst);
-        } catch (IntrospectionException | InvocationTargetException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-        return str;
+        return chargeLst;
     }
 
     public StringBuilder getPaymentFormatted(Long klskId, String periodFrom, String periodTo) {

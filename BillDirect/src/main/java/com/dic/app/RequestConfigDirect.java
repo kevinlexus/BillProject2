@@ -285,7 +285,7 @@ public class RequestConfigDirect implements Cloneable {
         } else {
             throw new IllegalArgumentException("Параметр tp=" + tp + " не обслуживается методом");
         }
-        log.info("Для процесса tp={} будет использовано {} кол-во ядер", tp, cntThreads);
+        log.debug("Для процесса tp={} будет использовано {} кол-во ядер", tp, cntThreads);
     }
 
     /**

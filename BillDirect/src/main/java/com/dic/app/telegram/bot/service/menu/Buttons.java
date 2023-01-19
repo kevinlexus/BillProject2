@@ -4,7 +4,8 @@ public enum Buttons {
     BACK("selectedBack", "Назад"),
     REPORTS("selectedReport", "Отчеты"),
     BILLING_FLOW("selectedBillingFlow", "Движение средств"),
-    BILLING_CHARGES("selectedBillingCurrentCharges", "Текущее начисление"),
+    BILLING_CHARGES("selectedBillingCurrentCharges", "Начисление"),
+    BILLING_CHARGES_PERIOD("selectedBillingCharges", "Начисление выбранного периода"),
     BILLING_PAYMENTS("selectedBillingPayments", "Поступление платежей"),
     ADDRESS_KLSK("selectedKlsk", ""),
     METER("selectedMeter", "");

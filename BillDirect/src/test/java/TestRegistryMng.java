@@ -61,6 +61,7 @@ public class TestRegistryMng {
 	public void renderCharge() {
 		//StringBuilder str = registryMng.getChargeFormatted(104880L);
 		StringBuilder str = new StringBuilder("""
+				
 				Начисление
 				|               Услуга| Объем|Цена,руб.|Ед.изм.|Cумма,руб.|
 				|           Cодер/c.н.|  66.1|       26|     м2|   1,718.6|

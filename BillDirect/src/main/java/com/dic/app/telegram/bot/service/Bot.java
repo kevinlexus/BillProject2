@@ -115,7 +115,14 @@ public class Bot extends TelegramLongPollingBot {
                                 menuPath.add(new MenuStep(Menu.SELECT_CHARGE, callBackStr));
                                 menuPath.getLast().setCallBackData(callBackStr);
                             }
-                            tm = ui.showCharge(update, userId);
+                            tm = ui.selectChargeReport(update);
+                            //tm = ui.showCharge(update, userId);
+                        } else if (callBackStr.startsWith(BILLING_CHARGES_PERIOD.getCallBackData() + "_")) {
+                            if (!isBack) {
+                                menuPath.add(new MenuStep(Menu.SELECT_CHARGE_PERIOD, callBackStr));
+                                menuPath.getLast().setCallBackData(callBackStr);
+                            }
+                            tm = ui.showCharge(update, userId, callBackStr);
                         } else if (callBackStr.equals(BILLING_PAYMENTS.getCallBackData())) {
                             if (!isBack) {
                                 menuPath.add(new MenuStep(Menu.SELECT_PAYMENTS, callBackStr));
@@ -155,7 +162,7 @@ public class Bot extends TelegramLongPollingBot {
     private boolean checkAuth(Update update, long userId) throws TelegramApiException {
         long code = ui.authenticateUser(userId);
         if (code != 0) {
-            executeSendMessage(update, String.format("Сообщите код оператору, для регистрации = %,d", code).replace(","," "));
+            executeSendMessage(update, String.format("Сообщите код оператору, для регистрации = %,d", code).replace(",", " "));
             return true;
         }
         return false;
@@ -175,25 +182,26 @@ public class Bot extends TelegramLongPollingBot {
 
     private void sendSimpleMessage(TelegramMessage tm) throws TelegramApiException {
         SendMessage sm = ((SimpleMessage) tm).getSm();
-        sm.setText(sm.getText().replace("-","\\-").replace(".", "\\.").replace("|", "\\|"));
+        sm.setText(sm.getText().replace("-", "\\-").replace(".", "\\.").replace("|", "\\|"));
         execute(sm);
     }
 
     private void updateMessage(TelegramMessage tm) throws TelegramApiException {
         EditMessageText em = ((UpdateMessage) tm).getEm();
-        em.setText(em.getText().replace("-","\\-").replace(".", "\\.").replace("|", "\\|"));
+        em.setText(em.getText().replace("-", "\\-").replace(".", "\\.").replace("|", "\\|"));
         execute(em);
     }
+
     private void sendPhotoMessage(TelegramMessage tm) throws TelegramApiException {
         SendPhoto pm = ((PhotoMessage) tm).getPm();
         execute(pm);
     }
 
     private void deleteMessage(Update update) throws TelegramApiException {
-            DeleteMessage dm = new DeleteMessage();
-            dm.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
-            dm.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
-            execute(dm);
+        DeleteMessage dm = new DeleteMessage();
+        dm.setChatId(update.getCallbackQuery().getMessage().getChatId().toString());
+        dm.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
+        execute(dm);
     }
 
 

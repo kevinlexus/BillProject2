@@ -17,6 +17,7 @@ import com.ric.dto.MapMeter;
 import com.ric.dto.SumMeterVolExt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.javatuples.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -28,10 +29,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import javax.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.dic.app.telegram.bot.service.menu.Buttons.*;
@@ -131,6 +131,24 @@ public class UserInteractionImpl {
         return messageStore.build(msg);
     }
 
+    public TelegramMessage selectChargeReport(Update update) {
+        MessageStore messageStore = new MessageStore(update);
+        LocalDate curDt = LocalDate.ofInstant(config.getCurDt1().toInstant(), ZoneId.systemDefault());
+        int i = 11;
+        do {
+            LocalDate dt = curDt.minusMonths(i);
+            messageStore.addButton(
+                    BILLING_CHARGES_PERIOD.getCallBackData()+"_" + dt.getYear() + StringUtils.leftPad(String.valueOf(dt.getMonthValue()), 2, "0"),
+                    Utl.getMonthName(dt.getMonthValue(), 1) + " " + dt.getYear()
+            );
+        } while (--i >= 0);
+
+        messageStore.addButton(BACK);
+
+        StringBuilder msg = new StringBuilder("      \r\nВыберите период:");
+        return messageStore.build(msg);
+    }
+
     public TelegramMessage showFlow(Update update, long userId) {
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
@@ -145,13 +163,14 @@ public class UserInteractionImpl {
         return messageStore.buildPhoto(msg, "Движение по лицевому счету");
     }
 
-    public TelegramMessage showCharge(Update update, long userId) {
+    public TelegramMessage showCharge(Update update, long userId, String callBackData) {
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
+        String period = callBackData.substring(BILLING_CHARGES_PERIOD.getCallBackData().length() + 1);
 
         Long klskId = getCurrentKlskId(userId);
-        StringBuilder msg = registryMng.getChargeFormatted(klskId);
-        if (msg == null) {
+        StringBuilder msg = registryMng.getChargeFormatted(klskId, period);
+        if (StringUtils.isEmpty(msg)) {
             msg = new StringBuilder("Повторите запрос позже");
         }
         return messageStore.buildPhoto(msg, "Начисление");

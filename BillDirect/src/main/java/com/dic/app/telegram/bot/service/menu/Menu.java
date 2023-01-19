@@ -8,6 +8,7 @@ public enum Menu {
     SELECT_REPORT,
     SELECT_FLOW,
     SELECT_CHARGE,
+    SELECT_CHARGE_PERIOD,
     SELECT_PAYMENTS,
     INPUT_WRONG;
 }

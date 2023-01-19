@@ -1,6 +1,7 @@
 package com.dic.bill.dao;
 
 import com.dic.bill.dto.SumCharge;
+import com.dic.bill.dto.SumChargeNpp;
 import com.dic.bill.dto.SumFinanceFlow;
 import com.dic.bill.dto.SumUslOrgRec;
 import com.dic.bill.model.scott.Charge;
@@ -50,10 +51,10 @@ public interface ChargeDAO extends JpaRepository<Charge, Integer> {
 
 	@Query(value="select u.nm as name, t.test_opl as vol, t.test_cena as price, u.ed_izm as unit, t.summa\n" +
 			"      from scott.kart k\n" +
-			"      join scott.c_charge t on k.lsk=t.lsk and t.type=1\n" +
+			"      join scott.a_charge2 t on k.lsk=t.lsk and t.type=1 and :period between t.mgfrom and t.mgto\n" +
 			"      join scott.usl u on t.usl=u.usl\n" +
-			"      where k.k_lsk_id=?1\n" +
+			"      where k.k_lsk_id=:klskId\n" +
 			"order by u.npp", nativeQuery = true)
-	List<SumCharge> getChargeByKlsk(Long klskId);
+	List<SumChargeNpp> getChargeByKlskAndPeriod(@Param("klskId") Long klskId, @Param("period") Integer period);
 
 }

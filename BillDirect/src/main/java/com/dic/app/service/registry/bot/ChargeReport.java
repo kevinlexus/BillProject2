@@ -3,6 +3,7 @@ package com.dic.app.service.registry.bot;
 import com.dic.bill.dto.SumCharge;
 import com.dic.bill.dto.SumChargeRec;
 import com.ric.cmn.Utl;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
 import java.beans.IntrospectionException;
@@ -28,8 +29,11 @@ public class ChargeReport extends BotReportBase {
 
     public static final String SUMMA_NAME = "Cумма,руб.";
 
-    // отчёт - текущее начисление
-    public StringBuilder getStrChargeFormatted(List<SumChargeRec> lst) throws IntrospectionException, InvocationTargetException, IllegalAccessException {
+    // отчёт - начисление
+    public StringBuilder getStrChargeFormatted(List<SumChargeRec> lst, String period) throws IntrospectionException, InvocationTargetException, IllegalAccessException {
+        if (CollectionUtils.isEmpty(lst)) {
+            return new StringBuilder();
+        }
         Map<String, Column> columns = new HashMap<>();
         columns.put(USL, new Column(USL, USL_NAME));
         columns.put(VOL, new Column(VOL, VOL_NAME));
@@ -43,8 +47,7 @@ public class ChargeReport extends BotReportBase {
         columnVol.size += columns.get(UNIT).size + 2; // добавляем ед.изм, так как вместе идут эти поля в отчёте +2 - точка и пробел
 
         StringBuilder msg = new StringBuilder();
-        msg.append("Начисление\r\n");
-        StringBuilder preFormatted = new StringBuilder("");
+        StringBuilder preFormatted = new StringBuilder();
         Column columnUsl = columns.get(USL);
         String uslHeader = columnUsl.getCaptionWithPrefix();
         String volHeader = columnVol.getCaptionWithPrefix();
@@ -53,6 +56,8 @@ public class ChargeReport extends BotReportBase {
         Column columnSumma = columns.get(SUMMA);
         String summaHeader = columnSumma.getCaptionWithPrefix();
         BigDecimal amnt = BigDecimal.ZERO;
+        preFormatted.append("\r\n");
+        preFormatted.append("Начисление за период: ").append(Utl.getPeriodName(period, 1)).append("\r\n");
         preFormatted.append(String.format("|%s|%s|%s|%s|\r\n", uslHeader, volHeader, priceHeader, summaHeader));
         for (SumCharge row : lst) {
             amnt = amnt.add(BigDecimal.valueOf(row.getSumma()));

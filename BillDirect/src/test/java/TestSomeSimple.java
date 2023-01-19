@@ -16,8 +16,24 @@ public class TestSomeSimple {
     }
 
     /**
-     * Тестирование lambda - функции
+     * да да, дожились, проверка for loop в java...
      */
+    @Test
+    public void testLoop() {
+        int sz = 10000;
+
+        log.info("sz={}", sz);
+        for (int i = 1; i < sz; i++) {
+            log.info("i={}", i);
+            if (i==sz) {
+                log.info("check");
+            }
+        }
+    }
+
+        /**
+         * Тестирование lambda - функции
+         */
     @Test
     public void testLambda() {
         Calendar cal = Calendar.getInstance();
