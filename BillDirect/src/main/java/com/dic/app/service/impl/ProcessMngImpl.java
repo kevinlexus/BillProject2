@@ -1,14 +1,10 @@
 package com.dic.app.service.impl;
 
 import com.dic.app.RequestConfigDirect;
-import com.dic.app.service.ChangeMng;
 import com.dic.app.service.ConfigApp;
 import com.dic.app.service.ProcessMng;
 import com.dic.app.service.impl.enums.ProcessTypes;
-import com.dic.bill.dao.ChangeDocDAO;
-import com.dic.bill.dao.HouseDAO;
-import com.dic.bill.dao.KartDAO;
-import com.dic.bill.dao.TuserDAO;
+import com.dic.bill.dao.*;
 import com.dic.bill.dto.*;
 import com.dic.bill.enums.SelObjTypes;
 import com.dic.bill.model.scott.*;
@@ -19,9 +15,9 @@ import com.ric.cmn.Utl;
 import com.ric.cmn.excp.ErrorWhileGen;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.cmn.excp.WrongParamPeriod;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -46,10 +42,11 @@ import static java.util.stream.Collectors.groupingBy;
 @Slf4j
 @Service
 @Scope("prototype")
+@RequiredArgsConstructor
 public class ProcessMngImpl implements ProcessMng, CommonConstants {
 
     private final ConfigApp config;
-    private final ChangeMng changeMng;
+    private final ChangeMngImpl changeMng;
     private final KartDAO kartDAO;
     private final TuserDAO tuserDAO;
     private final HouseDAO houseDAO;
@@ -57,19 +54,6 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
     private final ProcessHelperMng processHelperMng;
     private final ChangeDocDAO changeDocDAO;
 
-
-    @Autowired
-    public ProcessMngImpl(ConfigApp config,
-                          ChangeMng changeMng, KartDAO kartDAO, TuserDAO tuserDAO, HouseDAO houseDAO, ProcessAllMng processAllMng, ProcessHelperMng processHelperMng, ChangeDocDAO changeDocDAO) {
-        this.config = config;
-        this.changeMng = changeMng;
-        this.kartDAO = kartDAO;
-        this.tuserDAO = tuserDAO;
-        this.houseDAO = houseDAO;
-        this.processAllMng = processAllMng;
-        this.processHelperMng = processHelperMng;
-        this.changeDocDAO = changeDocDAO;
-    }
 
     /**
      * Обработка запроса  из WebController
@@ -226,6 +210,7 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                 changeDoc.setMgchange(changesParam.getPeriodFrom()); // todo убрать период - на фиг не нужен
                 changeDoc.setUserId(user.getId());
                 changeDoc.setText(changesParam.getComment());
+
                 String paramJson = objectMapper.writeValueAsString(changesParam);
                 changeDoc.setParamJson(paramJson.length() >= 4000 ? paramJson.substring(0, 1999) : "Слишком длинный json параметров");
                 changeDocDAO.save(changeDoc);
@@ -259,6 +244,9 @@ public class ProcessMngImpl implements ProcessMng, CommonConstants {
                     changeDoc.getChange().add(change);
 
                 }
+
+                String description = changeMng.getChangeById(changeDoc.getId());
+                changeDoc.setDescription(description);
             }
         } else {
             throw new WrongParam("Не найдены параметры для перерасчета");

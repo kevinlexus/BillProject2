@@ -1,5 +1,6 @@
 package com.dic.bill.dao;
 
+import com.dic.bill.dto.SumChangeRec;
 import com.dic.bill.dto.SumRecMgDt;
 import com.dic.bill.dto.SumUslOrgRec;
 import com.dic.bill.model.scott.Change;
@@ -37,5 +38,15 @@ public interface ChangeDAO extends JpaRepository<Change, Integer> {
             + "group by t.mgchange, t.dt")
     @QueryHints(value = { @QueryHint(name = org.hibernate.annotations.QueryHints.FLUSH_MODE, value = "COMMIT") })
     List<SumRecMgDt> getChangeByPeriodAndLsk(@Param("lsk") String lsk);
+
+    /**
+     * Получить сгруппированные записи перерасчетов текущего периода
+     */
+    @Query(value = "select t.kart.spul.name as street, t.kart.nd as nd, t.usl.nm2 as nm, max(t.usl.npp) as npp, " +
+            "coalesce(sum(t.summa),0) as summa "
+            + "from Change t where t.changeDoc.id=:id "
+            + "group by t.kart.spul.name, t.kart.nd, t.usl.nm2 "
+            + "order by t.kart.spul.name, t.kart.nd, max(t.usl.npp)")
+    List<SumChangeRec> getChangeById(@Param("id") Integer id);
 
 }

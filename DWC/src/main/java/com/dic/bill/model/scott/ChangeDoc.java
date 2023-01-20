@@ -45,9 +45,13 @@ public class ChangeDoc implements java.io.Serializable  {
 	@Column(name = "CD_TP", updatable = false)
 	private String cdTp;
 
-	// описание
+	// описание (комментарий пользователя
 	@Column(name = "TEXT", updatable = false)
 	private String text;
+
+	// описание расчета
+	@Column(name = "DESCRIPTION")
+	private String description;
 
 	// параметр перерасчета, в виде JSON
 	@Column(name = "PARAM_JSON", updatable = false)

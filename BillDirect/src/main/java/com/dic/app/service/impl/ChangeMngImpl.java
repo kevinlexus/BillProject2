@@ -1,7 +1,7 @@
 package com.dic.app.service.impl;
 
-import com.dic.app.service.ChangeMng;
 import com.dic.app.service.ConfigApp;
+import com.dic.bill.dao.ChangeDAO;
 import com.dic.bill.dto.*;
 import com.dic.bill.enums.ChangeTps;
 import com.ric.cmn.Utl;
@@ -22,11 +22,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ChangeMngImpl implements ChangeMng {
+public class ChangeMngImpl {
 
     private final ConfigApp configApp;
+    private final ChangeDAO changeDAO;
 
-    @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public List<ResultChange> genChangesProc(ChangesParam changesParam, Long klskId, Map<String, Map<String, List<LskChargeUsl>>> chargeByPeriod) {
         //log.info("klskId = {}", klskId);
@@ -41,7 +41,6 @@ public class ChangeMngImpl implements ChangeMng {
         return resultChanges;
     }
 
-    @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public List<ResultChange> genChangesAbs(ChangesParam changesParam, Long klskId, Map<String, Map<String, List<LskNabor>>> naborsByPeriod) {
         final List<ResultChange> resultChanges = new ArrayList<>();
@@ -190,4 +189,32 @@ public class ChangeMngImpl implements ChangeMng {
         return orgId;
     }
 
+    public String getChangeById(int changeDocId) {
+        List<SumChangeRec> lst = changeDAO.getChangeById(changeDocId);
+        String adr = "";
+        StringBuilder str = new StringBuilder();
+        int i = 0;
+        BigDecimal sum = BigDecimal.ZERO;
+        for (SumChangeRec t : lst) {
+            sum = sum.add(t.getSumma());
+            String adrStr = t.getStreet() + ", " + Utl.ltrim(t.getNd(), "0");
+            if (!adrStr.equals(adr)) {
+                // новый адрес
+                if (i > 0) {
+                    str.append("), ");
+                }
+                adr = adrStr;
+                str.append(adrStr).append(" (");
+                str.append(t.getNm());
+            } else {
+                // продолжение
+                str.append(",").append(t.getNm());
+            }
+            if (++i == lst.size()) {
+                str.append(")").append(", итого сумма:").append(sum).append(" руб.");
+            }
+        }
+        return str.toString();
+
+    }
 }

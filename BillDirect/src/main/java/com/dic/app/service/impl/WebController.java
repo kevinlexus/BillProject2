@@ -68,7 +68,7 @@ public class WebController implements CommonConstants {
     private final DistPayMng distPayMng;
     private final DistPayQueueMng distPayQueueMng;
     private final CorrectsMng correctsMng;
-    private final ChangeMng changeMng;
+    private final ChangeMngImpl changeMng;
     private final RegistryMngImpl registryMng;
     private final CacheMng cacheMng;
     private final KartMng kartMng;

@@ -1,5 +1,6 @@
 import com.dic.app.config.Config;
 import com.dic.app.gis.service.maintaners.impl.UlistMng;
+import com.dic.app.service.impl.ChangeMngImpl;
 import com.dic.bill.dao.*;
 import com.dic.bill.mm.ObjParMng;
 import com.ric.cmn.excp.WrongGetMethod;
@@ -27,7 +28,7 @@ public class TestDAO {
     @Autowired
     private DebDAO debUslDao;
     @Autowired
-    private ChargeDAO chargeDao;
+    private ChangeMngImpl changeMng;
     @Autowired
     private VchangeDetDAO vchangeDetDao;
     @Autowired
@@ -125,5 +126,11 @@ public class TestDAO {
         log.info("015 mres.code={}, mres.name={}", mres.getCode(), mres.getName());
         mres = ulistMng.getResourceByUsl("024");
         log.info("024 mres.code={}, mres.name={}", mres.getCode(), mres.getName());
+    }
+
+    @Test
+    public void checkChangeDAO() {
+        changeMng.getChangeById(194334);
+
     }
 }

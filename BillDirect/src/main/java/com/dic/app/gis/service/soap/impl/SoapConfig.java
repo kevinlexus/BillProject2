@@ -46,6 +46,9 @@ public class SoapConfig implements SoapConfigs {
     @Value("${hostIp}")
     private String hostIp;
 
+    @Value("${parameters.gis.sign.enabled}")
+    private Boolean signEnabled;
+
     private final ApplicationContext ctx;
     public static SignCommands sc;
     public static SignCommands sc2;
@@ -157,42 +160,43 @@ public class SoapConfig implements SoapConfigs {
 
     @PostConstruct
     public void init() {
-        SoapConfig soapConfig = ctx.getBean(SoapConfig.class);
-        //Создать первый объект подписывания XML
-        try {
-            sc = buildSigner(soapConfig, 1);
-            log.info("Объект подписывания XML-1 СОЗДАН!");
-            isGisKeysLoaded = true;
-        } catch (Exception e1) {
-            isGisKeysLoaded = false;
-            log.error("********************************************************************");
-            log.error("*                                                                  *");
-            log.error("*                                                                  *");
-            log.error("* Объект подписывания XML-1 не создан, выполнение ГИС ОСТАНОВЛЕНО! *");
-            log.error("*                                                                  *");
-            log.error("*                                                                  *");
-            log.error("********************************************************************");
-            log.error("stackTrace={}", Utl.getStackTraceString(e1));
-        }
-
-        //Создать второй объект подписывания XML (при наличии)
-        if (soapConfig.getSignPass2() != null) {
+        if (signEnabled) {
+            SoapConfig soapConfig = ctx.getBean(SoapConfig.class);
+            //Создать первый объект подписывания XML
             try {
-                sc2 = buildSigner(soapConfig, 2);
-                log.info("Объект подписывания XML-2 СОЗДАН!");
+                sc = buildSigner(soapConfig, 1);
+                log.info("Объект подписывания XML-1 СОЗДАН!");
+                isGisKeysLoaded = true;
             } catch (Exception e1) {
                 isGisKeysLoaded = false;
                 log.error("********************************************************************");
                 log.error("*                                                                  *");
                 log.error("*                                                                  *");
-                log.error("* Объект подписывания XML-2 не создан, выполнение ГИС ОСТАНОВЛЕНО! *");
+                log.error("* Объект подписывания XML-1 не создан, выполнение ГИС ОСТАНОВЛЕНО! *");
                 log.error("*                                                                  *");
                 log.error("*                                                                  *");
                 log.error("********************************************************************");
                 log.error("stackTrace={}", Utl.getStackTraceString(e1));
             }
-        }
 
+            //Создать второй объект подписывания XML (при наличии)
+            if (soapConfig.getSignPass2() != null) {
+                try {
+                    sc2 = buildSigner(soapConfig, 2);
+                    log.info("Объект подписывания XML-2 СОЗДАН!");
+                } catch (Exception e1) {
+                    isGisKeysLoaded = false;
+                    log.error("********************************************************************");
+                    log.error("*                                                                  *");
+                    log.error("*                                                                  *");
+                    log.error("* Объект подписывания XML-2 не создан, выполнение ГИС ОСТАНОВЛЕНО! *");
+                    log.error("*                                                                  *");
+                    log.error("*                                                                  *");
+                    log.error("********************************************************************");
+                    log.error("stackTrace={}", Utl.getStackTraceString(e1));
+                }
+            }
+        }
     }
 
 

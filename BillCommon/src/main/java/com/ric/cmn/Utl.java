@@ -54,8 +54,8 @@ public class Utl {
     /**
      * Аналог LTRIM в Oracle
      *
-     * @param str - исходная строка
-     * @param chr - усекаемый символ
+     * @param str исходная строка
+     * @param chr усекаемый символ
      * @return - усеченная слева строка
      */
     public static String ltrim(String str, String chr) {
