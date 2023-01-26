@@ -190,15 +190,18 @@ public class TaskService {
                     .filter(t -> t.getChild().getParent() == null) // только главные
                     .filter(t -> t.getChild().getMaster() == null) // только независимые (где не заполнен DEP_ID)
                     .forEach(t -> {
-
                         log.trace("*** t.getChild().getId()={}", t.getChild().getId());
                         ArrayList<Task> taskLst = new ArrayList<>(10);
                         if (activateTask(t.getChild(), taskLst)) {
                             // разрешить запуск по всем дочерним заданиям
                             taskLst.forEach(t2 -> {
-                                t2.setState("INS");
+                                // не понятно, почему, не проставлялся статус "INS", пришлось получить Task с помощью getOne
+                                // и проставить статус ред. 26.01.23
+                                Task task2 = taskDAO2.getOne(t2.getId());
+                                task2.setState("INS");
                                 //taskIds.add(t2.getId());
                                 log.trace("*** Разрешено!!!!!!!: id={}", t2.getId());
+                                log.trace("*** state task.id={}, task.state={}", task2.getId(), task2.getState());
                             });
                         }
                     });
@@ -210,9 +213,9 @@ public class TaskService {
     /**
      * Рекурсивная активация заданий
      *
-     * @param task    - задание
+     * @param task    задание
      * @param taskLst
-     * @return - разрешить активацию
+     * @return разрешить активацию
      */
     private boolean activateTask(Task task, List<Task> taskLst) {
         log.trace("*** activateTask: task.id={}, state={}", task.getId(), task.getState());

@@ -1,0 +1,1 @@
+update EXS.TASK t set trace=0 where t.trace is null

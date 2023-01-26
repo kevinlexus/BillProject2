@@ -25,6 +25,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +68,8 @@ public class DebtRequestsServiceAsyncBindingBuilder {
     private final TuserDAO tuserDAO;
     private final UserPermDAO userPermDAO;
     private final UlstDAO ulstDAO;
+    @Value("${parameters.gis.sub.request.mark.sent.on.receive}")
+    private Boolean markSentOnReceive;
 
     @Getter
     @Setter
@@ -280,6 +283,9 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                             debSubRequest.setHasDebt(false);
                             debSubRequest.setIsRevoked(false);
                             debSubRequest.setUk(task.getProcUk().getOrg());
+
+                            // сразу маркировать на отправку, чтоб ушло следующим запросом
+                            if (markSentOnReceive) debSubRequest.setStatus(DebtSubRequestInnerStatuses.SENT.getId());
 
                             debSubRequest.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId());
                             debSubRequest.setRequestGuid(subrequest.getSubrequestGUID());
