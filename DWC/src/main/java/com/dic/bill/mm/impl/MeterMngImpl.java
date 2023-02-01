@@ -113,8 +113,7 @@ public class MeterMngImpl implements MeterMng {
             UslMeterDateVol lastUslMeterDateVol = null;
             for (LocalDate date = LocalDate.ofInstant(dtFrom.toInstant(), ZoneId.systemDefault());
                  date.isBefore(LocalDate.ofInstant(dtTo.toInstant(), ZoneId.systemDefault()).plusDays(1));
-                 date = date.plusDays(1))
-            {
+                 date = date.plusDays(1)) {
                 Date curDt = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
                 // найти любой действующий счетчик, прибавить день
                 SumMeterVol meterVol = lstMeterVol.stream().filter(t -> t.getUslId().equals(usl.getId()) &&
@@ -127,8 +126,7 @@ public class MeterMngImpl implements MeterMng {
 
             for (LocalDate date = LocalDate.ofInstant(dtFrom.toInstant(), ZoneId.systemDefault());
                  date.isBefore(LocalDate.ofInstant(dtTo.toInstant(), ZoneId.systemDefault()).plusDays(1));
-                 date = date.plusDays(1))
-            {
+                 date = date.plusDays(1)) {
                 Date curDt = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
                 // найти любой действующий счетчик, прибавить день
                 SumMeterVol meterVol = lstMeterVol.stream().filter(t -> t.getUslId().equals(usl.getId()) &&
@@ -540,7 +538,7 @@ public class MeterMngImpl implements MeterMng {
      * 5-превышено значение
      */
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public Integer saveMeterValByMeterId(int meterId, double curVal) {
         StoredProcedureQuery query = em
                 .createStoredProcedureQuery(
@@ -601,7 +599,6 @@ public class MeterMngImpl implements MeterMng {
         Integer ret;
         try {
             query.execute();
-
             ret = (Integer) query
                     .getOutputParameterValue("p_ret");
 

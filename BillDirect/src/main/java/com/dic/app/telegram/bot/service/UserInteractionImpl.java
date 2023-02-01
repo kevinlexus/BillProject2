@@ -35,6 +35,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.dic.app.telegram.bot.service.menu.Buttons.*;
+import static com.dic.app.telegram.bot.service.menu.MeterValSaveState.RESTRICTED_BY_DAY_OF_MONTH;
 
 
 @Slf4j
@@ -57,8 +58,9 @@ public class UserInteractionImpl {
                     3, MeterValSaveState.VAL_SAME_OR_LOWER,
                     4, MeterValSaveState.METER_NOT_FOUND,
                     5, MeterValSaveState.VAL_TOO_HIGH,
-                    6, MeterValSaveState.RESTRICTED_BY_DAY_OF_MONTH,
-                    7, MeterValSaveState.VAL_OUT_OF_RANGE
+                    6, RESTRICTED_BY_DAY_OF_MONTH,
+                    7, MeterValSaveState.VAL_OUT_OF_RANGE,
+                    -1, MeterValSaveState.INTERNAL_ERROR
             );
 
 
@@ -138,7 +140,7 @@ public class UserInteractionImpl {
         do {
             LocalDate dt = curDt.minusMonths(i);
             messageStore.addButton(
-                    BILLING_CHARGES_PERIOD.getCallBackData()+"_" + dt.getYear() + StringUtils.leftPad(String.valueOf(dt.getMonthValue()), 2, "0"),
+                    BILLING_CHARGES_PERIOD.getCallBackData() + "_" + dt.getYear() + StringUtils.leftPad(String.valueOf(dt.getMonthValue()), 2, "0"),
                     Utl.getMonthName(dt.getMonthValue(), 1) + " " + dt.getYear()
             );
         } while (--i >= 0);
@@ -264,7 +266,9 @@ public class UserInteractionImpl {
             msg.append("Показания те же или меньше текущих\\!");
         } else if (status.equals(MeterValSaveState.VAL_TOO_HIGH)) {
             msg.append("Показания слишком большие\\!");
-        } else if (status.equals(MeterValSaveState.VAL_TOO_BIG_OR_LOW)) {
+        } else if (status.equals(RESTRICTED_BY_DAY_OF_MONTH)) {
+            msg.append(RESTRICTED_BY_DAY_OF_MONTH);
+        } else if (status.equals(MeterValSaveState.VAL_OUT_OF_RANGE) || status.equals(MeterValSaveState.VAL_TOO_BIG_OR_LOW)) {
             msg.append("Показания вне допустимого диапазона\\!");
         } else {
             log.error("Ошибка передачи показаний по счетчику, фин.лиц klskId={}, {}",

@@ -21,10 +21,11 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Сервисы обслуживания задач
+ * Сервисы обслуживания задач ГИС ЖКХ, (task)
  *
  * @author lev
- * @version 1.1
+ * @version 1.3
+ * 26.01.2023
  */
 @Slf4j
 @Service

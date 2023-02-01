@@ -222,6 +222,8 @@ public class DeviceMeteringAsyncBindingBuilder {
         List<MeterValue> meterValues = meterDao.getHouseMeterValue(house.getGuid(), config.getPeriod(), statuses);
         if (meterValues.size()==0) {
             log.info("Нет показаний счетчиков на отправку");
+            task.setState("ACP");
+            taskMng.logTask(task, false, true);
             return;
         }
         for (MeterValue meterValue : meterValues) {
