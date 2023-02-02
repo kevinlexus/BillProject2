@@ -226,6 +226,8 @@ public class UserInteractionImpl {
                     .getMapKoMeter();
             SumMeterVolExt sumMeterVolExt = mapKoMeter.get(meterId);
             env.getMeterVolExtByMeterId().put(meterId, sumMeterVolExt);
+            msg.append("*Передача показаний возможна с 5 по 27 число.*\r\n");
+            msg.append("\r\n");
             msg.append("Введите новое показание счетчика: ");
             msg.append(sumMeterVolExt.getNpp()).append(". ").append(sumMeterVolExt.getServiceName());
             msg.append(", текущие показания: ");
