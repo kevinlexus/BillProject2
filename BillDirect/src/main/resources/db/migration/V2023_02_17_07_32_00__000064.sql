@@ -1,4 +1,4 @@
-create package body p_meter is
+create or replace package body p_meter is
 
     --добавить счетчик
     function ins_meter(p_npp number, --№ п.п.
