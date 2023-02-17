@@ -94,8 +94,25 @@ public class UserInteractionImpl {
             }
         }
         msg.append("*Адрес: ").append(env.getUserCurrentKo().get(userId).getAddress()).append("*\r\n");
-        msg.append("_Выберите:_\r\n");
 
+        boolean isHead = false;
+        for (SumMeterVolExt sumMeterVol : env.getMetersByKlskId().get(klskId).getMapKoMeter().values()) {
+            // если у счетчика дата поверки меньше или равна дата начала периода + 2 мес
+            LocalDate dtTo = LocalDate.ofInstant(config.getCurDt1().toInstant(), ZoneId.systemDefault()).plusMonths(2);
+            if (LocalDate.ofInstant(sumMeterVol.getDtTo().toInstant(), ZoneId.systemDefault()).isBefore(dtTo)) {
+                if (!isHead) {
+                    isHead=true;
+                    msg.append("\r\n");
+                    msg.append("*Внимание\\! Наступает срок проведения поверки следующих счетчиков:*\r\n");
+                }
+                String serviceName = sumMeterVol.getServiceName();
+                msg.append("№ ").append(sumMeterVol.getNpp()).append(". ").append(serviceName).append(" - ")
+                        .append(Utl.getStrFromDate(sumMeterVol.getDtTo())).append("\r\n");
+            }
+        }
+        if (isHead) msg.append("\r\n");
+
+        msg.append("_Выберите:_\r\n");
         // настройки, для выбора счетчиков
         MessageStore messageStore = new MessageStore(update);
         if (klskId != null) {
@@ -103,10 +120,11 @@ public class UserInteractionImpl {
                     .sorted(Comparator.comparing(SumMeterVolExt::getServiceNpp).thenComparing(SumMeterVolExt::getNpp))
                     .collect(Collectors.toList())) {
                 String serviceName = sumMeterVol.getServiceName();
+                msg.append("№ ");
                 msg.append(sumMeterVol.getNpp()).append(". ").append(serviceName);
-                msg.append(", текущ: показания:");
+                msg.append(", текущ: показания: ");
                 msg.append("*").append(sumMeterVol.getN1().toString()).append("*");
-                msg.append(", расход:");
+                msg.append(", расход: ");
                 msg.append("*").append(sumMeterVol.getVol().toString()).append("*");
                 msg.append("\r\n");
                 messageStore.addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(),

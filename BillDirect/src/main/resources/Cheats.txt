@@ -51,6 +51,16 @@ for (Future<MapSqlParameterSource> future : futureList) {
 executor.shutdown(); // не принимать новые потоки
 executor.awaitTermination(5, TimeUnit.SECONDS);// ожидать завершения
 
+// Потоки, транзакции https://www.youtube.com/watch?v=QZ9rXZT0DlQ
+        try {
+            var futures = accumulatedLikes.stream()
+                    .map(like -> CompletableFuture.runAsync(() -> speakerService.addLikesToSpeaker(like)))
+                    .toArray(CompletableFuture[]::new);
+            CompletableFuture.allOf(futures).join();
+        } catch (CompletionException ex) {
+            log.error("Something went wrong during batch processing.:", ex);
+        }
+
 // Получить результат ввода в CMD
 System.out.println("Are you sure that filenames are correct? (y/n):");
         Scanner sc = new Scanner(System.in);

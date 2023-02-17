@@ -38,6 +38,7 @@ import ru.gosuslugi.dom.schema.integration.drs_service_async.DebtRequestsAsyncPo
 import ru.gosuslugi.dom.schema.integration.drs_service_async.DebtRequestsServiceAsync;
 import ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef;
 
+import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.xml.datatype.DatatypeConfigurationException;
@@ -70,7 +71,6 @@ public class DebtRequestsServiceAsyncBindingBuilder {
     private final UlstDAO ulstDAO;
     @Value("${parameters.gis.sub.request.mark.sent.on.receive}")
     private Boolean markSentOnReceive;
-
     @Getter
     @Setter
     static class LskEolParam {
@@ -285,9 +285,12 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                             debSubRequest.setUk(task.getProcUk().getOrg());
 
                             // сразу маркировать на отправку, чтоб ушло следующим запросом
-                            if (markSentOnReceive) debSubRequest.setStatus(DebtSubRequestInnerStatuses.SENT.getId());
+                            if (markSentOnReceive) {
+                                debSubRequest.setStatus(DebtSubRequestInnerStatuses.SENT.getId());
+                            } else {
+                                debSubRequest.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId());
+                            }
 
-                            debSubRequest.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId());
                             debSubRequest.setRequestGuid(subrequest.getSubrequestGUID());
                             debSubRequest.setRequestNumber(requestInfo.getRequestNumber());
 
