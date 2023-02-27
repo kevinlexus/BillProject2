@@ -145,6 +145,9 @@ public class DistVolMng implements CommonConstants {
                     // кол-во лиц.счетов, объемы, кол-во прожив.
                     // собрать информацию об объемах по лиц.счетам принадлежащим вводу
 
+                    log.info("*** klskIds for processing:");
+                    reqConf2.getLstItems().forEach(t->log.info("klskId={}", t));
+
                     ProcessAllMng processMng = ctx.getBean(ProcessAllMng.class);
                     processMng.processAll(reqConf2);
 
@@ -155,6 +158,9 @@ public class DistVolMng implements CommonConstants {
                     final List<UslVolKartGrp> lstUslVolKartGrpBase =
                             reqConf2.getChrgCountAmount().getLstUslVolKartGrp().stream()
                                     .filter(t -> t.getUsl().equals(usl)).collect(Collectors.toList());
+
+                    log.info("*** kart.lsk for processing:");
+                    lstUslVolKartGrpBase.forEach(t->log.info("kart.lsk={}", t.getKart().getLsk()));
 
                     // ПОЛУЧИТЬ итоговые объемы по вводу
                     List<UslVolKart> lstUslVolKartStat;
@@ -488,7 +494,7 @@ public class DistVolMng implements CommonConstants {
         // считается без ОКРУГЛЕНИЯ, так как экономия может быть срезана текущим объемом!
         if (amnt.kprAmnt.compareTo(BigDecimal.ZERO) != 0) {
             BigDecimal diffPerPers = diffDist.divide(amnt.kprAmnt, 20, BigDecimal.ROUND_HALF_UP);
-            log.info("*** экономия={}, на 1 прожив={}", diffDist, diffPerPers);
+            log.info("*** Экономия={}, на 1 прожив={}", diffDist, diffPerPers);
             // лиц.счет, объем, лимит
             // по счетчику
             Map<Kart, Pair<BigDecimal, BigDecimal>> mapDistMeterVol = new HashMap<>();
@@ -584,7 +590,7 @@ public class DistVolMng implements CommonConstants {
 
     private void overspending(Integer distTp, Boolean isUseSch, Usl usl, int tp, List<UslVolKartGrp> lstUslVolKartGrpBase, Amnt amnt, LimitODN limitODN, BigDecimal diff, BigDecimal diffDist) {
         // ПЕРЕРАСХОД
-        log.info("*** перерасход={}", diff);
+        log.info("*** Перерасход={}", diff);
         // доначисление пропорционально площади (в т.ч.арендаторы), если небаланс > 0
         List<UslVolKartGrp> lstUslVolKartGrp = lstUslVolKartGrpBase.stream()
                 .filter(t -> t.getUsl().equals(usl) &&
@@ -622,11 +628,14 @@ public class DistVolMng implements CommonConstants {
             BigDecimal limit = limitTmp;
             Kart kart = em.find(Kart.class, uslVolKartGrp.getKart().getLsk());
             // добавить инфу по ОДН.
+            log.info("К распределению: lsk={}, usl={}, volDist={}",
+                    kart.getLsk(), usl.getId(), volDist);
             if (volDist.compareTo(BigDecimal.ZERO) != 0) {
                 Optional<Kart> kartMain = kart.getKoKw().getKart().stream()
-                        .filter(t -> t.getNabor().stream().anyMatch(n -> n.getUsl().equals(usl.getUslChild())))
-                        .findAny();
+                        .filter(t -> t.isActual() && t.getNabor().stream().anyMatch(n -> n.getUsl().equals(usl.getUslChild())))
+                        .findAny(); // искать среди открытых лиц счетов!
 
+                //log.info("kartMain.isPresent()={}", kartMain.isPresent());
                 kartMain.flatMap(kartMainUsl -> kartMainUsl.getNabor().stream()
                         .filter(n -> n.getUsl().equals(usl.getUslChild()))
                         .findFirst()).ifPresent(n -> {
