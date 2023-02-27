@@ -294,13 +294,13 @@ public class MeterMngImpl implements MeterMng {
     /**
      * Отправить показания по счетчику в биллинг
      *
-     * @param writer           - объект записи лога
-     * @param lsk              - лиц.счет
-     * @param strUsl           - код услуги
-     * @param prevValue        - предыдущее показание
-     * @param curValue         - текущее показание
-     * @param docParId         - Id записи реестра
-     * @param isSetPreviousVal - установить предыдущее показание? ВНИМАНИЕ! Текущие введёные показания будут сброшены назад
+     * @param writer           объект записи лога
+     * @param lsk              лиц.счет
+     * @param strUsl           код услуги
+     * @param prevValue        предыдущее показание
+     * @param curValue         текущее показание
+     * @param docParId         Id записи реестра
+     * @param isSetPreviousVal установить предыдущее показание? ВНИМАНИЕ! Текущие введёные показания будут сброшены назад
      */
     @Override
     public int sendMeterVal(BufferedWriter writer, String lsk, String strUsl,
