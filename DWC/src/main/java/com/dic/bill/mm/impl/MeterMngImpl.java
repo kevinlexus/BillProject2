@@ -400,7 +400,7 @@ public class MeterMngImpl implements MeterMng {
                 query.unwrap(ProcedureOutputs.class).release();
             }
 
-            log.trace("Результат исполнения scott.p_meter.ins_data_meter={}", ret);
+            log.info("Результат исполнения scott.p_meter.ins_data_meter={}", ret);
             String mess = " По лиц p_lsk=%s, услуге p_usl=%s, предыдущ.показ p_prev_val=%f, показание p_cur_val=%f, период p_period=%s";
             if (ret.equals(-1)) {
                 String str = String.format(CommonErrs.ERR_MSG_METER_VAL_OTHERS +
@@ -413,9 +413,9 @@ public class MeterMngImpl implements MeterMng {
                 //writer.write(str + "\r\n");
             } else if (ret.equals(3)) {
                 // показания меньше или равны существующим - не считать за ошибку
-                //String str = String.format(CommonErrs.ERR_MSG_METER_VAL_LESS +
-                //        mess, lsk, codeUsl, prevVal, curVal, period);
-                //writer.write(str + "\r\n");
+                String str = String.format(CommonErrs.ERR_MSG_METER_VAL_LESS +
+                        mess, lsk, codeUsl, prevVal, curVal, period);
+                writer.write(str + "\r\n");
             } else if (ret.equals(4)) {
                 String str = String.format(CommonErrs.ERR_MSG_METER_NOT_FOUND +
                         mess, lsk, codeUsl, prevVal, curVal, period);
@@ -427,10 +427,9 @@ public class MeterMngImpl implements MeterMng {
             } else {
                 String str = String.format(CommonErrs.ERR_MSG_METER_VAL_SUCCESS +
                         mess, lsk, codeUsl, prevVal, curVal, period);
-                log.trace(str);
+                log.info(str);
             }
             return ret;
-
 
         }
         return 0; // нет данных для отправки
