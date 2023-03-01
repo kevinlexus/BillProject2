@@ -725,8 +725,8 @@ public class GenPartImpl implements GenPart {
     private BigDecimal getParentVol(Map<String, UslPriceVolKart> mapUslPriceVol, BigDecimal naborNorm, String uslId) {
         BigDecimal dayVol = BigDecimal.ZERO;
         UslPriceVolKart uslPriceVolKart = mapUslPriceVol.get(uslId);
-        if (uslPriceVolKart != null && !uslPriceVolKart.isMeter()) {
-            // только если нет счетчика в родительской услуге
+        if (uslPriceVolKart != null /*&& !uslPriceVolKart.isMeter()*/) {
+            // только если нет счетчика в родительской услуге - ред.01.03.23 кис.решили включать счетчики
             // сложить все объемы родит.услуги, умножить на норматив текущей услуги
             dayVol = (uslPriceVolKart.getVol().add(uslPriceVolKart.getVolOverSoc()))
                     .multiply(naborNorm);
