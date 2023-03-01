@@ -576,14 +576,11 @@ public class GenPartImpl implements GenPart {
                     uslPriceVolKart = buildVol(curDt, reqConf, nabor, isLinkedEmpty, isLinkedExistMeter,
                             kartMain, detailUslPrice, countPers, socStandart, isMeterExist,
                             dayVol, dayVolOverSoc, kartArea, areaOverSoc, isForChrg);
-                    if (nabor.getUsl().isBaseWaterCalc2()) {
-                        // по х.в., г.в., эл.эн.
-                        // сохранить расчитанный объем по расчетному дню, (используется для услуги Повыш коэфф.)
-                        mapUslPriceVol.put(uslId, uslPriceVolKart);
-                    }
                     // сгруппировать по лиц.счету, услуге, для распределения по вводу
                     chrgCountAmountLocal.groupUslVol(uslPriceVolKart);
                 }
+                // сохранить расчитанный объем по расчетному дню, (используется для услуги Повыш коэфф.)
+                mapUslPriceVol.put(uslId, uslPriceVolKart);
 
 /*
                     if (Utl.in(uslPriceVolKart.getUsl().getId(),"045")) {
