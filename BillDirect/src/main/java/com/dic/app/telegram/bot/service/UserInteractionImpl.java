@@ -246,7 +246,7 @@ public class UserInteractionImpl {
             env.getMeterVolExtByMeterId().put(meterId, sumMeterVolExt);
             msg.append("*Передача показаний возможна с 5 по 27 число.*\r\n");
             msg.append("\r\n");
-            msg.append("Введите новое показание счетчика: ");
+            msg.append("Введите новое показание счетчика, и после ввода, дождитесь сообщения *ПОКАЗАНИЯ ПРИНЯТЫ\\!* ");
             msg.append(sumMeterVolExt.getNpp()).append(". ").append(sumMeterVolExt.getServiceName());
             msg.append(", текущие показания: ");
             msg.append(sumMeterVolExt.getN1().toString());
@@ -271,30 +271,30 @@ public class UserInteractionImpl {
         SumMeterVolExt sumMeterVolExt = env.getUserCurrentMeter().get(userId);
         StringBuilder msg = new StringBuilder();
         if (status.equals(MeterValSaveState.SUCCESSFUL)) {
-            msg.append("Показания по счетчику ")
+            msg.append("*ПОКАЗАНИЯ ПО СЧЕТЧИКУ* ")
                     .append(sumMeterVolExt.getNpp())
                     .append(". ")
                     .append(sumMeterVolExt.getServiceName())
                     .append(": ").append(result.getValue1()
-                    ).append(": ").append(" приняты");
+                    ).append(": ").append(" *ПРИНЯТЫ\\!*");
         } else if (status.equals(MeterValSaveState.WRONG_FORMAT)) {
-            log.error("Некорректное показание по счетчику, фин.лиц klskId={}, {}",
+            log.error("*ВНИМАНИЕ\\!* Некорректное показание по счетчику, фин.лиц klskId={}, {}",
                     env.getUserCurrentKo().get(userId).getKlskId(),
                     update.getMessage().getText());
-            msg.append("Некорректное показание по счетчику\\!");
+            msg.append("*ВНИМАНИЕ\\!* Некорректное показание по счетчику\\!");
         } else if (status.equals(MeterValSaveState.VAL_SAME_OR_LOWER)) {
-            msg.append("Показания те же или меньше текущих\\!");
+            msg.append("*ВНИМАНИЕ\\!* Показания те же или меньше текущих\\!");
         } else if (status.equals(MeterValSaveState.VAL_TOO_HIGH)) {
-            msg.append("Показания слишком большие\\!");
+            msg.append("*ВНИМАНИЕ\\!* Показания слишком большие\\!");
         } else if (status.equals(RESTRICTED_BY_DAY_OF_MONTH)) {
             msg.append(RESTRICTED_BY_DAY_OF_MONTH);
         } else if (status.equals(MeterValSaveState.VAL_OUT_OF_RANGE) || status.equals(MeterValSaveState.VAL_TOO_BIG_OR_LOW)) {
-            msg.append("Показания вне допустимого диапазона\\!");
+            msg.append("*ВНИМАНИЕ\\!* Показания вне допустимого диапазона\\!");
         } else {
             log.error("Ошибка передачи показаний по счетчику, фин.лиц klskId={}, {}",
                     env.getUserCurrentKo().get(userId).getKlskId(),
                     status);
-            msg.append("Попробуйте передать показания позже");
+            msg.append("*ВНИМАНИЕ\\!* Попробуйте передать показания позже");
         }
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
