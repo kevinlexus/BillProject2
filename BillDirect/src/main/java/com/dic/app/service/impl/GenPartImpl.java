@@ -12,7 +12,6 @@ import com.ric.cmn.excp.ErrorWhileChrg;
 import com.ric.cmn.excp.WrongParam;
 import com.ric.dto.SumMeterVol;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -496,14 +495,15 @@ public class GenPartImpl implements GenPart {
                     // ОДН Водоотведения (ТСЖ, от 19.11.2022)
                     // получить объем из Х.в.ОДН, Г.в.ОДН
                     dayVol = dayColdHotWaterVolODN;
-                } else if (Utl.in(fkCalcTp, 44)) {
+                } else if (Utl.in(fkCalcTp, 44, 60)) {
                     // Повыш.коэфф Кис
                     // получить объем из указанных услуг (Например 015+162 объемы услуг)
                     String str = nabor.getUsl().getUslVolList();
                     if (Strings.isNotBlank(str)) {
                         String[] uslList = str.split(",");
                         for (String uslStr : uslList) {
-                            dayVol = dayVol.add(getParentVol(mapUslPriceVol, naborNorm, uslStr));
+                            boolean isCheckMeter = fkCalcTp == 44;
+                            dayVol = dayVol.add(getParentVol(mapUslPriceVol, naborNorm, uslStr, isCheckMeter));
                         }
                     }
                 } else if (fkCalcTp.equals(49)) {
@@ -722,10 +722,10 @@ public class GenPartImpl implements GenPart {
         return countPers;
     }
 
-    private BigDecimal getParentVol(Map<String, UslPriceVolKart> mapUslPriceVol, BigDecimal naborNorm, String uslId) {
+    private BigDecimal getParentVol(Map<String, UslPriceVolKart> mapUslPriceVol, BigDecimal naborNorm, String uslId, boolean isCheckMeter) {
         BigDecimal dayVol = BigDecimal.ZERO;
         UslPriceVolKart uslPriceVolKart = mapUslPriceVol.get(uslId);
-        if (uslPriceVolKart != null /*&& !uslPriceVolKart.isMeter()*/) {
+        if (uslPriceVolKart != null && (!isCheckMeter || !uslPriceVolKart.isMeter())) {
             // только если нет счетчика в родительской услуге - ред.01.03.23 кис.решили включать счетчики
             // сложить все объемы родит.услуги, умножить на норматив текущей услуги
             dayVol = (uslPriceVolKart.getVol().add(uslPriceVolKart.getVolOverSoc()))
