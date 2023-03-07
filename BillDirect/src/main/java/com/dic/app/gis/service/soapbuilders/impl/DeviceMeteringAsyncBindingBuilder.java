@@ -2,23 +2,18 @@ package com.dic.app.gis.service.soapbuilders.impl;
 
 
 import com.dic.app.gis.service.maintaners.EolinkParMng;
-import com.dic.app.gis.service.maintaners.TaskEolinkParMng;
 import com.dic.app.gis.service.maintaners.TaskMng;
-import com.dic.app.gis.service.maintaners.TaskParMng;
 import com.dic.app.gis.service.maintaners.impl.ReqProp;
 import com.dic.app.gis.service.maintaners.impl.UlistMng;
 import com.dic.app.gis.service.soap.SoapConfigs;
 import com.dic.app.gis.service.soap.impl.SoapBuilder;
 import com.dic.app.service.ConfigApp;
-import com.dic.bill.UlistDAO;
 import com.dic.bill.dao.*;
 import com.dic.bill.dto.MeterData;
 import com.dic.bill.dto.MeterValue;
 import com.dic.bill.mm.MeterMng;
 import com.dic.bill.model.exs.Eolink;
-import com.dic.bill.model.exs.MeterVal;
 import com.dic.bill.model.exs.Task;
-import com.dic.bill.model.exs.Ulist;
 import com.dic.bill.model.scott.ObjPar;
 import com.dic.bill.model.scott.Tuser;
 import com.ric.cmn.CommonErrs;
@@ -51,10 +46,11 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.ws.BindingProvider;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -67,6 +63,7 @@ public class DeviceMeteringAsyncBindingBuilder {
     private static final Integer STATUS_PROCESS = 1; // 1-в процессе загрузки в ГИС
     private static final Integer STATUS_LOADED = 2;  // 2-загружен в ГИС
     public static final Integer STATUS_LOADED_FROM_GIS = 3; // 3-принят из ГИС
+    public static final Integer STATUS_ERROR_WHILE_LOAD_TO_GIS = 4; // 4-ошибка при загрузке в ГИС (например счетчик был архивирован, и пытаются передать показания)
     private final EntityManager em;
     private final UlistMng ulistMng;
     private final TaskMng taskMng;
@@ -85,6 +82,12 @@ public class DeviceMeteringAsyncBindingBuilder {
         private DeviceMeteringPortTypesAsync port;
         private SoapBuilder sb;
         private ReqProp reqProp;
+    }
+
+    @AllArgsConstructor
+    private class Result {
+        GetStateResult stateResult;
+        List<String> errorTguids;
     }
 
     /**
@@ -113,7 +116,7 @@ public class DeviceMeteringAsyncBindingBuilder {
      *
      * @param task задание
      */
-    private GetStateResult getState2(Task task) throws CantPrepSoap, CantSendSoap {
+    private Result getState2(Task task) throws CantPrepSoap, CantSendSoap {
         // Признак ошибки
         boolean err = false;
         // Признак ошибки в CommonResult
@@ -127,6 +130,7 @@ public class DeviceMeteringAsyncBindingBuilder {
         par.sb.setSign(false); // не подписывать запрос состояния!
 
         String errMsg = null;
+        List<String> errorTguids = new ArrayList<>(); // tguid показаний, которые были переданы с ошибкой
         try {
             state = par.port.getState(gs);
         } catch (Fault e) {
@@ -154,7 +158,8 @@ public class DeviceMeteringAsyncBindingBuilder {
             task.setState("ERR");
             task.setResult(errMsg);
             log.error("Task.id={}, ОШИБКА выполнения запроса = {}", task.getId(), errStr);
-        } else if (state.getErrorMessage() != null && state.getErrorMessage().getErrorCode() != null && !(task.getAct().getCd().equals("GIS_EXP_METER_VALS") && state.getErrorMessage().getErrorCode().equals("INT002012"))
+        } else if (state.getErrorMessage() != null && state.getErrorMessage().getErrorCode() != null
+                && !(task.getAct().getCd().equals("GIS_EXP_METER_VALS") && state.getErrorMessage().getErrorCode().equals("INT002012"))
         ) {
             // Ошибки контролей или бизнес-процесса
             err = true;
@@ -166,14 +171,9 @@ public class DeviceMeteringAsyncBindingBuilder {
 
             for (CommonResultType e : state.getImportResult()) {
                 for (Error f : e.getError()) {
-                    // Найти элемент задания по Транспортному GUID
-                    Task task2 = taskMng.getByTguid(task, e.getTransportGUID());
-                    // Установить статусы ошибки по заданиям
-                    task2.setState("ERR");
-                    errStr = String.format("Error code=%s, Description=%s", f.getErrorCode(), f.getDescription());
-                    task2.setResult(errStr);
-                    log.error(errStr);
-
+                    log.error("Error code={}, Description={}, TransportGUID={}",
+                            f.getErrorCode(), f.getDescription(), e.getTransportGUID());
+                    errorTguids.add(e.getTransportGUID());
                     errChld = true;
                 }
             }
@@ -190,8 +190,7 @@ public class DeviceMeteringAsyncBindingBuilder {
             }
         }
 
-        return state;
-
+        return new Result(state, errorTguids);
     }
 
     /**
@@ -219,7 +218,9 @@ public class DeviceMeteringAsyncBindingBuilder {
 
         Eolink house = task.getEolink();
         List<Integer> statuses = List.of(STATUS_CREATED, STATUS_PROCESS); // 0-добавлен на загрузку в ГИС, 1-в процессе загрузки в ГИС
-        List<MeterValue> meterValues = meterDao.getHouseMeterValue(house.getGuid(), config.getPeriod(), statuses);
+        List<MeterValue> meterValues = meterDao.getHouseMeterValue(house.getGuid(), config.getPeriod(), statuses).stream()
+                .limit(900) // гис больше 1000 не принимает
+                .collect(Collectors.toList());
         if (meterValues.size()==0) {
             log.info("Нет показаний счетчиков на отправку");
             task.setState("ACP");
@@ -310,20 +311,27 @@ public class DeviceMeteringAsyncBindingBuilder {
         // Установить параметры SOAP
         setUp(task);
         // получить состояние
-        GetStateResult retState = getState2(task);
+        Result result = getState2(task);
 
-        if (retState != null) {
+        if (result != null) {
+            GetStateResult retState = result.stateResult;
             if (!task.getState().equals("ERR") && !task.getState().equals("ERS")) {
+                // обработать ошибки
+                for (String tguid : result.errorTguids) {
+                    log.error("Показания, переданные с ошибкой TGUID={}", tguid);
+                    ObjPar objpar = objParDAO.findByTguid(tguid);
+                    objpar.setStatus(STATUS_ERROR_WHILE_LOAD_TO_GIS);
+                }
+
+                // остальные, корректно загруженные
                 retState.getImportResult().forEach(t -> {
-                    log.trace("После импорта объектов по Task.id={} и TGUID={}, получены следующие параметры:",
-                            task.getId(), t.getTransportGUID());
-                    log.trace("UniqueNumber={}, Дата обновления={}", t.getUniqueNumber(), Utl.getDateFromXmlGregCal(t.getUpdateDate()));
-                    // Найти показания по Транспортному GUID
-                    ObjPar objpar = objParDAO.findByTguid(t.getTransportGUID());
-                    objpar.setStatus(STATUS_LOADED);
-
-                    task.setState("ACP");
-
+                    if (!result.errorTguids.contains(t.getTransportGUID())) {
+                        log.trace("После импорта объектов по Task.id={} и TGUID={}, получены следующие параметры:",
+                                task.getId(), t.getTransportGUID());
+                        log.trace("UniqueNumber={}, Дата обновления={}", t.getUniqueNumber(), Utl.getDateFromXmlGregCal(t.getUpdateDate()));
+                        ObjPar objpar = objParDAO.findByTguid(t.getTransportGUID());
+                        objpar.setStatus(STATUS_LOADED);
+                    }
                 });
 
                 // Установить статус выполнения задания
@@ -448,11 +456,12 @@ public class DeviceMeteringAsyncBindingBuilder {
         setUp(task);
 
         // получить состояние запроса
-        GetStateResult retState = getState2(task);
+        Result result = getState2(task);
 
-        if (retState == null) {
+        if (result == null) {
             // не обработано
         } else if (!task.getState().equals("ERR") && !task.getState().equals("ERS")) {
+            GetStateResult retState = result.stateResult;
             // РКЦ (с параметрами)
             Eolink rkc = soapConfig.getRkcByHouse(task.getEolink());
             // дом
