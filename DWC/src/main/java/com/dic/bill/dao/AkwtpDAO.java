@@ -60,7 +60,7 @@ public interface AkwtpDAO extends JpaRepository<Akwtp, Integer> {
             "                        order by e.ext_lsk", nativeQuery = true)
     List<KartExtPaymentRec2> getPaymentByPeriodUsingLsk(@Param("dt1") Date dt1, @Param("dt2") Date dt2, @Param("orgId") Integer orgId);
 
-    @Query(value = "select t.dt as dt, t.summa as summa, c.org.name as source from Akwtp t join t.comps c "
+    @Query(value = "select t.dt as dt, coalesce(t.summa,0)+coalesce(t.penya,0) as summa, c.org.name as source from Akwtp t join t.comps c "
             + "where t.kart.koKw.id=:klskId and t.mg between :periodFrom and :periodTo " +
             "order by t.dt")
     List<SumPayment> getByKlskIdPeriod(@Param("klskId") Long klskId, @Param("periodFrom") String periodFrom,
