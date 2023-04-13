@@ -124,10 +124,12 @@ public class PseudoTaskBuilder {
 
     // переписать параметры в объект Eolink
 
+/*
     public void saveToEolink(Task task) {
         em.persist(task);
         teParMng.acceptPar(task);
     }
+*/
 
 
     public void save(Task task) {

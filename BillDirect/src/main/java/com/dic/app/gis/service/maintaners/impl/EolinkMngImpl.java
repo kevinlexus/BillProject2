@@ -191,4 +191,10 @@ public class EolinkMngImpl implements EolinkMng {
     public List<Eolink> getEolinkUk() {
         return eolinkDAO2.getEolinkUk();
     }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Eolink lock(Integer eolinkId) {
+        return eolinkDAO2.lock(eolinkId);
+    }
 }

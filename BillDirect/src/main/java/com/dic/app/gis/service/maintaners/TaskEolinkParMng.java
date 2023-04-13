@@ -10,5 +10,5 @@ public interface TaskEolinkParMng {
 	String getStr(Task task, String parCd) throws WrongGetMethod;
 	Date getDate(Task task, String parCd) throws WrongGetMethod;
 	Boolean getBool(Task task, String parCd) throws WrongGetMethod;
-	void acceptPar(Task task);
+//	void acceptPar(Task task);
 }

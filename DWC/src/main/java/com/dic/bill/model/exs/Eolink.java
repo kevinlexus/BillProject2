@@ -101,9 +101,11 @@ public class Eolink implements java.io.Serializable  {
 	@JoinColumn(name="FK_OBJTP", referencedColumnName="ID")
 	private AddrTp objTp;
 
+/*
 	// тип информационной системы (0- "Квартплата", 1 - "Новая разработка")
 	@Column(name = "APP_TP")
 	private Integer appTp;
+*/
 
 	// расширенный тип объекта (например "Договор управления") (используется для обмена с "Квартплатой")
 	@ManyToOne(fetch = FetchType.LAZY)
@@ -140,7 +142,7 @@ public class Eolink implements java.io.Serializable  {
 	@Column(name = "OGRN")
 	private String ogrn;
 
-	// транспортный GUID объекта
+	// транспортный GUID объекта note данное поле может использоваться по сути только importAccountData - иначе приведет к потере данных
 	@Column(name = "TGUID")
 	private String tguid;
 
@@ -150,9 +152,11 @@ public class Eolink implements java.io.Serializable  {
 	private User user;
 
 	// параметры
+/*
 	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval=true)
 	@JoinColumn(name="FK_EOLINK", referencedColumnName="ID")
 	private List<EolinkPar> eolinkPar = new ArrayList<>(0);
+*/
 
 	// дочерние объекты
 	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval=true)
@@ -160,35 +164,45 @@ public class Eolink implements java.io.Serializable  {
 	private List<Eolink> child = new ArrayList<>(0);
 
 	// задания
+/*
 	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval=true)
 	@JoinColumn(name="FK_EOLINK", referencedColumnName="ID")
 	private List<Task> task = new ArrayList<>(0);
+*/
 
 	// платежные документы (для уровня Лицевой счет)
+/*
 	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval=true)
 	@JoinColumn(name="FK_EOLINK", referencedColumnName="ID")
 	private List<Pdoc> pdoc = new ArrayList<>(0);
+*/
 
 	// дочерние объекты, связанные через EOLXEOL
+/*
 	@ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	@JoinTable(name = "EXS.EOLXEOL", joinColumns = {
 			@JoinColumn(name = "FK_PARENT", nullable = false, updatable = false) },
 			inverseJoinColumns = { @JoinColumn(name = "FK_CHILD",
 					nullable = false, updatable = false) })
 	private List<Eolink> childLinked = new ArrayList<>(0);
+*/
 
 	// родительские объекты, связанные через EOLXEOL
+/*
 	@ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	@JoinTable(name = "EXS.EOLXEOL", joinColumns = {
 			@JoinColumn(name = "FK_CHILD", nullable = false, updatable = false) },
 			inverseJoinColumns = { @JoinColumn(name = "FK_PARENT",
 					nullable = false, updatable = false) })
 	private List<Eolink> parentLinked = new ArrayList<>(0);
+*/
 
 	// запросы о задолженности УСЗН
+
 	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval=true)
 	@JoinColumn(name="FK_EOLINK_HOUSE", referencedColumnName="ID")
 	private List<DebSubRequest> debSubRequests = new ArrayList<>(0);
+
 
 	// Дочерние объекты, связанные через внешнюю таблицу
 /*	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval=true)
@@ -221,8 +235,10 @@ public class Eolink implements java.io.Serializable  {
 	private String comm;
 
 	// кадастровый номер
+/*
 	@Column(name = "CADASTR_NUM")
 	private String cadastrNum;
+*/
 
 	// актуальный?
 	@Transient
@@ -244,23 +260,23 @@ public class Eolink implements java.io.Serializable  {
 		this.serviceId = builder.serviceId;
 		this.cd = builder.cd;
 		this.objTp = builder.objTp;
-		this.appTp = builder.appTp;
+		//this.appTp = builder.appTp;
 		this.objTpx = builder.objTpx;
 		this.koObj = builder.koObj;
 		this.parent = builder.parent;
 		this.uk = builder.uk;
 		this.ogrn = builder.ogrn;
 		this.user = builder.user;
-		this.eolinkPar = builder.eolinkPar;
+		//this.eolinkPar = builder.eolinkPar;
 		this.child = builder.child;
-		this.childLinked = builder.childLinked;
-		this.parentLinked = builder.parentLinked;
+		//this.childLinked = builder.childLinked;
+		//this.parentLinked = builder.parentLinked;
 		this.status = builder.status;
 		this.dtCrt = builder.crtDt;
 		this.updDt = builder.updDt;
 		this.comm = builder.comm;
 		this.kart = builder.kart;
-		this.cadastrNum = builder.cadastrNum;
+		//this.cadastrNum = builder.cadastrNum;
 	}
 
 	@Override

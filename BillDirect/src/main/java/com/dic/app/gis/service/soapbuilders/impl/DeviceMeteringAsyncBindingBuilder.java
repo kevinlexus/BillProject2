@@ -1,6 +1,7 @@
 package com.dic.app.gis.service.soapbuilders.impl;
 
 
+import com.dic.app.gis.service.maintaners.EolinkMng;
 import com.dic.app.gis.service.maintaners.EolinkParMng;
 import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.gis.service.maintaners.impl.ReqProp;
@@ -73,6 +74,7 @@ public class DeviceMeteringAsyncBindingBuilder {
     private final EolinkParMng eolParMng;
     private final MeterDAO meterDao;
     private final MeterMng meterMng;
+    private final EolinkMng eolinkMng;
     private final TuserDAO tuserDAO;
     private final ObjParDAO objParDAO;
 
@@ -450,6 +452,8 @@ public class DeviceMeteringAsyncBindingBuilder {
     // и тогда должен быть получен обновленный объект! ред.07.12.18
     public void exportMeteringDeviceValuesAsk(Integer taskId) throws WrongGetMethod, CantPrepSoap, WrongParam, UnusableCode, CantSendSoap {
         Task task = em.find(Task.class, taskId);
+        eolinkMng.lock(task.getEolink().getId());
+
         taskMng.logTask(task, true, null);
 
         // Установить параметры SOAP

@@ -26,4 +26,6 @@ public interface EolinkMng {
     Eolink getEolinkRKC();
 
     List<Eolink> getEolinkUk();
+
+    Eolink lock(Integer id);
 }

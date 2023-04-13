@@ -177,7 +177,7 @@ public class TaskEolinkParMngImpl implements TaskEolinkParMng {
 	/**
 	 * Переписать значения параметров из Task в Eolink, по завершению отправки в ГИС
 	 */
-	//@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor=Exception.class)
+	/*//@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor=Exception.class)
 	@Override
 	public void acceptPar(Task task) {
 		log.trace("Перемещение параметров по task.id={}, task.getTaskPar().size()={}", task.getId(), task.getTaskPar().size());
@@ -186,9 +186,9 @@ public class TaskEolinkParMngImpl implements TaskEolinkParMng {
 
 		task.getTaskPar().stream().forEach(t-> {
 			EolinkPar ep = task.getEolink().getEolinkPar().stream().filter(e-> e.getPar().equals(t.getPar())).findAny().orElse(null);
-			/*if (ep!=null) {
+			*//*if (ep!=null) {
 				log.info("id={} tp={}", t.getId(), ep.getPar().getTp());
-			}*/
+			}*//*
 
 			if (ep==null) {
 				//Параметра нет, создать
@@ -233,6 +233,6 @@ public class TaskEolinkParMngImpl implements TaskEolinkParMng {
 
 		});
 
-	}
+	}*/
 
 }

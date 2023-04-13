@@ -71,7 +71,7 @@ public class TaskService {
         createParentTasks("GIS_EXP_METER_VALS", "SYSTEM_RPT_MET_EXP_VAL");
 
         // создать зависимые задания по домам МКД, по экспорту лиц.счетов, с указанием Ук - владельца счета
-        houseTaskBuilder.createTasks("GIS_EXP_HOUSE", "GIS_EXP_ACCS", "SYSTEM_RPT_HOUSE_EXP");
+        houseTaskBuilder.createTasks("GIS_EXP_HOUSE", "GIS_EXP_ACCS", "SYSTEM_RPT_HOUSE_EXP", false);
 
         // создать независимые задания, по частному сектору, по экспорту лиц.счетов, с указанием Ук - владельца счета
         houseTaskBuilder.createTasks("GIS_EXP_ACCS", true, "SYSTEM_RPT_HOUSE_EXP");
@@ -83,7 +83,7 @@ public class TaskService {
         houseTaskBuilder.createTasks("GIS_IMP_DEB_SUB_RESPONSE", false, "SYSTEM_RPT_DEB_SUB_EXCHANGE");
 
         // создать зависимые задания по экспорту запросов о задолженности от УСЗН
-        houseTaskBuilder.createTasks("GIS_IMP_DEB_SUB_RESPONSE", "GIS_EXP_DEB_SUB_REQUEST", "SYSTEM_RPT_DEB_SUB_EXCHANGE");
+        houseTaskBuilder.createTasks("GIS_IMP_DEB_SUB_RESPONSE", "GIS_EXP_DEB_SUB_REQUEST", "SYSTEM_RPT_DEB_SUB_EXCHANGE", true);
 
         // Проверка наличия заданий по импорту ПД
         checkPeriodicImpExpPd();

@@ -216,7 +216,7 @@ public class HcsOrgRegistryAsyncBindingBuilder {
      *
      */
 
-    public void exportOrgRegistryAsk(Integer taskId) throws CantPrepSoap, CantSendSoap {
+    /*public void exportOrgRegistryAsk(Integer taskId) throws CantPrepSoap, CantSendSoap {
         Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
         // установить параметры SOAP
@@ -243,7 +243,7 @@ public class HcsOrgRegistryAsyncBindingBuilder {
             task.setState("ACP");
             taskMng.logTask(task, false, true);
         }
-    }
+    }*/
 
     /**
      * Экспорт данных провайдера

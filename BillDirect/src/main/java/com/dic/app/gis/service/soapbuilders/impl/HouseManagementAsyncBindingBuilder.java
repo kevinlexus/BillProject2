@@ -282,6 +282,8 @@ public class HouseManagementAsyncBindingBuilder {
     // и тогда должен быть получен обновленный объект! ред.07.12.18
     public void exportDeviceDataAsk(Integer taskId) throws ErrorProcessAnswer, WrongGetMethod, UnusableCode, CantPrepSoap, CantSendSoap {
         Task task = em.find(Task.class, taskId);
+        eolinkMng.lock(task.getEolink().getId());
+
         taskMng.logTask(task, true, null);
         // Установить параметры SOAP
         setUp(task);
@@ -561,6 +563,8 @@ public class HouseManagementAsyncBindingBuilder {
 
     public void exportHouseDataAsk(Integer taskId) throws UnusableCode, CantPrepSoap, CantSendSoap {
         Task task = em.find(Task.class, taskId);
+        eolinkMng.lock(task.getEolink().getId());
+
         taskMng.logTask(task, true, null);
 
         // Установить параметры SOAP
@@ -891,6 +895,8 @@ public class HouseManagementAsyncBindingBuilder {
 
     public void exportAccountDataAsk(Integer taskId) throws CantPrepSoap, WrongParam, ErrorProcessAnswer, CantSendSoap {
         Task task = em.find(Task.class, taskId);
+        eolinkMng.lock(task.getEolink().getId());
+
         taskMng.logTask(task, true, null);
         if (task.getProcUk() == null)
             throw new WrongParam("По заданию task.id=" + task.getId() + " не заполнен TASK.FK_PROC_UK");
@@ -1028,6 +1034,8 @@ public class HouseManagementAsyncBindingBuilder {
 
     public void importAccountData(Integer taskId) throws CantPrepSoap, CantSendSoap, WrongParam, UnusableCode {
         Task task = em.find(Task.class, taskId);
+        eolinkMng.lock(task.getEolink().getId());
+
         taskMng.logTask(task, true, null);
         if (task.getProcUk() == null)
             throw new WrongParam("По заданию task.id=" + task.getId() + " не заполнен TASK.FK_PROC_UK");
@@ -1064,9 +1072,12 @@ public class HouseManagementAsyncBindingBuilder {
             }
         }
         // получить лиц.счета для добавления/обновления в ГИС.
-        List<Eolink> lstLskForUpdateBeforeSorting = new ArrayList<>(eolinkMng.getLskEolByHouseEol(houseEol.getId(), task.getProcUk().getId())).stream().filter(t -> !isUseFilter || Utl.between(t.getId(), task.getIdFrom(), task.getIdTo())).collect(Collectors.toList());
+        List<Eolink> lstLskForUpdateBeforeSorting = new ArrayList<>(eolinkMng.getLskEolByHouseEol(houseEol.getId(), task.getProcUk().getId())).stream()
+                .filter(t -> !isUseFilter || Utl.between(t.getId(), task.getIdFrom(), task.getIdTo())).collect(Collectors.toList());
         // упорядочить по Eolink.id, найти элементы для обновления с большим ID, чем было обработано до этого
-        List<Eolink> lstEolinkForUpdate = lstLskForUpdateBeforeSorting.stream().filter(t -> task.getEolinkLast() == null || t.getId().compareTo(task.getEolinkLast().getId()) > 0).sorted(Comparator.comparing(Eolink::getId)).collect(Collectors.toList());
+        List<Eolink> lstEolinkForUpdate = lstLskForUpdateBeforeSorting.stream()
+                .filter(t -> task.getEolinkLast() == null || t.getId().compareTo(task.getEolinkLast().getId()) > 0)
+                .sorted(Comparator.comparing(Eolink::getId)).collect(Collectors.toList());
 
         int i = 0;
         Eolink lastLskEol = null;
@@ -1304,6 +1315,8 @@ public class HouseManagementAsyncBindingBuilder {
 
     public void importAccountDataAsk(Integer taskId) throws CantPrepSoap, WrongParam, CantSendSoap, UnusableCode {
         Task task = em.find(Task.class, taskId);
+        eolinkMng.lock(task.getEolink().getId());
+
         taskMng.logTask(task, true, null);
         if (task.getProcUk() == null)
             throw new WrongParam("По заданию task.id=" + task.getId() + " не заполнен TASK.FK_PROC_UK");
@@ -1369,7 +1382,7 @@ public class HouseManagementAsyncBindingBuilder {
      *
      */
 
-    public void importHouseUOData(Integer taskId) throws WrongGetMethod, CantPrepSoap, CantSendSoap {
+    /*public void importHouseUOData(Integer taskId) throws WrongGetMethod, CantPrepSoap, CantSendSoap {
         Task task = em.find(Task.class, taskId);
         //log.info("******* Task.id={}, Импорт объектов дома, вызов", task.getId());
         taskMng.logTask(task, true, null);
@@ -1402,7 +1415,7 @@ public class HouseManagementAsyncBindingBuilder {
             bc.setCulturalHeritage(cult == 1d);
 
             // установить часовую зону
-            bc.setOlsonTZ(ulistMng.getNsiElem("NSI", 32/*30*/, "Часовая зона", "Asia/Novokuznetsk")); // ред.28.12.17 странно было 31 поменял на 32
+            bc.setOlsonTZ(ulistMng.getNsiElem("NSI", 32*//*30*//*, "Часовая зона", "Asia/Novokuznetsk")); // ред.28.12.17 странно было 31 поменял на 32
 
             Double et = teParMng.getDbl(task, "Количество этажей, наибольшее(1-11)");
             bc.setFloorCount(et.byteValue());
@@ -1466,7 +1479,7 @@ public class HouseManagementAsyncBindingBuilder {
             bc.setCulturalHeritage(cult == 1d);
 
             // установить часовую зону
-            bc.setOlsonTZ(ulistMng.getNsiElem("NSI", 32/*30*/, "Часовая зона", "Asia/Novokuznetsk")); //TODO проверить почему стояло 30, когда часовая зона по OLSON это 31
+            bc.setOlsonTZ(ulistMng.getNsiElem("NSI", 32*//*30*//*, "Часовая зона", "Asia/Novokuznetsk")); //TODO проверить почему стояло 30, когда часовая зона по OLSON это 31
 
             Double et = teParMng.getDbl(task, "Количество этажей, наибольшее(1-11)");
             bc.setFloorCount(et.byteValue());
@@ -1707,12 +1720,12 @@ public class HouseManagementAsyncBindingBuilder {
                         rc.setNoGrossArea(true);
                     }
                     // Дата закрытия, если установлено - убрал параметр 26.12.2017 из за сложности восстановления через интерфейс ГИС!!!
-	    	/*Date dtTerminate = teParMng.getDate(t, "ГИС ЖКХ.Дата закрытия");
+	    	*//*Date dtTerminate = teParMng.getDate(t, "ГИС ЖКХ.Дата закрытия");
 	    	if (dtTerminate != null) {
 		    	rc.setTerminationDate(Utl.getXMLDate(dtTerminate));
 	    	}
 
-	    	rc.setTerminationDate(null);*/
+	    	rc.setTerminationDate(null);*//*
 
                     // Транспортный GUID
                     String tguid = Utl.getRndUuid().toString();
@@ -1750,10 +1763,10 @@ public class HouseManagementAsyncBindingBuilder {
                     rc.setIsCommonProperty(commProp.equals("Да"));
 
                     // Дата закрытия, если установлено - убрал параметр 26.12.2017 из за сложности восстановления через интерфейс ГИС!!!
-	    	/*Date dtTerminate = teParMng.getDate(t, "ГИС ЖКХ.Дата закрытия");
+	    	*//*Date dtTerminate = teParMng.getDate(t, "ГИС ЖКХ.Дата закрытия");
 	    	if (dtTerminate != null) {
 		    	rc.setTerminationDate(Utl.getXMLDate(dtTerminate));
-	    	}*/
+	    	}*//*
 
                     // Общая площадь
                     Double totalArea = teParMng.getDbl(t, "Площадь.Общая");
@@ -1798,13 +1811,13 @@ public class HouseManagementAsyncBindingBuilder {
             taskMng.logTask(task, false, true);
 
         }
-    }
+    }*/
 
     /**
      * Получить результат отправки обновления объектов дома
      */
 
-    public void importHouseUODataAsk(Integer taskId) throws CantPrepSoap, CantSendSoap {
+    /*public void importHouseUODataAsk(Integer taskId) throws CantPrepSoap, CantSendSoap {
         Task task = em.find(Task.class, taskId);
         taskMng.logTask(task, true, null);
 
@@ -1862,7 +1875,7 @@ public class HouseManagementAsyncBindingBuilder {
             }
         }
 
-    }
+    }*/
 
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
@@ -1881,9 +1894,22 @@ public class HouseManagementAsyncBindingBuilder {
         }
     }
 
+    /**
+     *
+     * @param parentCd родительское задание
+     * @param createTaskCd создаваемое задание
+     * @param rptTaskCd повторяемое задание
+     * @param checkUk проверять ли при join родительского задания код УК
+     */
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void createTasks(String parentCd, String createTaskCd, String rptTaskCd) {
-        for (HouseUkTaskRec t : eolinkDao2.getHouseByTpWoTaskTp(parentCd, createTaskCd, 0)) {
+    public void createTasks(String parentCd, String createTaskCd, String rptTaskCd, boolean checkUk) {
+        List<HouseUkTaskRec> houses;
+        if (checkUk) {
+            houses = eolinkDao2.getHouseByTpWoTaskTp(parentCd, createTaskCd, 0);
+        } else {
+            houses = eolinkDao2.getHouseByTpWoTaskTpOmitUk(parentCd, createTaskCd, 0);
+        }
+        for (HouseUkTaskRec t : houses) {
 
             Eolink eolHouse = em.find(Eolink.class, t.getEolHouseId());
             Eolink procUk = em.find(Eolink.class, t.getEolUkId());

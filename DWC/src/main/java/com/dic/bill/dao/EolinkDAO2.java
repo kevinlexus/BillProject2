@@ -3,10 +3,12 @@ package com.dic.bill.dao;
 import com.dic.bill.dto.HouseUkTaskRec;
 import com.dic.bill.model.exs.Eolink;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import javax.persistence.LockModeType;
 import java.util.List;
 
 public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
@@ -37,6 +39,32 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
             + "     and s.fk_eolink=t.id "
             + "		)", nativeQuery = true)
     List<HouseUkTaskRec> getHouseByTpWoTaskTp(@Param("masterTaskCD") String masterTaskCD,
+                                              @Param("checkTaskCD") String checkTaskCD,
+                                              @Param("isPrivate") Integer isPrivate);
+    /**
+     * Получить все дома МКД, из Eolink, по которым
+     * НЕТ созданных заданий определенного типа действия, получить так же УК, работающие по этим домам в ГИС, не обращая внимания на код УК в заданиях ред.28.03.23
+     * @param masterTaskCD CD ведущего задания (например 'GIS_EXP_HOUSE')
+     * @param checkTaskCD  CD задания для проверки (например 'GIS_EXP_ACCS')
+     * @param isPrivate    МКД -0, Частный сектор -1
+     */
+    @Query(value = "select distinct t.id as eolHouseId, uk.id as eolUkId, " +
+            "s2.id as masterTaskId from exs.eolink t "
+            + "join bs.addr_tp tp on t.fk_objtp=tp.id and tp.cd='Дом' " // по объектам Дом
+            + "join scott.kart k on t.kul=k.kul and t.nd=k.nd and k.psch not in (8,9) " // по Kart поиск лиц.счетов УК
+            + "join bs.addr_tp tp2 on tp2.cd='Организация' "
+            + "join exs.eolink uk on uk.fk_objtp=tp2.id and tp2.parent_id is not null and k.reu=uk.reu " // УК
+            + "join scott.t_org org on k.reu=org.reu and org.is_exchange_gis=1 "
+            + "join bs.list stp2 on stp2.cd=:masterTaskCD "
+            + "join scott.c_houses h on k.house_id=h.id and h.is_private=:isPrivate "
+            + "join exs.task s2 on s2.fk_eolink=t.id and s2.fk_act=stp2.id " // ведущее задание, к которому прикреплять, не обращать внимания на код УК
+            + "where not exists " // где нет заданий указанного типа
+            + "		(select * from exs.task s join bs.list stp on s.fk_act=stp.id "
+            + "     and stp.cd=:checkTaskCD "
+            + "		where s.fk_proc_uk=uk.id "
+            + "     and s.fk_eolink=t.id "
+            + "		)", nativeQuery = true)
+    List<HouseUkTaskRec> getHouseByTpWoTaskTpOmitUk(@Param("masterTaskCD") String masterTaskCD,
                                               @Param("checkTaskCD") String checkTaskCD,
                                               @Param("isPrivate") Integer isPrivate);
 
@@ -185,5 +213,9 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
      */
     @Query("select t from Eolink t where t.parent.id=1 and t.objTp.id=1")
     List<Eolink> getEolinkUk();
+
+    @Lock(LockModeType.PESSIMISTIC_READ)
+    @Query("select t from Eolink t where t.id=:eolinkId")
+    Eolink lock(@Param("eolinkId") Integer eolinkId);
 
 }

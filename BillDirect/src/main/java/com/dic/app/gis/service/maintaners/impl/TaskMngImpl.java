@@ -70,6 +70,7 @@ public class TaskMngImpl implements TaskMng {
 	 * @param un - уникальный номер, полученный от ГИС
 	 * @param status - статус
 	 */
+/*
 	@Override
 	public void setEolinkIdf(Eolink eo, String guid, String un, Integer status) {
 		if (eo.getGuid() == null) {
@@ -83,6 +84,7 @@ public class TaskMngImpl implements TaskMng {
 		}
 
 	}
+*/
 
 	/**
 	 * Вернуть задание по ID родительского задания и транспортному GUID

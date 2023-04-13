@@ -82,6 +82,7 @@ public class TaskProcessor {
                     dm.saveValToFile(task.getId());
                 }
                 break;
+/*
             case "GIS_UPD_HOUSE": // todo не вызывается и не создается нигде задание
                 // Импорт объектов дома
                 if (state.equals("INS")) {
@@ -92,6 +93,7 @@ public class TaskProcessor {
                     hb.importHouseUODataAsk(task.getId());
                 }
                 break;
+*/
             case "GIS_EXP_HOUSE":
                 // Экспорт из ГИС ЖКХ объектов дома
                 if (state.equals("INS")) {

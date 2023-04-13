@@ -2,6 +2,7 @@ import com.dic.app.config.Config;
 import com.dic.bill.dao.EolinkDAO2;
 import com.dic.bill.dto.HouseUkTaskRec;
 import com.dic.app.gis.service.maintaners.EolinkMng;
+import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.scott.Kart;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -88,5 +89,15 @@ public class TestEolinkDAO {
 */
 	}
 
+	@Test
+	@Transactional(propagation = Propagation.REQUIRED)
+	@Rollback(true)
+	public void testLock() throws InterruptedException {
+		Eolink eolink = eolinkMng.lock(706813);
+		log.info("Eolink={}", eolink.getId());
+		log.info("проверить блокировку в PlSqlDeveloper!");
+		// проверить блокировку в PlSqlDeveloper за это время
+		Thread.sleep(15000);
+	}
 
 }
