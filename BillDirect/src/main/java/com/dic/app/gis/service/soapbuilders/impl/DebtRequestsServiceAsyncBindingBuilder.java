@@ -350,7 +350,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                     }
                 }
 
-                if (!pagedOutput.isLastPage()) {
+                if (pagedOutput.isLastPage() != null && !pagedOutput.isLastPage()) {
                     log.info("Ожидается следующий блок данных GUID={}", pagedOutput.getNextSubrequestGUID());
                     task.setNextBlockGuid(pagedOutput.getNextSubrequestGUID());
                     task.setState("INS"); // перевести опять в INS, чтобы принимался следующий блок данных
