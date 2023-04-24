@@ -65,6 +65,7 @@ import static com.dic.app.service.impl.enums.ProcessTypes.CHARGE_0;
 @Service
 @RequiredArgsConstructor
 public class RegistryMngImpl {
+    private final ChangeDAO changeDAO;
 
     private final int EXT_APPROVED_BY_USER = 0; // одобрено на загрузку в БД пользователем
     private final int EXT_LSK_NOT_USE = 1; // не обрабатывать (устанавливает пользователь)
@@ -1484,13 +1485,22 @@ public class RegistryMngImpl {
         List<SumChargeRec> chargeLst;
         if (configApp.getPeriod().equals(period)) {
             // текущий период
-            chargeLst = getChargesCurrentPeriod(klskId, ko);
+            Map<String, SumChargeRec> chargeMap = getChargesCurrentPeriod(klskId, ko);
+            // добавить перерасчет
+            addChange(chargeMap, klskId, null);
+            chargeLst = new ArrayList<>(chargeMap.values());
         } else {
             // архивный период
             List<SumChargeNpp> charges = chargeDAO.getChargeByKlskAndPeriod(klskId, Integer.parseInt(period));
-            chargeLst = charges.stream().map(t -> new SumChargeRec(t.getName(), t.getNpp(), t.getVol(), t.getPrice(),
-                    t.getUnit(), t.getSumma())).collect(Collectors.toList());
+            Map<String, SumChargeRec> chargeMap =
+                    charges.stream().collect(Collectors.toMap(SumChargeNpp::getId,
+                            v -> new SumChargeRec(v.getId(), v.getName(), v.getNpp(), v.getVol(), v.getPrice(), v.getUnit(), v.getSumma(), null, v.getSumma()),
+                            (k, v) -> k, HashMap::new));
+
+            addChange(chargeMap, klskId, period);
+            chargeLst = chargeMap.values().stream().sorted(Comparator.comparing(SumChargeRec::getNpp)).collect(Collectors.toList());
         }
+
         StringBuilder str;
         try {
             str = chargeReport.getStrChargeFormatted(chargeLst, period);
@@ -1500,8 +1510,26 @@ public class RegistryMngImpl {
         return str;
     }
 
-    private List<SumChargeRec> getChargesCurrentPeriod(Long klskId, Ko ko) {
-        List<SumChargeRec> chargeLst = new ArrayList<>();
+    private void addChange(Map<String, SumChargeRec> chargeMap, Long klskId, String period) {
+        List<SumChangeNpp> changeLst;
+        if (period != null) {
+            changeLst = changeDAO.getChangeByKlsk(klskId);
+        } else {
+            changeLst = changeDAO.getChangeByKlskAndPeriod(klskId, period);
+        }
+        for (SumChangeNpp t : changeLst) {
+            chargeMap.computeIfPresent(t.getId(), (k, v) -> {
+                v.setChange(t.getSumma());
+                v.setAmount(Math.round((v.getAmount() + t.getSumma()) * 100d) / 100d);
+                return v;
+            });
+            chargeMap.putIfAbsent(t.getId(),
+                    new SumChargeRec(t.getId(), t.getName(), t.getNpp(), t.getVol(), null, t.getUnit(), null, t.getSumma(), t.getSumma()));
+        }
+    }
+
+    private Map<String, SumChargeRec> getChargesCurrentPeriod(Long klskId, Ko ko) {
+        Map<String, SumChargeRec> chargeMap = new HashMap<>();
         RequestConfigDirect reqConf = RequestConfigDirect.RequestConfigDirectBuilder.aRequestConfigDirect()
                 .withTp(CHARGE_0)
                 .withGenDt(configApp.getCurDt2())
@@ -1522,17 +1550,18 @@ public class RegistryMngImpl {
             charges = genChrgProcessMng.genChrg(reqConf, klskId);
         } catch (ErrorWhileChrg e) {
             log.error("Ошибка получения начисления по klskId={}", klskId, e);
-            return chargeLst;
+            return chargeMap;
         }
 
-        chargeLst = charges.stream().map(t -> {
-                    Usl usl = em.find(Usl.class, t.getUslId());
-                    return new SumChargeRec(usl.getNameForBot() != null ? usl.getNameForBot() : usl.getId(), usl.getNpp(),
-                            t.getVol().doubleValue(), t.getPrice().doubleValue(),
-                            usl.getUnitVol(), t.getSumma().doubleValue());
-                }
-        ).sorted(Comparator.comparing(SumChargeRec::getNpp)).collect(Collectors.toList());
-        return chargeLst;
+        chargeMap = charges.stream().filter(t -> t.getSumma() != null).map(t -> {
+                            Usl usl = em.find(Usl.class, t.getUslId());
+                            return new SumChargeRec(usl.getId(), usl.getNameForBot() != null ? usl.getNameForBot() : usl.getId(), usl.getNpp(),
+                                    t.getVol().doubleValue(), t.getPrice().doubleValue(),
+                                    usl.getUnitVol(), t.getSumma().doubleValue(), null, 0D);
+                        }
+                )
+                .collect(Collectors.toMap(SumChargeRec::getId, v -> v, (k, v) -> k, HashMap::new));
+        return chargeMap;
     }
 
     public StringBuilder getPaymentFormatted(Long klskId, String periodFrom, String periodTo) {

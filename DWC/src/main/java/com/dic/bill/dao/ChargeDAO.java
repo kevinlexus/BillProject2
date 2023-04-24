@@ -25,7 +25,7 @@ public interface ChargeDAO extends JpaRepository<Charge, Integer> {
 
 	/**
 	 * Получить записи текущих начислений по периодам
-	 * @param lsk - лицевой счет
+	 * @param lsk лицевой счет
 	 */
 	@Query(value = "select coalesce(sum(t.summa),0) as summa "
 			+ " from Charge t "
@@ -35,7 +35,7 @@ public interface ChargeDAO extends JpaRepository<Charge, Integer> {
 
 	/**
 	 * Получить сгруппированные записи начислений текущего периода
-	 * @param lsk - лицевой счет
+	 * @param lsk лицевой счет
 	 */
 	@Query(value = "select t.usl.id as uslId, n.org.id as orgId, sum(t.summa) as summa "
 			+ "from Charge t join t.kart k join k.nabor n on n.usl.id=t.usl.id "
@@ -49,11 +49,11 @@ public interface ChargeDAO extends JpaRepository<Charge, Integer> {
 	void deleteAllByKartLskInAndTypeIn(@Param("lsk") List<String> lsks, @Param("type") List<Integer> types);
 
 
-	@Query(value="select u.nm as name, t.test_opl as vol, t.test_cena as price, u.ed_izm as unit, t.summa\n" +
+	@Query(value="select u.usl as id, u.nm as name, u.npp, t.test_opl as vol, t.test_cena as price, u.ed_izm as unit, t.summa\n" +
 			"      from scott.kart k\n" +
 			"      join scott.a_charge2 t on k.lsk=t.lsk and t.type=1 and :period between t.mgfrom and t.mgto\n" +
 			"      join scott.usl u on t.usl=u.usl\n" +
-			"      where k.k_lsk_id=:klskId\n" +
+			"      where k.k_lsk_id=:klskId and t.summa is not null\n" +
 			"order by u.npp", nativeQuery = true)
 	List<SumChargeNpp> getChargeByKlskAndPeriod(@Param("klskId") Long klskId, @Param("period") Integer period);
 

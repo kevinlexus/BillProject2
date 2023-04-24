@@ -8,10 +8,13 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 public class SumChargeRec implements SumCharge {
+    private String id; // Id услуги
     private String name;
     private Integer npp;
     private Double vol;
     private Double price;
     private String unit;
     private Double summa;
+    private Double change; // перерасчет
+    private Double amount; // итог
 }

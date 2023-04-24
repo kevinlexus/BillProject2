@@ -26,8 +26,11 @@ public class ChargeReport extends BotReportBase {
     public static final String UNIT = "unit";
     public static final String UNIT_NAME = "";
     public static final String SUMMA = "summa";
-
     public static final String SUMMA_NAME = "Cумма,руб.";
+    public static final String CHNG = "change";
+    public static final String CHNG_NAME = "Перерасчет";
+    public static final String AMOUNT = "amount";
+    public static final String AMOUNT_NAME = "Итог";
 
     // отчёт - начисление
     public StringBuilder getStrChargeFormatted(List<SumChargeRec> lst, String period) throws IntrospectionException, InvocationTargetException, IllegalAccessException {
@@ -40,11 +43,17 @@ public class ChargeReport extends BotReportBase {
         columns.put(PRICE, new Column(PRICE, PRICE_NAME));
         columns.put(UNIT, new Column(UNIT, UNIT_NAME));
         columns.put(SUMMA, new Column(SUMMA, SUMMA_NAME));
+        columns.put(CHNG, new Column(CHNG, CHNG_NAME));
+        columns.put(AMOUNT, new Column(AMOUNT, AMOUNT_NAME));
 
         // рассчитать макс.размер столбцов
         setMaxColumSize(lst, columns, SumChargeRec.class);
         Column columnVol = columns.get(VOL);
-        columnVol.size += columns.get(UNIT).size + 2; // добавляем ед.изм, так как вместе идут эти поля в отчёте +2 - точка и пробел
+        columnVol.size += columns.get(UNIT).size + 1; // добавляем ед.изм, так как вместе идут эти поля в отчёте +1 - точка и пробел
+        columns.computeIfPresent(AMOUNT, (k, v) -> { // добавить больше символов, для итога
+            v.size = v.size + 2;
+            return v;
+        });
 
         StringBuilder msg = new StringBuilder();
         StringBuilder preFormatted = new StringBuilder();
@@ -55,22 +64,39 @@ public class ChargeReport extends BotReportBase {
         String priceHeader = columnPrice.getCaptionWithPrefix();
         Column columnSumma = columns.get(SUMMA);
         String summaHeader = columnSumma.getCaptionWithPrefix();
-        BigDecimal amnt = BigDecimal.ZERO;
+        Column columnChng = columns.get(CHNG);
+        String chngHeader = columnChng.getCaptionWithPrefix();
+        Column columnAmount = columns.get(AMOUNT);
+        String amountHeader = columnAmount.getCaptionWithPrefix();
         preFormatted.append("\r\n");
         preFormatted.append("Начисление за период: ").append(Utl.getPeriodName(period, 1)).append("\r\n");
-        preFormatted.append(String.format("|%s|%s|%s|%s|\r\n", uslHeader, volHeader, priceHeader, summaHeader));
+        preFormatted.append(String.format("|%s|%s|%s|%s|%s|%s|\r\n", uslHeader, volHeader, priceHeader, summaHeader, chngHeader, amountHeader));
+        BigDecimal amnt = BigDecimal.ZERO;
+        BigDecimal amntChange = BigDecimal.ZERO;
+        double amntAll = 0d;
         for (SumCharge row : lst) {
             amnt = amnt.add(BigDecimal.valueOf(row.getSumma()));
+            if (row.getChange() != null) {
+                amntChange = amntChange.add(BigDecimal.valueOf(row.getChange()));
+            }
+            if (row.getAmount() != null)
+                amntAll = amntAll + row.getAmount();
 
+            amntAll = Math.round(amntAll * 100d) / 100d; // округлить
             String usl = columnUsl.getStrFormatted(row.getName());
             String vol = columnVol.getStrFormatted(Utl.getMoneyStrWithLpad(row.getVol(), 0, null, MONEY_PATTERN) +
                     ", " + row.getUnit());
             String price = columnPrice.getValueFormatted(row.getPrice(), MONEY_PATTERN);
             String summa = columnSumma.getValueFormatted(row.getSumma(), MONEY_PATTERN);
-            preFormatted.append(String.format("|%s|%s|%s|%s|\r\n", usl, vol, price, summa));
+            String chng = columnChng.getValueFormatted(row.getChange(), MONEY_PATTERN);
+            String amntRow = columnAmount.getValueFormatted(row.getAmount(), MONEY_PATTERN);
+            preFormatted.append(String.format("|%s|%s|%s|%s|%s|%s|\r\n", usl, vol, price, summa, chng, amntRow));
         }
-        preFormatted.append(String.format("|%s|%s|%s|%s|\r\n", columnUsl.getStrFormatted(""), columnVol.getStrFormatted(""),
-                columnPrice.getStrFormatted("Итого"), columnSumma.getValueFormatted(amnt.doubleValue(), MONEY_PATTERN)));
+        preFormatted.append(String.format("|%s|%s|%s|%s|%s|%s|\r\n", columnUsl.getStrFormatted(""), columnVol.getStrFormatted(""),
+                columnPrice.getStrFormatted("Итого"), columnSumma.getValueFormatted(amnt.doubleValue(), MONEY_PATTERN),
+                columnChng.getValueFormatted(amntChange.doubleValue(), MONEY_PATTERN),
+                columnAmount.getValueFormatted(amntAll, MONEY_PATTERN)
+        ));
         msg.append(preFormatted);
         return msg;
     }

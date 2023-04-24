@@ -1,8 +1,6 @@
 package com.dic.bill.dao;
 
-import com.dic.bill.dto.SumChangeRec;
-import com.dic.bill.dto.SumRecMgDt;
-import com.dic.bill.dto.SumUslOrgRec;
+import com.dic.bill.dto.*;
 import com.dic.bill.model.scott.Change;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -27,6 +25,24 @@ public interface ChangeDAO extends JpaRepository<Change, Integer> {
             nativeQuery = true)
     List<SumUslOrgRec> getChangeByLskGrouped(@Param("lsk") String lsk);
 
+    @Query(value= """
+            select u.usl as id, u.nm as name, u.npp, sum(t.vol) as vol, u.ed_izm as unit, sum(t.summa) as summa
+                  from scott.kart k
+                  join scott.a_change t on k.lsk=t.lsk and t.mg=:period
+                  join scott.usl u on t.usl=u.usl
+                  where k.k_lsk_id=:klskId and t.summa is not null
+            group by u.usl, u.nm, u.npp, u.ed_izm
+            order by u.npp""", nativeQuery = true)
+    List<SumChangeNpp> getChangeByKlskAndPeriod(@Param("klskId") Long klskId, @Param("period") String period);
+    @Query(value= """
+            select u.usl as id, u.nm as name, u.npp, sum(t.vol) as vol, u.ed_izm as unit, sum(t.summa) as summa
+                  from scott.kart k
+                  join scott.c_change t on k.lsk=t.lsk
+                  join scott.usl u on t.usl=u.usl
+                  where k.k_lsk_id=:klskId and t.summa is not null
+            group by u.usl, u.nm, u.npp, u.ed_izm
+            order by u.npp""", nativeQuery = true)
+    List<SumChangeNpp> getChangeByKlsk(@Param("klskId") Long klskId);
 
     /**
      * Получить сгруппированные записи перерасчетов текущего периода

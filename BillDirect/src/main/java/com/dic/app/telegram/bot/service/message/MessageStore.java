@@ -106,7 +106,7 @@ public class MessageStore {
 
     public TelegramMessage buildPhoto(StringBuilder msg, String fileName) {
         SendPhoto pm = new SendPhoto();
-        ByteArrayInputStream stream = Utl.renderImage(msg, FONT_LUCIDA_CONSOLE, 14, 25);
+        ByteArrayInputStream stream = Utl.renderImage(msg, FONT_LUCIDA_CONSOLE, 14, 35);
         InputFile inputFile = new InputFile();
         inputFile.setMedia(stream, fileName + ".png");
         if (buttons.size() > 0) {

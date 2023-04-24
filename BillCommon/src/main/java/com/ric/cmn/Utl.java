@@ -36,6 +36,8 @@ import static junit.framework.TestCase.assertTrue;
 public class Utl {
 
 
+    public static final int HEADER_OFFSET = 15;
+
     /**
      * Аналог SQL IN
      *
@@ -1044,6 +1046,7 @@ public class Utl {
 
         g2d.dispose();
 
+        height += HEADER_OFFSET; // увеличить на заголовок
         img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         g2d = img.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
@@ -1058,7 +1061,7 @@ public class Utl {
         g2d.setColor(new Color(252, 252, 230)); // цвет фона
         g2d.fillRoundRect(0, 0, img.getWidth(), img.getHeight(), 10, 10);
         g2d.setColor(Color.BLACK);
-        int nextLinePosition = 0;
+        int nextLinePosition = HEADER_OFFSET; // отступ нужен - иначе съедает заголовок
         for (String line : lines) {
             g2d.drawString(line, 0, nextLinePosition);
             nextLinePosition = nextLinePosition + fontSize;

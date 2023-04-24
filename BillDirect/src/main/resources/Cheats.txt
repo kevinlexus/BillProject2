@@ -286,6 +286,19 @@ public class VchangeDet implements java.io.Serializable {
                 (k, v) -> k, // функция, определяющая, что делать в случае появления одинакового ключа (здесь - взять k значение)
                 HashMap::new // создать HashMap
         ));
+// Пример работы computeIfPresent и putIfAbsent
+    mapDebAmount.computeIfPresent(curDt, (k, v) -> v.add(value.getDebForPen()));
+    mapDebAmount.putIfAbsent(curDt, value.getDebForPen());
+
+// Другой пример работы computeIfPresent и putIfAbsent
+    chargeMap.computeIfPresent(t.getId(), (k,v) -> {
+        v.setSummaChange(t.getSumma());
+        return v;
+    });
+    chargeMap.putIfAbsent(t.getId(),
+            new SumChargeRec(t.getId(), t.getName(), t.getNpp(), t.getVol(), null, t.getUnit(), null, t.getSumma()));
+
+
 // Объеденить элементы в строку через ";"
         String.join(";", value);
 

@@ -3,15 +3,17 @@ package com.dic.bill.dto;
 /*
  * Projection для хранения записи начисления
  */
-public interface SumCharge {
+public interface SumChangeNpp {
+    String getId(); // Id услуги
     String getName();
-    Double getVol();
-    Double getPrice();
-    String getUnit();
-    Double getSumma();
-    Double getChange();
-    Double getAmount();
 
+    Integer getNpp();
+
+    Double getVol();
+
+    String getUnit();
+
+    Double getSumma();
 
 }
 
