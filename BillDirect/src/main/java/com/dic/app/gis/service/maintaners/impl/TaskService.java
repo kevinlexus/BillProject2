@@ -180,10 +180,10 @@ public class TaskService {
         //List<Integer> taskIds = new ArrayList<>();
         if (foundTaskOpt.isPresent()) {
             Task foundTask = foundTaskOpt.get();
-            log.info("*** Task.id={}, Повторяемое задание CD={}", foundTask.getId(), foundTask.getAct().getCd());
+            log.info("*** Task.id={}, Повторяемое задание Act.CD={}, CD={}", foundTask.getId(), foundTask.getAct().getCd(), foundTask.getCd());
             /* найти все связи с зависимыми записями, в заданиях которых нет родителя (главные),
                а так же если у этих заданий либо не имеется зависимых заданий, либо имеются и
-               они НЕ находятся в статусах INS, ACK (т.е. на обработке)
+               они НЕ находятся в статусах INS, ACK (работке)
                (по определённому типу связи)
             */
             foundTask.getInside().stream()
