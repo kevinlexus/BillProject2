@@ -17,7 +17,6 @@
             <jsr107:cache name="BillDirectEntitiesCacheReadWrite" template="entityCache"/>
             <!--separated entities with update triggers in db Lev.02.12.21-->
             <jsr107:cache name="BillDirectEntitiesCacheEolink" template="entityCache"/>
-            <jsr107:cache name="BillDirectEntitiesCacheTask" template="entityCache"/>
             <jsr107:cache name="BillDirectEntitiesCacheTaskPar" template="entityCache"/>
             <jsr107:cache name="BillDirectEntitiesCacheEolinkPar" template="entityCache"/>
             <jsr107:cache name="BillDirectEntitiesCacheKart" template="entityCache"/>

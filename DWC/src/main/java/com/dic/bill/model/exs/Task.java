@@ -25,8 +25,8 @@ import java.util.List;
 @DynamicUpdate
 @Getter
 @Setter
-@Cacheable
-@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheTask", usage = CacheConcurrencyStrategy.READ_WRITE)
+//@Cacheable Временно отключил, так как по какой то причине не обновлялось поле "state", в тсж, после обновления в java 11.05.23
+//@org.hibernate.annotations.Cache(region = "BillDirectEntitiesCacheTask", usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Task implements java.io.Serializable {
 
     public Task() {
