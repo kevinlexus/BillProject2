@@ -812,14 +812,18 @@ public class RegistryMngImpl {
 //                        log.info("elem={}", elem);
                         if (i == 1) {
                             lsk = elem;
+                            log.debug("lsk={}", lsk);
                         } else if (Utl.in(i, 3, 8, 13)) {
                             // услуга
                             strUsl = elem;
+                            log.debug("usl={}", strUsl);
                         } else if (Utl.in(i, 4, 9, 14)) {
                             // установить предыдущие показания
                             prevVal = elem;
+                            log.debug("prevVal={}", prevVal);
                         } else if (Utl.in(i, 5, 10, 15)) {
                             // отправить текущие показания
+                            log.debug("curVal={}", elem);
                             int ret = meterMng.sendMeterVal(writer, lsk, strUsl,
                                     prevVal, elem, configApp.getPeriod(), configApp.getCurUser().getId(),
                                     doc.getId(), isSetPreviousVal);

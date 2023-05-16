@@ -303,6 +303,7 @@ public class MeterMngImpl implements MeterMng {
      * @param isSetPreviousVal установить предыдущее показание? ВНИМАНИЕ! Текущие введёные показания будут сброшены назад
      */
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public int sendMeterVal(BufferedWriter writer, String lsk, String strUsl,
                             String prevValue, String curValue, String period,
                             int userId, int docParId,
@@ -389,13 +390,14 @@ public class MeterMngImpl implements MeterMng {
                     .setParameter("p_status", MeterValConsts.INSERT_FOR_LOAD_TO_GIS)
                     .setParameter("p_doc_par_id", docParId)
                     .setParameter("p_user", userId);
-            Integer ret;
+            Integer ret = -1;
             try {
                 query.execute();
 
                 ret = (Integer) query
                         .getOutputParameterValue("p_ret");
-
+            } catch (Exception e){
+                log.error("Ошибка отправки показаний с использованием scott.p_meter.ins_data_meter", e);
             } finally {
                 query.unwrap(ProcedureOutputs.class).release();
             }
