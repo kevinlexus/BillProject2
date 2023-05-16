@@ -75,10 +75,10 @@ public class ChargeReport extends BotReportBase {
         BigDecimal amntChange = BigDecimal.ZERO;
         double amntAll = 0d;
         for (SumCharge row : lst) {
-            amnt = amnt.add(BigDecimal.valueOf(row.getSumma()));
-            if (row.getChange() != null) {
+            if (row.getSumma() != null)
+                amnt = amnt.add(BigDecimal.valueOf(row.getSumma()));
+            if (row.getChange() != null)
                 amntChange = amntChange.add(BigDecimal.valueOf(row.getChange()));
-            }
             if (row.getAmount() != null)
                 amntAll = amntAll + row.getAmount();
 

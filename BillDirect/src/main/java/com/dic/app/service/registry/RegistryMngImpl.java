@@ -809,6 +809,7 @@ public class RegistryMngImpl {
                     while (sc.hasNext()) {
                         i++;
                         String elem = sc.next();
+//                        log.info("elem={}", elem);
                         if (i == 1) {
                             lsk = elem;
                         } else if (Utl.in(i, 3, 8, 13)) {
@@ -829,7 +830,7 @@ public class RegistryMngImpl {
                     }
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         scanner.close();
@@ -1513,9 +1514,9 @@ public class RegistryMngImpl {
     private void addChange(Map<String, SumChargeRec> chargeMap, Long klskId, String period) {
         List<SumChangeNpp> changeLst;
         if (period != null) {
-            changeLst = changeDAO.getChangeByKlsk(klskId);
-        } else {
             changeLst = changeDAO.getChangeByKlskAndPeriod(klskId, period);
+        } else {
+            changeLst = changeDAO.getChangeByKlsk(klskId);
         }
         for (SumChangeNpp t : changeLst) {
             chargeMap.computeIfPresent(t.getId(), (k, v) -> {
