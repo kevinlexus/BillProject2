@@ -20,7 +20,7 @@ public interface KwtpDAO extends JpaRepository<Kwtp, Integer> {
             + "where t.numDoc=:numDoc")
     Kwtp getByNumDoc(@Param("numDoc") String numDoc);
 
-    @Query(value = "select t.dt as dt, t.summa as summa, c.org.name as source from Kwtp t join t.comps c "
+    @Query(value = "select t.dt as dt, coalesce(t.summa,0)+coalesce(t.penya,0) as summa, c.org.name as source from Kwtp t join t.comps c "
             + "where t.kart.koKw.id=:klskId " +
             "order by t.dt")
     List<SumPayment> getByKlskId(@Param("klskId") Long klskId);
