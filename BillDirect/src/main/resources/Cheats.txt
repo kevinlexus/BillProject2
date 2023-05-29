@@ -397,6 +397,10 @@ public class VchangeDet implements java.io.Serializable {
         .stream().collect(Collectors.groupingBy(Anabor::getKey,
         Collectors.mapping(t -> t, Collectors.toList())));
 
+        // или получить переменную или вызвать Exception
+        String period = getSubstr(callBackData, ptrnPeriod).orElseThrow(() -> new RuntimeException(""));
+        // или получить переменную или строку по умолчанию
+        String period = getSubstr(callBackData, ptrnPeriod).orElse("blbla");
 
 // Транзакция
 @Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -437,6 +441,12 @@ public interface ThreadMng<T> {
 
         return item;
     }
+
+// JOOQ
+
+
+
+
 
 // Прочее //////////////////////////////////////////////////////////
 
