@@ -1,5 +1,6 @@
 package com.dic.bill.mm.impl;
 
+import com.dic.bill.dao.KartDAO;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dao.TuserDAO;
 import com.dic.bill.dao.UserDAO;
@@ -45,6 +46,7 @@ public class MeterMngImpl implements MeterMng {
     private final MeterDAO meterDao;
     private final UserDAO userDAO;
     private final TuserDAO tuserDAO;
+    private final KartDAO kartDAO;
 
     @PersistenceContext
     private EntityManager em;
@@ -403,10 +405,15 @@ public class MeterMngImpl implements MeterMng {
             }
 
             log.info("Результат исполнения scott.p_meter.ins_data_meter={}", ret);
-            String mess = " По лиц p_lsk=%s, услуге p_usl=%s, предыдущ.показ p_prev_val=%f, показание p_cur_val=%f, период p_period=%s";
+            String mess = " По лиц p_lsk=%s, адрес=%s, услуге p_usl=%s, предыдущ.показ p_prev_val=%f, показание p_cur_val=%f, период p_period=%s";
+            Kart kart = kartDAO.getOne(lsk);
+            String adr = null;
+            if (kart!=null) {
+                adr = kart.getAdr();
+            }
             if (ret.equals(-1)) {
                 String str = String.format(CommonErrs.ERR_MSG_METER_VAL_OTHERS +
-                        mess, lsk, codeUsl, prevVal, curVal, period);
+                        mess, lsk, adr, codeUsl, prevVal, curVal, period);
                 writer.write(str + "\r\n");
             } else if (ret.equals(1)) {
                 // нулевые показания - не считать за ошибку
@@ -416,19 +423,19 @@ public class MeterMngImpl implements MeterMng {
             } else if (ret.equals(3)) {
                 // показания меньше или равны существующим - не считать за ошибку
                 String str = String.format(CommonErrs.ERR_MSG_METER_VAL_LESS +
-                        mess, lsk, codeUsl, prevVal, curVal, period);
+                        mess, lsk, adr, codeUsl, prevVal, curVal, period);
                 writer.write(str + "\r\n");
             } else if (ret.equals(4)) {
                 String str = String.format(CommonErrs.ERR_MSG_METER_NOT_FOUND +
-                        mess, lsk, codeUsl, prevVal, curVal, period);
+                        mess, lsk, adr, codeUsl, prevVal, curVal, period);
                 writer.write(str + "\r\n");
             } else if (ret.equals(5)) {
                 String str = String.format(CommonErrs.ERR_MSG_METER_VAL_TOO_BIG +
-                        mess, lsk, codeUsl, prevVal, curVal, period);
+                        mess, lsk, adr, codeUsl, prevVal, curVal, period);
                 writer.write(str + "\r\n");
             } else {
                 String str = String.format(CommonErrs.ERR_MSG_METER_VAL_SUCCESS +
-                        mess, lsk, codeUsl, prevVal, curVal, period);
+                        mess, lsk, adr, codeUsl, prevVal, curVal, period);
                 log.info(str);
             }
             return ret;
