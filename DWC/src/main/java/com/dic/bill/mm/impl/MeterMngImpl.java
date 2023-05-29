@@ -398,19 +398,17 @@ public class MeterMngImpl implements MeterMng {
 
                 ret = (Integer) query
                         .getOutputParameterValue("p_ret");
-            } catch (Exception e){
+            } catch (Exception e) {
                 log.error("Ошибка отправки показаний с использованием scott.p_meter.ins_data_meter", e);
             } finally {
                 query.unwrap(ProcedureOutputs.class).release();
             }
 
             log.info("Результат исполнения scott.p_meter.ins_data_meter={}", ret);
-            String mess = " По лиц p_lsk=%s, адрес=%s, услуге p_usl=%s, предыдущ.показ p_prev_val=%f, показание p_cur_val=%f, период p_period=%s";
-            Kart kart = kartDAO.getOne(lsk);
-            String adr = null;
-            if (kart!=null) {
-                adr = kart.getAdr();
-            }
+            String mess = " По лиц p_lsk=%s, адрес=%s, услуга p_usl=%s, предыдущ.показ p_prev_val=%f, показание p_cur_val=%f, период p_period=%s";
+            Optional<Kart> kart = kartDAO.findById(lsk);
+            String adr;
+            adr = kart.map(Kart::getAdr).orElse("Адрес не найден!");
             if (ret.equals(-1)) {
                 String str = String.format(CommonErrs.ERR_MSG_METER_VAL_OTHERS +
                         mess, lsk, adr, codeUsl, prevVal, curVal, period);
