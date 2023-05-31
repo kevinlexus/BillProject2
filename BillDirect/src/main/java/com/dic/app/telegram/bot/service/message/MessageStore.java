@@ -60,11 +60,9 @@ public class MessageStore {
             if (callbackQuery.getMessage().hasPhoto()) {
                 SendMessage sm = new SendMessage();
                 sm.setText(msg.toString());
-
-                sm.setParseMode(ParseMode.MARKDOWNV2);
-
                 sm.setChatId(message.getChatId().toString());
                 sm.setReplyMarkup(inlineKeyboardMarkup);
+                sm.setParseMode(ParseMode.MARKDOWNV2);
                 return new SimpleMessage(sm);
             } else {
                 EditMessageText em = new EditMessageText();
@@ -72,18 +70,15 @@ public class MessageStore {
                 em.setChatId(message.getChatId().toString());
                 em.setMessageId(message.getMessageId());
                 em.setReplyMarkup(inlineKeyboardMarkup);
-
                 em.setParseMode(ParseMode.MARKDOWNV2);
                 return new UpdateMessage(em);
             }
         } else {
             SendMessage sm = new SendMessage();
             sm.setText(msg.toString());
-
-            sm.setParseMode(ParseMode.MARKDOWNV2);
-
             sm.setChatId(update.getMessage().getChatId());
             sm.setReplyMarkup(inlineKeyboardMarkup);
+            sm.setParseMode(ParseMode.MARKDOWNV2);
             return new SimpleMessage(sm);
         }
     }
@@ -104,7 +99,7 @@ public class MessageStore {
         return createMessage(update, msg, inlineKeyboardMarkup);
     }
 
-    public TelegramMessage buildPhoto(StringBuilder msg, String fileName) {
+    public TelegramMessage buildPhotoMessage(StringBuilder msg, String fileName) {
         SendPhoto pm = new SendPhoto();
         ByteArrayInputStream stream = Utl.renderImage(msg, FONT_LUCIDA_CONSOLE, 14, 35);
         InputFile inputFile = new InputFile();

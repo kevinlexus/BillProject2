@@ -1488,23 +1488,23 @@ public class RegistryMngImpl {
     public StringBuilder getChargeFormatted(Long klskId, String period) {
         Ko ko = em.find(Ko.class, klskId);
         List<SumChargeRec> chargeLst;
+        Map<String, SumChargeRec> chargeMap;
         if (configApp.getPeriod().equals(period)) {
             // текущий период
-            Map<String, SumChargeRec> chargeMap = getChargesCurrentPeriod(klskId, ko);
+            chargeMap = getChargesCurrentPeriod(klskId, ko);
             // добавить перерасчет
             addChange(chargeMap, klskId, null);
-            chargeLst = new ArrayList<>(chargeMap.values());
         } else {
             // архивный период
             List<SumChargeNpp> charges = chargeDAO.getChargeByKlskAndPeriod(klskId, Integer.parseInt(period));
-            Map<String, SumChargeRec> chargeMap =
+            chargeMap =
                     charges.stream().collect(Collectors.toMap(SumChargeNpp::getId,
                             v -> new SumChargeRec(v.getId(), v.getName(), v.getNpp(), v.getVol(), v.getPrice(), v.getUnit(), v.getSumma(), null, v.getSumma()),
                             (k, v) -> k, HashMap::new));
 
             addChange(chargeMap, klskId, period);
-            chargeLst = chargeMap.values().stream().sorted(Comparator.comparing(SumChargeRec::getNpp)).collect(Collectors.toList());
         }
+        chargeLst = chargeMap.values().stream().sorted(Comparator.comparing(SumChargeRec::getNpp)).collect(Collectors.toList());
 
         StringBuilder str;
         try {

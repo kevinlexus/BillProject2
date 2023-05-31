@@ -22,11 +22,15 @@ public class Env {
     private final Map<Long, KoAddress> userCurrentKo = new ConcurrentHashMap<>();
     // текущий, выбранный счетчик пользователя
     private final Map<Long, SumMeterVolExt> userCurrentMeter = new ConcurrentHashMap<>();
-    private final Map<Long, Integer> userTemporalCode = new ConcurrentHashMap<>();
-    private final Set<Integer> issuedCodes = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final Map<Long, MapMeter> metersByKlskId = new ConcurrentHashMap<>();
     private final Map<Integer, SumMeterVolExt> meterVolExtByMeterId = new ConcurrentHashMap<>();
-    private final Map<Long, LinkedList<MenuStep>> userMenuPath= new ConcurrentHashMap<>(); // путь по меню пользователя
+    private final Map<Long, LinkedList<MenuStep>> userMenuPath = new ConcurrentHashMap<>(); // путь по меню пользователя
 
 
+    public boolean checkAccessByKlskId(long userId, Long klskId) {
+        MapKoAddress koList = userRegisteredKo.get(userId);
+        if (koList == null || koList.getMapKoAddress() == null)
+            return false;
+        return koList.getMapKoAddress().containsKey(klskId);
+    }
 }

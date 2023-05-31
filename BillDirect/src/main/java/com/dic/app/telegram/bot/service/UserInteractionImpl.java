@@ -17,6 +17,7 @@ import com.ric.dto.MapMeter;
 import com.ric.dto.SumMeterVolExt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.javatuples.Pair;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,9 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.dic.app.telegram.bot.service.menu.Buttons.*;
@@ -62,11 +66,15 @@ public class UserInteractionImpl {
                     7, MeterValSaveState.VAL_OUT_OF_RANGE,
                     -1, MeterValSaveState.INTERNAL_ERROR
             );
+    private final Pattern ptrnPeriod = Pattern.compile("period:(\\d+)");
+    private final Pattern ptrnKlskId = Pattern.compile("klskId:(\\d+)");
+    private final Pattern ptrnMeterId = Pattern.compile("meterId:(\\d+)");
 
 
-    public TelegramMessage selectAddress(Update update, long userId, Map<Long, MapKoAddress> registeredKo) {
+    public TelegramMessage selectAddress(Update update, long userId, Map<Long, MapKoAddress> registeredKo, AtomicInteger cnt) {
         StringBuilder msg = new StringBuilder();
         MapKoAddress mapKoAddress = registeredKo.get(userId);
+        //msg.append("_Выберите адрес,_").append(cnt.getAndIncrement());
         msg.append("_Выберите адрес,_");
         String city = orgDAO.getByOrgTp("Город").getName();
         msg.append("* г.").append(city).append(":*\r\n");
@@ -77,19 +85,19 @@ public class UserInteractionImpl {
 
         MessageStore messageStore = new MessageStore(update);
         mapKoAddress.getMapKoAddress().values().stream().sorted(Comparator.comparing(KoAddress::getOrd))
-                .forEach(t -> messageStore.addButtonCallBack(ADDRESS_KLSK.getCallBackData() + "_" + t.getKlskId(), t.getAddress()));
+                .forEach(t -> messageStore.addButtonCallBack(ADDRESS_KLSK.getCallBackData() + "_klskId:" + t.getKlskId()+"_queryId:"+cnt.getAndIncrement(), t.getAddress()));
 
         return messageStore.build(msg);
     }
 
 
-    public TelegramMessage selectMeter(Update update, String callBackData, long userId) {
+    public TelegramMessage selectMeter(Update update, Long klskId, String callBackData, long userId) {
         StringBuilder msg = new StringBuilder();
-        Long klskId = getCurrentKlskId(userId);
+        //Long klskId = getCurrentKlskId(userId);
 
         if (callBackData != null) {
             if (callBackData.startsWith(ADDRESS_KLSK.getCallBackData())) {
-                klskId = Long.parseLong(callBackData.substring(ADDRESS_KLSK.getCallBackData().length() + 1));
+                //klskId = Long.parseLong(callBackData.substring(ADDRESS_KLSK.getCallBackData().length() + 1));
                 updateMapMeterByKlskId(userId, klskId);
             }
         }
@@ -101,7 +109,7 @@ public class UserInteractionImpl {
             LocalDate dtTo = LocalDate.ofInstant(config.getCurDt1().toInstant(), ZoneId.systemDefault()).plusMonths(2);
             if (LocalDate.ofInstant(sumMeterVol.getDtTo().toInstant(), ZoneId.systemDefault()).isBefore(dtTo)) {
                 if (!isHead) {
-                    isHead=true;
+                    isHead = true;
                     msg.append("\r\n");
                     msg.append("*Внимание\\! Наступает срок проведения поверки следующих счетчиков:*\r\n");
                 }
@@ -127,38 +135,40 @@ public class UserInteractionImpl {
                 msg.append(", расход: ");
                 msg.append("*").append(sumMeterVol.getVol().toString()).append("*");
                 msg.append("\r\n");
-                messageStore.addButton(METER.getCallBackData() + "_" + sumMeterVol.getMeterId(),
+                messageStore.addButton(METER.getCallBackData() + "_klskId:" + klskId + "_meterId:" + sumMeterVol.getMeterId(),
                         sumMeterVol.getNpp() + ". " + (serviceName != null ? serviceName : sumMeterVol.getUslId()));
             }
         } else {
             log.error("Не определен klskId");
         }
 
-        messageStore.addButton(REPORTS);
-        messageStore.addButton(BACK);
+        messageStore.addButton(REPORTS.getCallBackData() + "_klskId:" + klskId, REPORTS.toString());
+        messageStore.addButton(BACK.getCallBackData() + "_klskId:" + klskId, BACK.toString());
         return messageStore.build(msg);
     }
 
 
-    public TelegramMessage selectReport(Update update) {
+    public TelegramMessage selectReport(Update update, Long klskId) {
         MessageStore messageStore = new MessageStore(update);
-        messageStore.addButton(BILLING_FLOW);
-        messageStore.addButton(BILLING_CHARGES);
-        messageStore.addButton(BILLING_PAYMENTS);
-        messageStore.addButton(BACK);
+        messageStore.addButton(BILLING_FLOW.getCallBackData() + "_klskId:" + klskId, BILLING_FLOW.toString());
+        messageStore.addButton(BILLING_CHARGES.getCallBackData() + "_klskId:" + klskId, BILLING_CHARGES.toString());
+        messageStore.addButton(BILLING_PAYMENTS.getCallBackData() + "_klskId:" + klskId, BILLING_PAYMENTS.toString());
+        messageStore.addButton(BACK.getCallBackData() + "_klskId:" + klskId, BACK.toString());
 
         StringBuilder msg = new StringBuilder("      \r\nВыберите:");
         return messageStore.build(msg);
     }
 
-    public TelegramMessage selectChargeReport(Update update) {
+    public TelegramMessage selectChargeReport(Update update, Long klskId) {
         MessageStore messageStore = new MessageStore(update);
         LocalDate curDt = LocalDate.ofInstant(config.getCurDt1().toInstant(), ZoneId.systemDefault());
         int i = 11;
         do {
             LocalDate dt = curDt.minusMonths(i);
             messageStore.addButton(
-                    BILLING_CHARGES_PERIOD.getCallBackData() + "_" + dt.getYear() + StringUtils.leftPad(String.valueOf(dt.getMonthValue()), 2, "0"),
+                    //BILLING_CHARGES_PERIOD.getCallBackData() + "_" + dt.getYear() + StringUtils.leftPad(String.valueOf(dt.getMonthValue()), 2, "0"),
+                    //Utl.getMonthName(dt.getMonthValue(), 1) + " " + dt.getYear()
+                    BILLING_CHARGES_PERIOD.getCallBackData() + "_klskId:" + klskId + "_period:" + dt.getYear() + StringUtils.leftPad(String.valueOf(dt.getMonthValue()), 2, "0"),
                     Utl.getMonthName(dt.getMonthValue(), 1) + " " + dt.getYear()
             );
         } while (--i >= 0);
@@ -169,49 +179,56 @@ public class UserInteractionImpl {
         return messageStore.build(msg);
     }
 
-    public TelegramMessage showFlow(Update update, long userId) {
+    public TelegramMessage showFlow(Update update, long klskId, long userId) {
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
 
         String periodBack = config.getPeriodBackByMonth(PERIOD_BACK);
         String period = config.getPeriod();
-        Long klskId = getCurrentKlskId(userId);
+        //Long klskId = getCurrentKlskId(userId);
         StringBuilder msg = registryMng.getFlowFormatted(klskId, periodBack, period);
 
         Ko ko = entityManager.find(Ko.class, klskId);
         msg.append("\r\nРасчет был произведен:").append(Utl.getStrFromDate(ko.getDtGenDebPen(), "dd.MM.yyyy HH:mm"));
-        return messageStore.buildPhoto(msg, "Движение по лицевому счету");
+        return messageStore.buildPhotoMessage(msg, "Движение по лицевому счету");
     }
 
-    public TelegramMessage showCharge(Update update, long userId, String callBackData) {
+    public TelegramMessage showCharge(Update update, Long klskId, String callBackData) {
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
-        String period = callBackData.substring(BILLING_CHARGES_PERIOD.getCallBackData().length() + 1);
+        //String period = callBackData.substring(BILLING_CHARGES_PERIOD.getCallBackData().length() + 1);
 
-        Long klskId = getCurrentKlskId(userId);
+        String period = getSubstr(callBackData, ptrnPeriod).orElseThrow(() ->
+                new RuntimeException("Некорректен callback, не найден period:" + ObjectUtils.firstNonNull(callBackData, "null")));
+        //Long klskId = getCurrentKlskId(userId);
+        //Long klskId = Long.parseLong(getSubstr(callBackData, ptrnKlskId).orElseThrow(() ->
+        //      new RuntimeException("Не корректен callback, не найден klskId:" + ObjectUtils.firstNonNull(callBackData, "null"))));
+
         StringBuilder msg = registryMng.getChargeFormatted(klskId, period);
         if (StringUtils.isEmpty(msg)) {
             msg = new StringBuilder("Повторите запрос позже");
         }
-        return messageStore.buildPhoto(msg, "Начисление");
+        return messageStore.buildPhotoMessage(msg, "Начисление");
     }
 
-    public TelegramMessage showPayment(Update update, long userId) {
+    public TelegramMessage showPayment(Update update, long klskId) {
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
 
         String periodFrom = config.getPeriodBackByMonth(PERIOD_BACK);
         String periodTo = config.getPeriod();
-        Long klskId = getCurrentKlskId(userId);
+        //Long klskId = getCurrentKlskId(userId);
         StringBuilder msg = registryMng.getPaymentFormatted(klskId, periodFrom, periodTo);
 
-        return messageStore.buildPhoto(msg, "Оплата");
+        return messageStore.buildPhotoMessage(msg, "Оплата");
     }
 
 
+/*
     private Long getCurrentKlskId(long userId) {
         return env.getUserCurrentKo().get(userId) != null ? env.getUserCurrentKo().get(userId).getKlskId() : null;
     }
+*/
 
     public void updateMapMeterByKlskId(long userId, long klskId) {
         MapKoAddress registeredKoByUser = env.getUserRegisteredKo().get(userId);
@@ -227,35 +244,38 @@ public class UserInteractionImpl {
 
     public TelegramMessage inputVol(Update update, String callBackData, long userId) {
         // присвоить счетчик
-        Integer meterId = null;
-        if (callBackData != null) {
-            meterId = Integer.parseInt((callBackData.substring(METER.getCallBackData().length() + 1)));
-        } else {
-            meterId = env.getUserCurrentMeter().get(userId).getMeterId();
-        }
+        Integer meterId;
+        //if (callBackData != null) {
+        //meterId = Integer.parseInt((callBackData.substring(METER.getCallBackData().length() + 1)));
+        meterId = Integer.parseInt(getSubstr(callBackData, ptrnMeterId).orElseThrow(() ->
+                new RuntimeException("Некорректен callback, не найден meterId:" +
+                        ObjectUtils.firstNonNull(callBackData, "null"))));
+        //} else {
+//            meterId = env.getUserCurrentMeter().get(userId).getMeterId();
+        //      }
 
         StringBuilder msg = new StringBuilder();
-        if (meterId != null) {
-            Long currKlskId = env.getUserCurrentKo().get(userId).getKlskId();
-            MapMeter mapMeter = env.getMetersByKlskId().get(currKlskId);
-            SumMeterVolExt meter = mapMeter.getMapKoMeter().get(meterId);
-            env.getUserCurrentMeter().put(userId, meter);
-            Map<Integer, SumMeterVolExt> mapKoMeter = env.getMetersByKlskId().get(currKlskId)
-                    .getMapKoMeter();
-            SumMeterVolExt sumMeterVolExt = mapKoMeter.get(meterId);
-            env.getMeterVolExtByMeterId().put(meterId, sumMeterVolExt);
-            msg.append("*Передача показаний возможна с 5 по 27 число.*\r\n");
-            msg.append("\r\n");
-            msg.append("Введите новое показание счетчика, и после ввода, дождитесь сообщения *ПОКАЗАНИЯ ПРИНЯТЫ\\!* ");
-            msg.append(sumMeterVolExt.getNpp()).append(". ").append(sumMeterVolExt.getServiceName());
-            msg.append(", текущие показания: ");
-            msg.append(sumMeterVolExt.getN1().toString());
-            msg.append(", расход: ");
-            msg.append(sumMeterVolExt.getVol().toString());
+        //if (meterId != null) {
+        Long currKlskId = env.getUserCurrentKo().get(userId).getKlskId();
+        MapMeter mapMeter = env.getMetersByKlskId().get(currKlskId);
+        SumMeterVolExt meter = mapMeter.getMapKoMeter().get(meterId);
+        env.getUserCurrentMeter().put(userId, meter);
+        Map<Integer, SumMeterVolExt> mapKoMeter = env.getMetersByKlskId().get(currKlskId)
+                .getMapKoMeter();
+        SumMeterVolExt sumMeterVolExt = mapKoMeter.get(meterId);
+        env.getMeterVolExtByMeterId().put(meterId, sumMeterVolExt);
+        msg.append("*Передача показаний возможна с 5 по 27 число.*\r\n");
+        msg.append("\r\n");
+        msg.append("Введите новое показание счетчика, и после ввода, дождитесь сообщения *ПОКАЗАНИЯ ПРИНЯТЫ\\!* ");
+        msg.append(sumMeterVolExt.getNpp()).append(". ").append(sumMeterVolExt.getServiceName());
+        msg.append(", текущие показания: ");
+        msg.append(sumMeterVolExt.getN1().toString());
+        msg.append(", расход: ");
+        msg.append(sumMeterVolExt.getVol().toString());
 
-        } else {
-            log.error("Не определен meterId");
-        }
+        //} else {
+//            log.error("Не определен meterId");
+//        }
         MessageStore messageStore = new MessageStore(update);
         messageStore.addButton(BACK);
         return messageStore.build(msg);
@@ -334,4 +354,15 @@ public class UserInteractionImpl {
         }
     }
 
+    private Optional<String> getSubstr(String str, Pattern pattern) {
+        Matcher matcher = pattern.matcher(str);
+        if (matcher.find()) {
+            return Optional.of(matcher.group(1));
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Long> getKlskIdFromCallback(String callBackStr) {
+        return getSubstr(callBackStr, ptrnKlskId).map(Long::parseLong);
+    }
 }
