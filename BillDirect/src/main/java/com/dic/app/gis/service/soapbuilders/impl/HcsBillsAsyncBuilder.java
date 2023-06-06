@@ -62,6 +62,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
+ * todo
+ * Необходимо добавить новые методы, импорта, экспорта Извещений об оплате:
+ * 2.2.10.4	Импорт пакета документов «Извещение о принятии к исполнению распоряжения», размещаемых исполнителем (importSupplierNotificationsOfOrderExecution).
+ * 2.2.9.8	Экспорт документов «Извещение о принятии к исполнению распоряжения» с результатами квитирования (exportNotificationsOfOrderExecution).
+ */
+
+/**
  * Сервис выставления счетов в ГИС ЖКХ
  */
 @Slf4j
@@ -708,7 +715,7 @@ public class HcsBillsAsyncBuilder {
         }
 
         // получить период импорта ПД
-        String period = eolParMng.getStr(rkc, "ГИС ЖКХ.PERIOD_IMP_PD");
+        String period = config.getPeriodBack();
         if (period == null) {
             throw new CantPrepSoap("По объекту РКЦ (родительская запись УК) не заполнен параметр " +
                     "\"ГИС ЖКХ.PERIOD_IMP_PD\", либо некорректно проставлен PARENT_ID от УК к РКЦ!");
