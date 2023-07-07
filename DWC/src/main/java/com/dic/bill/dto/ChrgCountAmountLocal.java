@@ -479,10 +479,10 @@ public class ChrgCountAmountLocal extends ChrgCountAmountBase {
     /**
      * добавить строку для записи в C_CHARGE, с группировкой
      *
-     * @param u         - запись начисления
-     * @param uslFact   - фактическая услуга
-     * @param vol       - объем
-     * @param area      - площадь
+     * @param u         запись начисления
+     * @param uslFact   фактическая услуга
+     * @param vol       объем
+     * @param area      площадь
      * @param isOverSoc
      */
     private void addUslVolChrg(UslPriceVolKartDt u, Usl uslFact, Org orgFact,

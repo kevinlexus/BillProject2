@@ -553,6 +553,7 @@ public class GenPartImpl implements GenPart {
                 UslPriceVolKart uslPriceVolKart;
                 if (Utl.in(nabor.getUsl().getFkCalcTp(), 19, 57)) {
                     // водоотведение, добавить составляющие по х.в. и г.в.
+                    // Х.В.
                     // было ли учтено кол-во проживающих? для устранения удвоения в стате по водоотведению
                     // ред. 05.04.19 - Кис. попросили делать пустую строку, даже если нет объема, для статы
                     uslPriceVolKart = buildVol(curDt, reqConf, nabor, null, null,
@@ -560,15 +561,17 @@ public class GenPartImpl implements GenPart {
                             dayColdWaterVol, dayColdWaterVolOverSoc, kartArea, areaOverSoc, isForChrg);
                     // сгруппировать по лиц.счету, услуге, для распределения по вводу
                     chrgCountAmountLocal.groupUslVol(uslPriceVolKart);
+
+                    // Г.В.
                     // ред. 05.04.19 - Кис. попросили делать пустую строку, даже если нет объема, для статы
-                    // уже были учтены проживающие
+                    // уже были учтены проживающие и площадь выше, поэтому нулим
                     countPers.kpr = 0;
                     countPers.kprNorm = 0;
                     countPers.kprOt = 0;
                     countPers.kprWr = 0;
                     uslPriceVolKart = buildVol(curDt, reqConf, nabor, null, null,
                             kartMain, detailUslPrice, countPers, socStandart, isHotMeterExist,
-                            dayHotWaterVol, dayHotWaterVolOverSoc, kartArea, areaOverSoc, isForChrg);
+                            dayHotWaterVol, dayHotWaterVolOverSoc, BigDecimal.ZERO, BigDecimal.ZERO, isForChrg);
                     // сгруппировать по лиц.счету, услуге, для распределения по вводу
                     chrgCountAmountLocal.groupUslVol(uslPriceVolKart);
                 } else {
