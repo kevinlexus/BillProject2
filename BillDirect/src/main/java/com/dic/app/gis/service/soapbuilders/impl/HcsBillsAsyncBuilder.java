@@ -738,6 +738,7 @@ public class HcsBillsAsyncBuilder {
         String errMainStr = null;
         ImportPaymentDocumentRequest req = new ImportPaymentDocumentRequest();
 
+        log.info("Использован период загрузки dt={}, кол-во ПД для загрузки={}", dt, lstPdoc.size());
         if (lstPdoc.size() != 0) {
             taskMng.logTask(task, true, null);
             // для обработки ошибок
