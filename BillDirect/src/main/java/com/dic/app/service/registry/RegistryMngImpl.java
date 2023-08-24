@@ -1522,6 +1522,7 @@ public class RegistryMngImpl {
         } else {
             changeLst = changeDAO.getChangeByKlsk(klskId);
         }
+        chargeMap.values().forEach(t -> t.setAmount(t.getSumma()));
         for (SumChangeNpp t : changeLst) {
             chargeMap.computeIfPresent(t.getId(), (k, v) -> {
                 v.setChange(t.getSumma());
