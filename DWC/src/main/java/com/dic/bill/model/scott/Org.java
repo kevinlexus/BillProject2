@@ -124,6 +124,11 @@ public class Org implements java.io.Serializable {
 	@Column(name = "VAR_DEB_PEN_PD_GIS")
 	private Integer varDebPenPdGis;
 
+	// отправлять ответы на запросы о задолженности в УСЗН автоматически?
+	@Type(type= "org.hibernate.type.NumericBooleanType")
+	@Column(name = "IS_AUTO_SEND_DEB_REQ", updatable = false)
+	private Boolean isAutoSendDebReq;
+
 	@Transient
 	public boolean isUO() {
 		if (orgTpGis == null) {

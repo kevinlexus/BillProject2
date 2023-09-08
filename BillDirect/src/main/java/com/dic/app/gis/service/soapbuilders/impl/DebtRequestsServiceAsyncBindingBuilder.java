@@ -14,6 +14,7 @@ import com.dic.bill.model.exs.DebSubRequest;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.scott.Lst;
+import com.dic.bill.model.scott.Org;
 import com.dic.bill.model.scott.Tuser;
 import com.dic.bill.model.scott.UserPerm;
 import com.ric.cmn.Utl;
@@ -282,10 +283,11 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                             // по умолчанию поля, на новой записи
                             debSubRequest.setHasDebt(false);
                             debSubRequest.setIsRevoked(false);
-                            debSubRequest.setUk(task.getProcUk().getOrg());
+                            Org procUk = task.getProcUk().getOrg();
+                            debSubRequest.setUk(procUk);
 
                             // сразу маркировать на отправку, чтоб ушло следующим запросом
-                            if (markSentOnReceive) {
+                            if (markSentOnReceive || procUk.getIsAutoSendDebReq()) {
                                 debSubRequest.setStatus(DebtSubRequestInnerStatuses.SENT.getId());
                             } else {
                                 debSubRequest.setStatus(DebtSubRequestInnerStatuses.RECEIVED.getId());
