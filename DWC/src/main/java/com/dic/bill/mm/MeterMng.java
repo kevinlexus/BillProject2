@@ -1,6 +1,5 @@
 package com.dic.bill.mm;
 
-import com.dic.bill.dto.MeterData;
 import com.dic.bill.dto.UslMeterVol;
 import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.scott.Ko;
@@ -16,11 +15,12 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface MeterMng {
 
-    boolean getIsMeterDataExist(List<MeterData> lst, String guid, XMLGregorianCalendar ts);
+    boolean getIsMeterDataExist(Map<String, Date> existVal, String guid, XMLGregorianCalendar ts);
 
     boolean getIsMeterOpenForReceiveData(Meter meter);
 

@@ -170,33 +170,26 @@ public class MeterMngImpl implements MeterMng {
     /**
      * Проверить наличие в списке показания по счетчику
      *
-     * @param lst  - список показаний
-     * @param guid - GUID прибора учета
-     * @param ts   - временная метка
-     * @return
+     * @param existVal  список показаний
+     * @param guid GUID прибора учета
+     * @param ts   временная метка
      */
     @Override
-    public boolean getIsMeterDataExist(List<MeterData> lst, String guid, XMLGregorianCalendar ts) {
+    public boolean getIsMeterDataExist(Map<String, Date> existVal, String guid, XMLGregorianCalendar ts) {
         Date dt = Utl.truncDateToSeconds(Utl.getDateFromXmlGregCal(ts));
-        MeterData meterData = lst.stream().filter(t -> t.getGuid().equals(guid) && t.getTs().compareTo(dt) == 0)
-                .findFirst().orElse(null);
-        return meterData != null;
+        Date val = existVal.get(guid);
+        if (val == null) {
+            existVal.put(guid, dt);
+            return false;
+        } else {
+            if (val.compareTo(dt) != 0) {
+                existVal.put(guid, dt);
+                return false;
+            }
+        }
+        return true;
     }
 
-
-    /**
-     * Проверить, является ли счетчик в Директ актуальным //note удалить!
-     *
-     * @param meter - счетчик
-     * @param dt    - проверочная дата
-     * @return
-     */
-/*
-    @Override
-    public boolean getIsMeterActual(Meter meter, Date dt) {
-        return Utl.between(dt, meter.getDt1(), meter.getDt2());
-    }
-*/
 
     /**
      * Проверить, открыт ли счетчик в Директ принятия показаний от ГИС

@@ -48,9 +48,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.ws.BindingProvider;
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -485,6 +483,8 @@ public class DeviceMeteringAsyncBindingBuilder {
 
             // получить уже сохранённые в базу показания
             List<MeterData> mdLst = meterDao.findMeteringDataTsUsingUser(USER_GIS_CD, "ins_sch", period);
+            Map<String, Date> existVal = new HashMap<>();
+            mdLst.forEach(t-> existVal.put(t.getGuid(), t.getTs()));
             for (ExportMeteringDeviceHistoryResultType t : retState.getExportMeteringDeviceHistoryResult()) {
                 // найти счетчик по GUID
                 Eolink meterEol = eolinkDAO2.findEolinkByGuid(t.getMeteringDeviceRootGUID());
@@ -505,10 +505,10 @@ public class DeviceMeteringAsyncBindingBuilder {
                                         t.getOneRateDeviceValue().getValues().getCurrentValue()) {
                                     // проверить сохранены ли уже показания
                                     if (Utl.between(Utl.getDateFromXmlGregCal(e.getEnterIntoSystem()), dt1, dt2) &&
-                                            !meterMng.getIsMeterDataExist(mdLst, t.getMeteringDeviceRootGUID(),
+                                            !meterMng.getIsMeterDataExist(existVal, t.getMeteringDeviceRootGUID(),
                                                     e.getEnterIntoSystem()) && e.getMeteringValue() != null) {
                                         // показания еще не были сохранены, сохранить
-                                        log.trace("Получены показания по OneRateDeviceValue: " +
+                                        log.info("Получены показания по OneRateDeviceValue: " +
                                                         "MeteringDeviceRootGUID={} DateValue={}, EnterIntoSystem={}, OrgPPAGUID={}, " +
                                                         "ReadingSource={}, val={}",
                                                 t.getMeteringDeviceRootGUID(), e.getDateValue(),
@@ -524,7 +524,7 @@ public class DeviceMeteringAsyncBindingBuilder {
                                         t.getElectricDeviceValue().getValues().getCurrentValue()) {
                                     // проверить сохранены ли уже показания
                                     if (Utl.between(Utl.getDateFromXmlGregCal(e.getEnterIntoSystem()), dt1, dt2) &&
-                                            !meterMng.getIsMeterDataExist(mdLst, t.getMeteringDeviceRootGUID(),
+                                            !meterMng.getIsMeterDataExist(existVal, t.getMeteringDeviceRootGUID(),
                                                     e.getEnterIntoSystem()) && e.getMeteringValueT1() != null) {
                                         log.trace("показания по ElectricDeviceValue: GUID={} date={}, enter={}, val={}",
                                                 t.getMeteringDeviceRootGUID(), e.getDateValue(), e.getEnterIntoSystem(),
