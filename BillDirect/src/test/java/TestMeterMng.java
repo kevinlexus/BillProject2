@@ -25,9 +25,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.Assert.assertTrue;
 
@@ -60,6 +58,7 @@ public class TestMeterMng {
 	@Test
 	@Rollback(true)
 	public void isFindMeterDataByGuidTs() throws Exception {
+		String guid = "2312-1316-4564-4654-4463";
 		class LocalMeterData implements MeterData {
 			public Date getTs() {
 				try {
@@ -71,7 +70,7 @@ public class TestMeterMng {
 			}
 
 			public String getGuid() {
-				return "2312-1316-4564-4654-4463";
+				return guid;
 			}
 		}
 
@@ -79,14 +78,10 @@ public class TestMeterMng {
 		log.info("-----------------Begin");
 		// найти счетчики х.в. по объекту Ko
 		XMLGregorianCalendar ts = Utl.getXMLDate(Utl.getDateFromStr("30.03.2014"));
-		List<MeterData> lst = new ArrayList<>(5);
-		MeterData elem = new LocalMeterData();
-		lst.add(elem);
-		lst.add(elem);
-		lst.add(elem);
-		lst.add(elem);
+		Map<String, Date> existVal = new HashMap<>();
+		existVal.put(guid, Utl.getDateFromXmlGregCal(ts));
 
-		assertTrue(meterMng.getIsMeterDataExist(lst, "2312-1316-4564-4654-4463", ts));
+		assertTrue(meterMng.getIsMeterDataExist(existVal, guid, ts));
 
 		log.info("-----------------End");
 	}
