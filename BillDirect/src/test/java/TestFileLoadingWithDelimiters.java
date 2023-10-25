@@ -96,5 +96,10 @@ public class TestFileLoadingWithDelimiters {
     public void checkLoadFileSberRegistry() {
         log.info("Итого загружено предварительно:"+registryMng.loadFileSberRegistry("17066_4211017025_40702810426200100859_001", "041"));
     }
+    @Test
+    @Rollback(false)
+    public void checkLoadFileVtbRegistry() {
+        log.info("Итого загружено предварительно:"+registryMng.loadFileSberRegistry("201023_VTB_223308_003.txt", "041"));
+    }
 
 }

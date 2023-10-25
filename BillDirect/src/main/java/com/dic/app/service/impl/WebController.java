@@ -589,7 +589,7 @@ public class WebController implements CommonConstants {
     }
 
     /**
-     * Загрузить файл платежей от Сбера (версия -2, кис)
+     * Загрузить файл платежей от Сбера (версия -2, кис), а так же от ВТБ
      * Пример вызова: http://127.0.0.1:8100/load-file-sber-registry/17066_4211017025_40702810426200100859_001.txt/041
      */
     @RequestMapping(value = "/load-file-sber-registry/{fileName}/{nkom}", method = RequestMethod.GET)

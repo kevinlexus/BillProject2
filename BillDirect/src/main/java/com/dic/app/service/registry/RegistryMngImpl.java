@@ -307,8 +307,7 @@ public class RegistryMngImpl {
         Path path = Paths.get(strPath);
         BigDecimal amount = BigDecimal.ZERO;
         BigDecimal amountWithEls = BigDecimal.ZERO;
-        String period = configApp.getPeriod();
-        int cnt = 0;
+        String period = configApp.getPeriod().substring(4) + configApp.getPeriod().substring(0, 4); // сделать MMYYYY
         DebitRegistryRec debitRegistryRec = new DebitRegistryRec();
         try (BufferedWriter writer = Files.newBufferedWriter(path, Charset.forName("windows-1251"))) {
             for (Kart kart : lstKart) {
@@ -326,13 +325,12 @@ public class RegistryMngImpl {
                                 (summDeb.add(summPen).compareTo(BigDecimal.ZERO) != 0))) {
                     // либо открытый лиц.счет либо есть задолженность (переплата)
                     amount = amount.add(summDeb).add(summPen);
-                    cnt++;
                     debitRegistryRec.init();
                     debitRegistryRec.setDelimeter(";");
                     debitRegistryRec.addElem(kart.getOwnerFIO()); // ФИО плательщика
-                    if (eolinkParams.getHouseGUID().length() > 0 || eolinkParams.getUn().length() > 0) {
+                    if (!eolinkParams.getHouseGUID().isEmpty() || !eolinkParams.getUn().isEmpty()) {
                         String els = null;
-                        if (eolinkParams.getUn() != null && eolinkParams.getUn().length() > 0) {
+                        if (eolinkParams.getUn() != null && !eolinkParams.getUn().isEmpty()) {
                             els = eolinkParams.getUn();
                             amountWithEls = amountWithEls.add(summDeb).add(summPen);
                         }
@@ -349,13 +347,14 @@ public class RegistryMngImpl {
                     debitRegistryRec.addElem(kart.getAdr()); // адрес
                     debitRegistryRec.addElem(kart.getLsk()); // лиц.сч.
 
-                    BigDecimal summAmnt = summDeb.add(summPen).multiply(BigDecimal.valueOf(100))
-                            .setScale(0, RoundingMode.HALF_UP);
+                    BigDecimal summAmnt = summDeb.add(summPen);//.multiply(BigDecimal.valueOf(100))
+                            //.setScale(0, RoundingMode.HALF_UP);
                     debitRegistryRec.addElem(summAmnt.toString()); // сумма задолженности с пенёй в копейках
 
                     debitRegistryRec.addElem(period); // период оплаты
 
-                    debitRegistryRec.addElem(":[!]:1:Жилищно -коммунальные услуги:", " "); // пустой блок счетчиков + услуга
+                    String ukStr = kart.getUk().getName();
+                    debitRegistryRec.addElem(":[!]:1:" + ukStr + ":", " "); // пустой блок счетчиков + услуга
                     debitRegistryRec.addElem(summAmnt.toString()); // повторно: сумма задолженности с пенёй в копейках
                     debitRegistryRec.addElem(""); // пустое поле + скрытие кодов услуг
 
@@ -366,8 +365,7 @@ public class RegistryMngImpl {
             }
 
         } catch (IOException e) {
-            log.error("ОШИБКА! Ошибка записи в файл {}", strPath);
-            e.printStackTrace();
+            log.error("ОШИБКА! Ошибка записи в файл {}", strPath, e);
         }
     }
 
