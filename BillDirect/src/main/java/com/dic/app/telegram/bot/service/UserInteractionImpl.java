@@ -93,14 +93,6 @@ public class UserInteractionImpl {
 
     public TelegramMessage selectMeter(Update update, Long klskId, String callBackData, long userId) {
         StringBuilder msg = new StringBuilder();
-        //Long klskId = getCurrentKlskId(userId);
-
-        if (callBackData != null) {
-            if (callBackData.startsWith(ADDRESS_KLSK.getCallBackData())) {
-                //klskId = Long.parseLong(callBackData.substring(ADDRESS_KLSK.getCallBackData().length() + 1));
-                updateMapMeterByKlskId(userId, klskId);
-            }
-        }
         msg.append("*Адрес: ").append(env.getUserCurrentKo().get(userId).getAddress()).append("*\r\n");
 
         boolean isHead = false;
@@ -287,7 +279,6 @@ public class UserInteractionImpl {
                         .getUserCurrentMeter().get(userId).getMeterId(),
                 update.getMessage().getText());
         MeterValSaveState status = result.getValue0();
-        updateMapMeterByKlskId(userId, env.getUserCurrentKo().get(userId).getKlskId());
         SumMeterVolExt sumMeterVolExt = env.getUserCurrentMeter().get(userId);
         StringBuilder msg = new StringBuilder();
         if (status.equals(MeterValSaveState.SUCCESSFUL)) {
