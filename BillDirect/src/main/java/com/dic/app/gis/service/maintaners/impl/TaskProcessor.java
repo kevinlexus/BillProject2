@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.xml.datatype.DatatypeConfigurationException;
 import java.io.IOException;
+import java.net.SocketException;
 import java.text.ParseException;
 
 @Slf4j
@@ -51,15 +52,15 @@ public class TaskProcessor {
 
             try {
                 process(task, actCd, state);
+            } catch (SocketException e) {
+                // не помечать ошибкой, если SocketException, пусть отправка повторится
+                log.error("Ошибка при отправке задания Task.id={}", task.getId(), e);
             } catch (ErrorProcessAnswer | DatatypeConfigurationException | CantPrepSoap e) {
-                e.printStackTrace();
-                log.error("Ошибка при отправке задания Task.id={}, message={}", task.getId(),
-                        e.getMessage());
+                log.error("Ошибка при отправке задания Task.id={}", task.getId(), e);
                 taskMng.setState(task, "ERR");
                 taskMng.setResult(task, e.getMessage());
             } catch (Exception e) {
-                log.error("Ошибка выполнения задания Task.id={}, message={}", task.getId(),
-                        Utl.getStackTraceString(e));
+                log.error("Ошибка при отправке задания Task.id={}", task.getId(), e);
                 String errMess = StringUtils.substring(Utl.getStackTraceString(e), 0, 1000);
                 if (!task.getAct().getCd().equals("GIS_SYSTEM_RPT")) {
                     // не помечать ошибкой системные, повторяемые задания
@@ -74,6 +75,7 @@ public class TaskProcessor {
     }
 
     private void process(Task task, String actCd, String state) throws WrongParam, WrongGetMethod, IOException, CantSendSoap, CantPrepSoap, UnusableCode, ErrorProcessAnswer, DatatypeConfigurationException, ParseException, CantUpdNSI {
+        // todo сделать ConcurrentMap и ReentrantLock для task.eolink.id!
         // Выполнить задание
         switch (actCd) {
             case "GIS_SAVE_FILE_VALS":
