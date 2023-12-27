@@ -18,7 +18,6 @@ import com.dic.bill.model.exs.Eolink;
 import com.dic.bill.model.exs.Task;
 import com.dic.bill.model.exs.Ulist;
 import com.dic.bill.model.scott.*;
-import com.diffplug.common.base.Errors;
 import com.ric.cmn.CommonErrs;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.*;
@@ -36,15 +35,9 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.gosuslugi.dom.schema.integration.base.AckRequest;
 import ru.gosuslugi.dom.schema.integration.base.CommonResultType.Error;
 import ru.gosuslugi.dom.schema.integration.base.GetStateRequest;
-import ru.gosuslugi.dom.schema.integration.base.OKTMORefType;
 import ru.gosuslugi.dom.schema.integration.house_management.*;
-import ru.gosuslugi.dom.schema.integration.house_management.ApartmentHouseUOType.BasicCharacteristicts;
 import ru.gosuslugi.dom.schema.integration.house_management.ExportHouseResultType.ApartmentHouse.Entrance;
 import ru.gosuslugi.dom.schema.integration.house_management.ExportHouseResultType.ApartmentHouse.NonResidentialPremises;
-import ru.gosuslugi.dom.schema.integration.house_management.ImportHouseUORequest.ApartmentHouse;
-import ru.gosuslugi.dom.schema.integration.house_management.ImportHouseUORequest.ApartmentHouse.*;
-import ru.gosuslugi.dom.schema.integration.house_management.ImportHouseUORequest.ApartmentHouse.ResidentialPremises.ResidentialPremisesToCreate;
-import ru.gosuslugi.dom.schema.integration.house_management.ImportHouseUORequest.ApartmentHouse.ResidentialPremises.ResidentialPremisesToUpdate;
 import ru.gosuslugi.dom.schema.integration.house_management_service_async.HouseManagementPortsTypeAsync;
 import ru.gosuslugi.dom.schema.integration.house_management_service_async.HouseManagementServiceAsync;
 import ru.gosuslugi.dom.schema.integration.individual_registry_base.ID;
@@ -584,7 +577,6 @@ public class HouseManagementAsyncBindingBuilder {
 
             ru.gosuslugi.dom.schema.integration.house_management.ExportHouseResultType.ApartmentHouse apartmentHouse = retState.getExportHouseResult().getApartmentHouse();
             ExportHouseResultType.LivingHouse livingHouse = retState.getExportHouseResult().getLivingHouse();
-
             if (apartmentHouse != null) {
                 // Многоквартирный дом
                 // статус - активный
@@ -602,11 +594,44 @@ public class HouseManagementAsyncBindingBuilder {
                 createNonResidentalPremises(par, houseEol, curDate, apartmentHouse);
             } else if (livingHouse != null) {
                 log.info("************ Частный дом, houseGUID={}", livingHouse.getHouseGUID()); // todo сделать признак, что Eolink - частный дом
+
+                if (livingHouse.isHasBlocks()) {
+                    createBlocks(par, houseEol, curDate, livingHouse);
+                }
             }
             // Установить статус выполнения задания
             task.setState("ACP");
             //log.info("******* Task.id={}, экспорт объектов дома выполнен", task.getId());
             taskMng.logTask(task, false, true);
+        }
+    }
+
+    private void createBlocks(SoapPar par, Eolink houseEol, Date curDate, ExportHouseResultType.LivingHouse livingHouse) throws UnusableCode {
+        for (ExportHouseResultType.LivingHouse.Block t : livingHouse.getBlock()) {
+            log.trace("Блок: №={}, UniqNumber={}, GUID={}, CadastralNumber={}", t.getBlockNum(), t.getBlockUniqueNumber(), t.getBlockGUID(), t.getCadastralNumber());
+            Eolink blockEol = eolinkDao2.findEolinkByGuid(t.getBlockGUID());
+            if (blockEol == null) {
+                AddrTp addrTp = lstMng.getAddrTpByCD("Блок");
+
+                blockEol = Eolink.builder().withOrg(par.reqProp.getUk()).withKul(par.reqProp.getKul()).withNd(par.reqProp.getNd())
+                        .withGuid(t.getBlockGUID()).withObjTp(addrTp).withParent(houseEol).withUser(config.getCurUserGis().get())
+                        .withCadastrNum(t.getCadastralNumber()).withStatus(1).build();
+
+                log.info("Попытка создать запись Блока в Eolink: № блока={}, un={}, GUID={}", t.getBlockNum(), t.getBlockUniqueNumber(), t.getBlockGUID());
+                em.persist(blockEol);
+            }
+            // погасить ошибки
+            soapConfig.saveError(blockEol, CommonErrs.ERR_DIFF_KLSK_BUT_SAME_ADDR | CommonErrs.ERR_EMPTY_KLSK | CommonErrs.ERR_DOUBLE_KLSK_EOLINK, false);
+
+            // обновить параметры помещения
+            Date dtTerm = Utl.getDateFromXmlGregCal(t.getTerminationDate());
+            if (dtTerm != null && (dtTerm.getTime() < curDate.getTime())) {
+                // Объект не активен
+                blockEol.setStatus(0);
+            } else {
+                // Объект активен
+                blockEol.setStatus(1);
+            }
         }
     }
 
@@ -920,15 +945,18 @@ public class HouseManagementAsyncBindingBuilder {
                 String guid = null;
                 for (ru.gosuslugi.dom.schema.integration.house_management.AccountExportType.Accommodation d : t.getAccommodation()) {
                     if (d.getPremisesGUID() != null) {
-                        // Лиц счет на помещение
+                        // Лиц счет на помещение или блок частного дома
                         guid = d.getPremisesGUID();
                     } else if (d.getLivingRoomGUID() != null) {
                         // Лиц счет на комнату
                         guid = d.getLivingRoomGUID();
-                    } else {
+                    } else if (d.getFIASHouseGuid() != null){
                         // Лиц счет на дом
                         guid = d.getFIASHouseGuid();
+                    } else {
+                        log.error("***** ПОЛУЧЕН необрабатываемый объект для создания лиц.счета! *****");
                     }
+
                     log.trace("лиц.счет={}", t.getAccountNumber());
                     for (AccountReasonsImportType.TKOContract tkoContract : t.getAccountReasons().getTKOContract()) {
                         log.trace("Основание ТКО лиц.счета Contract GUID={}", tkoContract.getContractGUID());
