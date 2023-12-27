@@ -53,7 +53,10 @@ public class CacheMng {
 
         Object fieldType = mapClassId.get(entityClassName);
         if (fieldType == null) {
-            throw new RuntimeException("Несуществующий класс в mapClassId=" + entityClassName);
+            log.error("Несуществующий класс в mapClassId=" + entityClassName);
+            log.error("Класс может обрабатываться в триггере, при этом отсутствовать в списке ConfigApp.getAllClassesForCaching" + entityClassName);
+            log.error("Необходимо убрать либо класс в триггере, либо в данном списке");
+            return;
         }
 
         Object objectId;

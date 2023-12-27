@@ -2,8 +2,9 @@ package com.dic.app.gis.service.maintaners.impl;
 
 import com.dic.app.gis.service.maintaners.TaskMng;
 import com.dic.app.gis.service.soapbuilders.impl.*;
+import com.dic.app.utils.LockByKey;
+import com.dic.app.utils.LockContainer;
 import com.dic.bill.model.exs.Task;
-import com.dic.bill.model.exs.TaskPar;
 import com.ric.cmn.Utl;
 import com.ric.cmn.excp.*;
 import lombok.RequiredArgsConstructor;
@@ -75,15 +76,17 @@ public class TaskProcessor {
     }
 
     private void process(Task task, String actCd, String state) throws WrongParam, WrongGetMethod, IOException, CantSendSoap, CantPrepSoap, UnusableCode, ErrorProcessAnswer, DatatypeConfigurationException, ParseException, CantUpdNSI {
-        // todo сделать ConcurrentMap и ReentrantLock для task.eolink.id!
-        // Выполнить задание
-        switch (actCd) {
-            case "GIS_SAVE_FILE_VALS":
-                // Выгрузка показаний приборов учета в файл
-                if (state.equals("INS")) {
-                    dm.saveValToFile(task.getId());
-                }
-                break;
+        LockByKey lockByKey = LockContainer.lockHouseByKey;
+        try {
+            lockByKey.lock(String.valueOf(task.getEolink().getId()));
+            // Выполнить задание
+            switch (actCd) {
+                case "GIS_SAVE_FILE_VALS":
+                    // Выгрузка показаний приборов учета в файл
+                    if (state.equals("INS")) {
+                        dm.saveValToFile(task.getId());
+                    }
+                    break;
 /*
             case "GIS_UPD_HOUSE": // todo не вызывается и не создается нигде задание
                 // Импорт объектов дома
@@ -96,129 +99,135 @@ public class TaskProcessor {
                 }
                 break;
 */
-            case "GIS_EXP_HOUSE":
-                // Экспорт из ГИС ЖКХ объектов дома
-                if (state.equals("INS")) {
-                    // Экспорт объектов дома
-                    hb.exportHouseData(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    hb.exportHouseDataAsk(task.getId());
-                }
-                break;
-            case "GIS_EXP_DEB_SUB_REQUEST":
-                // Экспорт из ГИС ЖКХ запросы по задолженностям
-                if (state.equals("INS")) {
-                    db.exportDebtSubrequest(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    db.exportDebtSubrequestAsk(task.getId());
-                }
-                break;
-            case "GIS_IMP_DEB_SUB_RESPONSE":
-                // Экспорт из ГИС ЖКХ запросы по задолженностям
-                if (state.equals("INS")) {
-                    db.importDebtSubrequestResponse(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    db.importDebtSubrequestResponseAsk(task.getId());
-                }
-                break;
-            case "GIS_EXP_ACCS":
-                // Экспорт из ГИС ЖКХ лиц.счетов
-                if (state.equals("INS")) {
-                    hb.exportAccountData(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    hb.exportAccountDataAsk(task.getId());
-                }
-                break;
-            case "GIS_EXP_METERS":
-                // Экспорт из ГИС ЖКХ приборов учета
-                if (state.equals("INS")) {
-                    hb.exportDeviceData(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    hb.exportDeviceDataAsk(task.getId());
-                }
-                break;
-            case "GIS_IMP_ACCS":
-                if (state.equals("INS")) {
-                    // Импорт лицевых счетов
-                    hb.importAccountData(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    hb.importAccountDataAsk(task.getId());
-                }
-                break;
-            case "GIS_IMP_METERS":
-                // todo нет реализации пока
-                break;
-            case "GIS_IMP_METER_VALS":
-                if (state.equals("INS")) {
-                    // Импорт показаний счетчиков
-                    dm.importMeteringDeviceValues(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    dm.importMeteringDeviceValuesAsk(task.getId());
-                }
-                break;
-            case "GIS_EXP_METER_VALS":
-                if (state.equals("INS")) {
-                    // экспорт показаний счетчиков
-                    dm.exportMeteringDeviceValues(task.getId());
-                } else if (state.equals("ACK")) {
-                    // запрос ответа
-                    dm.exportMeteringDeviceValuesAsk(task.getId());
-                }
-                break;
-            case "GIS_IMP_PAY_DOCS":
-                if (state.equals("INS")) {
-                    // Импорт платежных документов по дому
-                    bill.importPaymentDocumentData(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    bill.importPaymentDocumentDataAsk(task.getId());
-                }
-                break;
-            case "GIS_EXP_PAY_DOCS":
-                if (state.equals("INS")) {
-                    // экспорт платежных документов по дому
-                    bill.exportPaymentDocumentData(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    bill.exportPaymentDocumentDataAsk(task.getId());
-                }
-                break;
-            case "GIS_EXP_ORG":
-                if (state.equals("INS")) {
-                    osSimple.exportOrgRegistry(task.getId());
-                } else if (state.equals("ACK")) {
-                    osSimple.exportOrgRegistryAsk(task.getId());
-                }
-                break;
-            case "GIS_EXP_DATA_PROVIDER_NSI_ITEM":
-                if (state.equals("INS")) {
-                    // Экспорт внутреннего справочника организации
-                    nsiSv.exportDataProviderNsiItem(task.getId());
-                } else if (state.equals("ACK")) {
-                    // Запрос ответа
-                    nsiSv.exportDataProviderNsiItemAsk(task.getId());
-                }
-                break;
-            case "GIS_EXP_COMMON_NSI_ITEM":
-                if (state.equals("INS")) {
-                    // Экспорт общих справочников
-                    // note Внимание! в task.eolink заполнять любую УК, так как ppguid будет по РКЦ!
-                    ulistMng.loadNsi(task.getId(), "NSI");
-                    ulistMng.loadNsi(task.getId(), "NSIRAO");
-                    taskMng.setState(task, "ACP");
-                }
-                break;
-            default:
-                taskMng.setResult(task, "Ошибка! Нет обработчика по заданию");
-                taskMng.setState(task, "ERR");
-                break;
+                case "GIS_EXP_HOUSE":
+                    // Экспорт из ГИС ЖКХ объектов дома
+                    if (state.equals("INS")) {
+                        // Экспорт объектов дома
+                        hb.exportHouseData(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // Запрос ответа
+                        hb.exportHouseDataAsk(task.getId());
+                    }
+                    break;
+                case "GIS_EXP_DEB_SUB_REQUEST":
+                    // Экспорт из ГИС ЖКХ запросы по задолженностям
+                    if (state.equals("INS")) {
+                        db.exportDebtSubrequest(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // Запрос ответа
+                        db.exportDebtSubrequestAsk(task.getId());
+                    }
+                    break;
+                case "GIS_IMP_DEB_SUB_RESPONSE":
+                    // Экспорт из ГИС ЖКХ запросы по задолженностям
+                    if (state.equals("INS")) {
+                        db.importDebtSubrequestResponse(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // Запрос ответа
+                        db.importDebtSubrequestResponseAsk(task.getId());
+                    }
+                    break;
+                case "GIS_EXP_ACCS":
+                    // Экспорт из ГИС ЖКХ лиц.счетов
+                    if (state.equals("INS")) {
+                        hb.exportAccountData(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // Запрос ответа
+                        hb.exportAccountDataAsk(task.getId());
+                    }
+                    break;
+                case "GIS_EXP_METERS":
+                    // Экспорт из ГИС ЖКХ приборов учета
+                    if (state.equals("INS")) {
+                        hb.exportDeviceData(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // Запрос ответа
+                        hb.exportDeviceDataAsk(task.getId());
+                    }
+                    break;
+                case "GIS_IMP_ACCS":
+                    if (state.equals("INS")) {
+                        // Импорт лицевых счетов
+                        hb.importAccountData(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // Запрос ответа
+                        hb.importAccountDataAsk(task.getId());
+                    }
+                    break;
+                case "GIS_IMP_METERS":
+                    // todo нет реализации пока
+                    break;
+                case "GIS_IMP_METER_VALS":
+                    if (state.equals("INS")) {
+                        // Импорт показаний счетчиков
+                        dm.importMeteringDeviceValues(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // Запрос ответа
+                        dm.importMeteringDeviceValuesAsk(task.getId());
+                    }
+                    break;
+                case "GIS_EXP_METER_VALS":
+                    if (state.equals("INS")) {
+                        // экспорт показаний счетчиков
+                        dm.exportMeteringDeviceValues(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // запрос ответа
+                        dm.exportMeteringDeviceValuesAsk(task.getId());
+                    }
+                    break;
+                case "GIS_IMP_PAY_DOCS":
+                    if (state.equals("INS")) {
+                        // Импорт платежных документов по дому
+                        bill.importPaymentDocumentData(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // Запрос ответа
+                        bill.importPaymentDocumentDataAsk(task.getId());
+                    }
+                    break;
+                case "GIS_EXP_PAY_DOCS":
+                    if (state.equals("INS")) {
+                        // экспорт платежных документов по дому
+                        bill.exportPaymentDocumentData(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // Запрос ответа
+                        bill.exportPaymentDocumentDataAsk(task.getId());
+                    }
+                    break;
+                case "GIS_EXP_ORG":
+                    if (state.equals("INS")) {
+                        osSimple.exportOrgRegistry(task.getId());
+                    } else if (state.equals("ACK")) {
+                        osSimple.exportOrgRegistryAsk(task.getId());
+                    }
+                    break;
+                case "GIS_EXP_DATA_PROVIDER_NSI_ITEM":
+                    if (state.equals("INS")) {
+                        // Экспорт внутреннего справочника организации
+                        nsiSv.exportDataProviderNsiItem(task.getId());
+                    } else if (state.equals("ACK")) {
+                        // Запрос ответа
+                        nsiSv.exportDataProviderNsiItemAsk(task.getId());
+                    }
+                    break;
+                case "GIS_EXP_COMMON_NSI_ITEM":
+                    if (state.equals("INS")) {
+                        // Экспорт общих справочников
+                        // note Внимание! в task.eolink заполнять любую УК, так как ppguid будет по РКЦ!
+                        ulistMng.loadNsi(task.getId(), "NSI");
+                        ulistMng.loadNsi(task.getId(), "NSIRAO");
+                        taskMng.setState(task, "ACP");
+                    }
+                    break;
+                default:
+                    taskMng.setResult(task, "Ошибка! Нет обработчика по заданию");
+                    taskMng.setState(task, "ERR");
+                    break;
+            }
+        } catch (Exception e) {
+            lockByKey.unlock(String.valueOf(task.getEolink().getId()));
+            throw e;
+        } finally {
+            lockByKey.unlock(String.valueOf(task.getEolink().getId()));
         }
     }
 }

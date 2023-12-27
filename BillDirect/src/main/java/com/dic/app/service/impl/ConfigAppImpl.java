@@ -365,7 +365,6 @@ public class ConfigAppImpl implements ConfigApp {
                  com.dic.bill.model.exs.MeterVal
                  com.dic.bill.model.exs.Notif    
                  com.dic.bill.model.exs.Pdoc     
-                 com.dic.bill.model.exs.Task     
                  com.dic.bill.model.exs.TaskPar  
                  com.dic.bill.model.exs.TaskToTask
                  com.dic.bill.model.exs.Ulist    
