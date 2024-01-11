@@ -35,9 +35,7 @@ public class TaskController {
     public static final int COUNT_OF_THREADS = 10;
     private final TaskDAO2 taskDao2;
     private final ApplicationContext context;
-    private final LinkedBlockingQueue<Integer> queueTask = new LinkedBlockingQueue<>();
-    @Getter
-    private static final Map<Integer, Integer> taskInWork = new ConcurrentHashMap<>();
+    private final LinkedBlockingQueue<Integer> queueTask = new LinkedBlockingQueue<>(COUNT_OF_THREADS);
     private final List<Thread> threads;
     private final ConfigApp configApp;
     private final EntityManager em;
@@ -76,52 +74,28 @@ public class TaskController {
      */
     @Transactional(readOnly = true)
     public void searchTask() {
-        if (queueTask.size() < COUNT_OF_THREADS) {
-            // перебрать все необработанные задания
-            List<Task> unprocessedTasks;
-            //log.info("queueTask.size()={}", queueTask.size());
-            List<Integer> activeTaskIds;
-            if (queueTask.size() == 0) {
-                activeTaskIds = List.of(0);
-            } else {
-                activeTaskIds = new ArrayList<>(queueTask);
-            }
-            List<Integer> taskIds = new ArrayList<>(taskDao2.getAllUnprocessedNotActiveTaskIds(activeTaskIds));
-            //log.info("1. taskIds size={}", taskIds.size());
-            unprocessedTasks = taskIds.stream().map(t -> em.find(Task.class, t))
-                    .filter(t -> t.getPriority() != null || (t.getDtNextStart() == null || t.getDtNextStart().getTime() <= new Date().getTime())) //следующий старт
-                    .sorted(Comparator.comparing((Task t) -> Utl.nvl(t.getPriority(), 0)).reversed().thenComparing(Task::getId))
-                    .collect(Collectors.toList());
-            //log.info("2. unprocessedTasks size={}", unprocessedTasks.size());
-
-            try {
-                for (Task unprocessedTask : unprocessedTasks) {
-                    Integer taskId = unprocessedTask.getId();
-                    putTaskToWork(taskId);
-                }
-            } catch (Exception e) {
-                log.error("Ошибка во время постановки задания в очередь", e);
-            }
+        // перебрать все необработанные задания
+        List<Task> unprocessedTasks;
+        List<Integer> activeTaskIds;
+        if (queueTask.isEmpty()) {
+            activeTaskIds = List.of(0);
+        } else {
+            activeTaskIds = new ArrayList<>(queueTask);
         }
-    }
+        List<Integer> taskIds = new ArrayList<>(taskDao2.getAllUnprocessedNotActiveTaskIds(activeTaskIds));
+        unprocessedTasks = taskIds.stream().map(t -> em.find(Task.class, t))
+                .filter(t -> t.getPriority() != null || (t.getDtNextStart() == null || t.getDtNextStart().getTime() <= new Date().getTime())) //следующий старт
+                .sorted(Comparator.comparing((Task t) -> Utl.nvl(t.getPriority(), 0)).reversed().thenComparing(Task::getId))
+                .collect(Collectors.toList());
 
-    public synchronized void putTaskToWork(Integer taskId) {
-        //AtomicInteger count = new AtomicInteger(0);
-        taskInWork.computeIfAbsent(taskId, t -> {
-            //Optional<Task> task = taskDao2.findById(taskId);
-            //Task task = em.find(Task.class, taskId);
-            //task.ifPresent(d -> {
-                try {
-                    queueTask.put(taskId);
-          //          count.incrementAndGet();
-                } catch (InterruptedException e) {
-                    log.info("Ошибка отправки задачи в очередь", e);
-                }
+        try {
+            for (Task unprocessedTask : unprocessedTasks) {
+                Integer taskId = unprocessedTask.getId();
+                queueTask.put(taskId); // если размер очереди = COUNT_OF_THREADS, то здесь поток будет ожидать удаления элемента, после queueTask.take()
                 log.trace("Задача id={}, ушла в очередь", taskId);
-            //});
-            return taskId;
-        });
-        log.trace("Задача id={}, в работе, невозможна отправка в очередь", taskId);
-        //count.get();
+            }
+        } catch (Exception e) {
+            log.error("Ошибка во время постановки задания в очередь", e);
+        }
     }
 }

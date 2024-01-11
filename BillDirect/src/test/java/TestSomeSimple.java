@@ -15,6 +15,19 @@ public class TestSomeSimple {
         }
     }
 
+    @Test
+    public void testNPE() {
+        Map<Integer, Boolean> map = new HashMap<>();
+        map.put(1, true);
+        map.put(2, true);
+        map.put(3, true);
+        map.put(4, true);
+        boolean testBool = map.get(5);
+        if (testBool) {
+            log.info("check");
+        }
+    }
+
     /**
      * да да, дожились, проверка for loop в java...
      */
@@ -25,15 +38,15 @@ public class TestSomeSimple {
         log.info("sz={}", sz);
         for (int i = 1; i < sz; i++) {
             log.info("i={}", i);
-            if (i==sz) {
+            if (i == sz) {
                 log.info("check");
             }
         }
     }
 
-        /**
-         * Тестирование lambda - функции
-         */
+    /**
+     * Тестирование lambda - функции
+     */
     @Test
     public void testLambda() {
         Calendar cal = Calendar.getInstance();
