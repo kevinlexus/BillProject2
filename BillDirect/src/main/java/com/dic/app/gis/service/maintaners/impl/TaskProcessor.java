@@ -36,7 +36,7 @@ public class TaskProcessor {
     private final NsiServiceAsyncBindingBuilder nsiSv;
     private final HcsBillsAsyncBuilder bill;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void processTask(Integer taskId) {
         // получить задание заново (могло измениться в базе)
         Task task = em.find(Task.class, taskId);
@@ -53,7 +53,7 @@ public class TaskProcessor {
 
             try {
                 process(task, actCd, state);
-            } catch (SocketException e) {
+            } catch (SocketException e) { // todo добавить ClientTransportException
                 // не помечать ошибкой, если SocketException, пусть отправка повторится
                 log.error("Ошибка при отправке задания Task.id={}", task.getId(), e);
             } catch (ErrorProcessAnswer | DatatypeConfigurationException | CantPrepSoap e) {
@@ -70,8 +70,8 @@ public class TaskProcessor {
                 taskMng.setResult(task, errMess);
             }
         } else {
-            log.error("******** ЗАДАНИЕ ID={}, CD={}, ActCD={}, State={}, НЕ БЫЛО ОТПРАВЛЕНО НА ВЫПОЛНЕНИЕ ********",
-                    task.getId(), task.getCd(), task.getAct().getCd(), task.getState());
+            //log.error("******** ЗАДАНИЕ ID={}, CD={}, ActCD={}, State={}, НЕ БЫЛО ОТПРАВЛЕНО НА ВЫПОЛНЕНИЕ ********", спамит, убрал
+            //        task.getId(), task.getCd(), task.getAct().getCd(), task.getState());
         }
     }
 
@@ -119,7 +119,7 @@ public class TaskProcessor {
                     }
                     break;
                 case "GIS_IMP_DEB_SUB_RESPONSE":
-                    // Экспорт из ГИС ЖКХ запросы по задолженностям
+                    // Импорт в ГИС ЖКХ запросов по задолженностям
                     if (state.equals("INS")) {
                         db.importDebtSubrequestResponse(task.getId());
                     } else if (state.equals("ACK")) {
@@ -223,9 +223,6 @@ public class TaskProcessor {
                     taskMng.setState(task, "ERR");
                     break;
             }
-        } catch (Exception e) {
-            lockByKey.unlock(String.valueOf(task.getEolink().getId()));
-            throw e;
         } finally {
             lockByKey.unlock(String.valueOf(task.getEolink().getId()));
         }

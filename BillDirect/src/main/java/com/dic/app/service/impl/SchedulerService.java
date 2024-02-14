@@ -1,6 +1,7 @@
 package com.dic.app.service.impl;
 
 import com.dic.app.gis.service.maintaners.impl.TaskController;
+import com.dic.app.gis.service.maintaners.impl.TaskService;
 import com.dic.app.gis.service.soap.impl.SoapConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ public class SchedulerService {
     private final TaskController taskController;
     private final ApplicationContext ctx;
     private final SoapConfig soapConfig;
+    private final TaskService taskService;
 
     /**
      * Проверка необходимости выйти из приложения
@@ -41,6 +43,27 @@ public class SchedulerService {
         if (soapConfig.isGisKeysLoaded() && !exists) {
             taskController.searchTask();
         }
+    }
+
+    @Scheduled(cron = "${crone.house.exp}")
+    public void activateRptHouseExp() {
+        taskService.activateChildTasks("SYSTEM_RPT_HOUSE_EXP");
+    }
+
+    @Scheduled(cron = "${crone.house.imp}")
+    public void activateRptHouseImp() {
+        taskService.activateChildTasks("SYSTEM_RPT_HOUSE_IMP");
+    }
+
+    @Scheduled(cron = "${crone.deb.exch}")
+    public void activateRptDebSubExch() {
+        taskService.activateChildTasks("SYSTEM_RPT_DEB_SUB_EXCHANGE");
+    }
+
+    @Scheduled(cron = "${crone.met.val}")
+    public void activateRptMetVal() {
+        taskService.activateChildTasks("SYSTEM_RPT_MET_IMP_VAL");
+        taskService.activateChildTasks("SYSTEM_RPT_MET_EXP_VAL");
     }
 
 

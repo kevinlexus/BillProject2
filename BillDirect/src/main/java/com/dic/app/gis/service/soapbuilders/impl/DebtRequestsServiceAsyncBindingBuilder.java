@@ -39,7 +39,6 @@ import ru.gosuslugi.dom.schema.integration.drs_service_async.DebtRequestsAsyncPo
 import ru.gosuslugi.dom.schema.integration.drs_service_async.DebtRequestsServiceAsync;
 import ru.gosuslugi.dom.schema.integration.nsi_base.NsiRef;
 
-import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.xml.datatype.DatatypeConfigurationException;
@@ -205,7 +204,14 @@ public class DebtRequestsServiceAsyncBindingBuilder {
             period.setStartDate(startDate);
             period.setEndDate(endDate);
             req.setPeriodOfSendingRequest(period);
-            req.getHouseGUID().add(ObjectUtils.firstNonNull(task.getEolink().getGuidGis(), task.getEolink().getGuid()));
+            //req.getHouseGUID().add(ObjectUtils.firstNonNull(task.getEolink().getGuidGis(), task.getEolink().getGuid()));
+
+            ExportHMObjectInfoType hmGuid = new ExportHMObjectInfoType();
+            //hmGuid.setHMobjectGUID("8ab04123-458c-43ac-9f47-6ad272992249");
+            hmGuid.setHMobjectGUID(ObjectUtils.firstNonNull(task.getEolink().getHmGUID(), task.getEolink().getGuid()));
+            //hmGuid.setAdressType("Apartment");
+            hmGuid.setAdressType("House");
+            req.getExportHMObjectGUID().add(hmGuid);
         }
         req.setIncludeResponses(true);
 
@@ -264,6 +270,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                         ExportHousingFundObjectInfoType housingFundObject = requestInfo.getHousingFundObject();
 
                         DebSubRequest debSubRequest;
+                        log.info("subrequest.getSubrequestGUID() = {}", subrequest.getSubrequestGUID());
                         Optional<DebSubRequest> requestOpt = debSubRequestDAO.getByRequestGuid(subrequest.getSubrequestGUID());
                         boolean isNew = false;
                         if (requestOpt.isEmpty()) {
@@ -296,13 +303,22 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                             debSubRequest.setRequestGuid(subrequest.getSubrequestGUID());
                             debSubRequest.setRequestNumber(requestInfo.getRequestNumber());
 
-                            Eolink house = eolinkDAO2.findEolinkByGuid(housingFundObject.getFiasHouseGUID());
-                            if (house == null)
-                                house = eolinkDAO2.findEolinkByGuidGis(housingFundObject.getFiasHouseGUID());
-                            debSubRequest.setHouse(house);
-                            if (house == null) {
-                                debSubRequest.setResult("Дом не найден в базе EOLINK, по GUID=" + housingFundObject.getFiasHouseGUID());
-                            }
+/*
+                            housingFundObject.getHouseGUID() - глобальный уникальный
+                            housingFundObject.getFiasHouseGUID() - FIAS guid
+                            housingFundObject.getHMobjectGUID() - глобальный уникальный (например - помещение)
+
+                        <ns13:housingFundObject>
+                            <ns13:HMobjectGUID>db2ae900-3a76-439e-9d97-35706468334a</ns13:HMobjectGUID>
+                            <ns13:adressType>APARTMENT</ns13:adressType>
+                            <ns13:fiasHouseGUID>0282ea2a-8a0a-4a29-bcee-afa7e9bb2613</ns13:fiasHouseGUID>
+                            <ns13:address>652718, Кемеровская обл, г. Киселевск, ул. Студенческая, д. 16/2</ns13:address>
+                        </ns13:housingFundObject>
+ */
+
+//                            String houseGuid = null;
+                            setEolinkByGUID(housingFundObject, debSubRequest);
+
                             debSubRequest.setAddress(housingFundObject.getAddress());
                             debSubRequest.setAddressDetail(housingFundObject.getAddressDetails());
                             debSubRequest.setSentDate(Utl.getDateFromXmlGregCal(requestInfo.getSentDate())); // отправлено
@@ -332,14 +348,8 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                             }
                         } else {
                             if (debSubRequest.getHouse() == null) {
-                                // не был проставлен дом, по причине отсутствия по GUID
-                                Eolink house = eolinkDAO2.findEolinkByGuid(housingFundObject.getFiasHouseGUID());
-                                if (house == null)
-                                    house = eolinkDAO2.findEolinkByGuidGis(housingFundObject.getFiasHouseGUID());
-                                debSubRequest.setHouse(house);
-                                if (house == null) {
-                                    debSubRequest.setResult("Дом не найден в базе EOLINK, по GUID=" + housingFundObject.getFiasHouseGUID());
-                                }
+                                // не был проставлен дом, по причине отсутствия по GUID при первоначальной загрузке
+                                setEolinkByGUID(housingFundObject, debSubRequest);
                             }
                         }
                         // статус ответа, как он отображен в ГИС
@@ -366,6 +376,42 @@ public class DebtRequestsServiceAsyncBindingBuilder {
                 taskMng.logTask(task, false, true);
             }
         }
+    }
+
+    private void setEolinkByGUID(ExportHousingFundObjectInfoType housingFundObject, DebSubRequest debSubRequest) {
+        Eolink house = null;
+        if (housingFundObject.getHouseGUID() != null) {
+            house = eolinkDAO2.findEolinkByGuid(housingFundObject.getHouseGUID());
+            if (house == null) {
+                // поискать по другому GUID_GIS
+                house = eolinkDAO2.findEolinkByGuidGis(housingFundObject.getHouseGUID());
+            }
+            if (house == null) {
+                // поискать по другому HM_GUID
+                house = eolinkDAO2.findEolinkByHmGUID(housingFundObject.getHouseGUID());
+            }
+            if (house == null) {
+                debSubRequest.setResult("Дом не найден в таблице EOLINK, по GUID=" + housingFundObject.getHouseGUID());
+                log.warn("Дом не найден в таблице EOLINK, по GUID=" + housingFundObject.getHouseGUID());
+            }
+        } else if (housingFundObject.getFiasHouseGUID() != null) {
+            house = eolinkDAO2.findEolinkByGuid(housingFundObject.getFiasHouseGUID());
+            if (house == null) {
+                debSubRequest.setResult("Дом не найден в таблице EOLINK, по GUID=" + housingFundObject.getFiasHouseGUID());
+                log.warn("Дом не найден в таблице EOLINK, по GUID=" + housingFundObject.getFiasHouseGUID());
+            }
+        } else if (housingFundObject.getHMobjectGUID() != null && housingFundObject.getAdressType().equals("House")) {
+            house = eolinkDAO2.findEolinkByHmGUID(housingFundObject.getHMobjectGUID());
+            if (house == null) {
+                debSubRequest.setResult("Дом не найден в таблице EOLINK, по HM_GUID=" + housingFundObject.getHMobjectGUID());
+                log.warn("Дом не найден в таблице EOLINK, по HM_GUID=" + housingFundObject.getHMobjectGUID());
+            }
+        } else if (housingFundObject.getHMobjectGUID() != null && !housingFundObject.getAdressType().equals("House")) {
+            log.warn("НЕ обрабатываемый тип adressType={}", housingFundObject.getAdressType());
+        } else {
+            log.warn("Прочий необрабатываемый тип адреса");
+        }
+        debSubRequest.setHouse(house);
     }
 
     /**

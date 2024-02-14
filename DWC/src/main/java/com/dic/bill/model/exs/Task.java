@@ -3,7 +3,6 @@ package com.dic.bill.model.exs;
 import com.dic.bill.model.bs.Lst2;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.DynamicUpdate;
 
 import javax.annotation.Generated;
@@ -22,7 +21,8 @@ import java.util.List;
 @SuppressWarnings("serial")
 @Entity
 @Table(name = "TASK", schema = "EXS")
-@DynamicUpdate
+// TODO УБРАТЬ НИЖЕ!
+@DynamicUpdate // - убрать, так как замедляет. Появляется overhead, каждый раз готовить SQL по запросу update https://stackoverflow.com/questions/41633250/how-dynamic-update-true-works-internally-in-hibernate
 @Getter
 @Setter
 //@Cacheable Временно отключил, так как по какой то причине не обновлялось поле "state", в тсж, после обновления в java 11.05.23

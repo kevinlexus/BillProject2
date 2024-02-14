@@ -96,31 +96,6 @@ public class TaskService {
         log.info("ОКОНЧАНИЕ ПРОВЕРКИ ПЕРИОДИЧЕСКИХ ЗАДАНИЙ");
     }
 
-    @Transactional
-    @Scheduled(cron = "${crone.house.exp}")
-    public void activateRptHouseExp() {
-        activateChildTasks("SYSTEM_RPT_HOUSE_EXP");
-    }
-
-    @Transactional
-    @Scheduled(cron = "${crone.house.imp}")
-    public void activateRptHouseImp() {
-        activateChildTasks("SYSTEM_RPT_HOUSE_IMP");
-    }
-
-    @Transactional
-    @Scheduled(cron = "${crone.deb.exch}")
-    public void activateRptDebSubExch() {
-        activateChildTasks("SYSTEM_RPT_DEB_SUB_EXCHANGE");
-    }
-
-    @Transactional
-    @Scheduled(cron = "${crone.met.val}")
-    public void activateRptMetVal() {
-        activateChildTasks("SYSTEM_RPT_MET_IMP_VAL");
-        activateChildTasks("SYSTEM_RPT_MET_EXP_VAL");
-    }
-
     // создавать по одной, иначе - блокировка Task (нужен коммит)
     private void createSetOfTasks(String rptTaskCd) throws WrongParam {
         for (Eolink eolHouse : eolinkDao.getEolinkByTpWoTaskTp("Дом", "GIS_EXP_HOUSE", rptTaskCd)) {
@@ -176,6 +151,14 @@ public class TaskService {
      */
     @Transactional(propagation = Propagation.REQUIRED)
     public void activateChildTasks(String taskCd) {
+
+/*
+        if (1==1) { note для отладки (опять не обновлялось поле task.state.... 05.02.24
+            Task task2 = em.find(Task.class, 1947091);
+            task2.setState("ERR");
+            return;
+        }
+*/
         Optional<Task> foundTaskOpt = taskDAO2.findByCd(taskCd);
         //List<Integer> taskIds = new ArrayList<>();
         if (foundTaskOpt.isPresent()) {
@@ -199,6 +182,7 @@ public class TaskService {
                                 // не понятно, почему, не проставлялся статус "INS", пришлось получить Task с помощью getOne
                                 // и проставить статус ред. 26.01.23
                                 Task task2 = taskDAO2.getOne(t2.getId());
+                                //Task task2 = em.find(Task.class, t2.getId());
                                 task2.setState("INS");
                                 //taskIds.add(t2.getId());
                                 log.trace("*** Разрешено!!!!!!!: id={}", t2.getId());

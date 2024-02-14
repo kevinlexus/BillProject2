@@ -207,6 +207,7 @@ public interface EolinkDAO2 extends JpaRepository<Eolink, Integer> {
     Eolink findEolinkByTguid(String tguid);
 
     Eolink findEolinkByGuidGis(String guid);
+    Eolink findEolinkByHmGUID(String guid);
 
     /**
      * Получить Eolink УК

@@ -30,7 +30,7 @@
         <spring-framework.version>5.3.4</spring-framework.version>
         <!-- Test -->
         <junit.version>4.12</junit.version>
-        <hibernate.version>5.4.28.Final</hibernate.version>
+        <hibernate.version>5.4.33.Final</hibernate.version>
         <maven.compiler.source>15</maven.compiler.source>
         <maven.compiler.target>15</maven.compiler.target>
         <lombok.version>1.18.20</lombok.version>

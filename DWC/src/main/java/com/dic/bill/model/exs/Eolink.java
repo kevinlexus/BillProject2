@@ -68,13 +68,17 @@ public class Eolink implements java.io.Serializable  {
 	@Column(name = "USL")
 	private String usl;
 
-	// GUID объекта во внешней системе (Код из ФИАС)
+	// GUID (Глобальный уникальный идентификатор дома по ФИАС)
 	@Column(name = "GUID")
 	private String guid;
 
-	// GUID объекта во внешней системе (Код из ГИС)
+	// GUID_GIS (Идентификационный код дома в ГИС ЖКХ)
 	@Column(name = "GUID_GIS")
 	private String guidGis;
+
+	// HM_GUID (Глобальный уникальный идентификатор объекта жилищного фонда)
+	@Column(name = "HM_GUID")
+	private String hmGUID;
 
 	// GUID объекта во внешней системе note Решил отменить эти изменения, убрать поле, дождаться Е.И. из полыс!
 	// note - используется, только по уровню Организация (УК) и если GUID - не заполнен

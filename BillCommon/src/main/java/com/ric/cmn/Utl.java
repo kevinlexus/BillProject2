@@ -153,10 +153,9 @@ public class Utl {
 
     // вернуть XMLGregorianCalendar
     public static XMLGregorianCalendar getXMLGregorianCalendarFromDate(Date dt) throws DatatypeConfigurationException {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        sdf.setTimeZone(TimeZone.getDefault());
-        String date = sdf.format(dt);
-        return DatatypeFactory.newInstance().newXMLGregorianCalendar(date);
+        GregorianCalendar c = new GregorianCalendar();
+        c.setTime(dt);
+        return DatatypeFactory.newInstance().newXMLGregorianCalendar(c);
     }
 
     /**
