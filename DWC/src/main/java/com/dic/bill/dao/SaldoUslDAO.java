@@ -158,7 +158,7 @@ public interface SaldoUslDAO extends JpaRepository<SaldoUsl, Integer> {
      *               */
     @Query(value = "select sum(t.indebet) as \"indebet\", sum(t.inkredit) as \"inkredit\", "
             + "sum(t.outdebet) as \"outdebet\", sum(t.outkredit) as \"outkredit\", "
-            + "sum(t.payment) as \"payment\" "
+            + "sum(t.payment) as \"payment\", sum(t.pn) as \"pn\""
             + "from SCOTT.XITOG3_LSK t "
             + "where t.lsk = :lsk and t.mg = :period",
             nativeQuery = true)

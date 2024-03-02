@@ -403,7 +403,7 @@ public class DistPayMngImpl implements DistPayMng {
                         .withOper(amount.getOper())
                         .withUsl(em.find(Usl.class, d.getUslId()))
                         .withOrg(em.find(Org.class, d.getOrgId()))
-                        .withSumma(d.getSumma())
+                        .withSumma(amount.isSignPositive() ? d.getSumma() : d.getSumma().multiply(BigDecimal.valueOf(-1)))
                         .withDopl(amount.getDopl())
                         .withDt(amount.getDtek())
                         .withDtInk(amount.getDatInk())
@@ -448,13 +448,21 @@ public class DistPayMngImpl implements DistPayMng {
 
         Kart kart = em.find(Kart.class, lsk);
         amount.setKart(kart);
-        amount.setSumma(strSumma != null && strSumma.length() > 0 ? new BigDecimal(strSumma) : BigDecimal.ZERO);
-        amount.setPenya(strPenya != null && strPenya.length() > 0 ? new BigDecimal(strPenya) : BigDecimal.ZERO);
+
+        if (new BigDecimal(strSumma).compareTo(BigDecimal.ZERO) < 0) {
+            amount.setSignPositive(false);
+            amount.setSumma(strSumma != null && !strSumma.isEmpty() ? new BigDecimal(strSumma).multiply(BigDecimal.valueOf(-1)) : BigDecimal.ZERO);
+        } else {
+            amount.setSignPositive(true);
+            amount.setSumma(strSumma != null && !strSumma.isEmpty() ? new BigDecimal(strSumma) : BigDecimal.ZERO);
+        }
+        amount.setPenya(strPenya != null && !strPenya.isEmpty() ? new BigDecimal(strPenya) : BigDecimal.ZERO);
+
         // сохранить суммы для контроля распределения
         amount.setSummaControl(amount.getSumma());
         amount.setPenyaControl(amount.getPenya());
 
-        amount.setAmntDebtDopl(strDebt != null && strDebt.length() > 0 ? new BigDecimal(strDebt) : BigDecimal.ZERO);
+        amount.setAmntDebtDopl(strDebt != null && !strDebt.isEmpty() ? new BigDecimal(strDebt) : BigDecimal.ZERO);
         amount.setKwtpMgId(kwtpMgId);
         amount.setDopl(dopl);
         amount.setNink(nink);
@@ -462,7 +470,7 @@ public class DistPayMngImpl implements DistPayMng {
         amount.setOper(oper);
         try {
             amount.setDtek(Utl.getDateFromStr(dtekStr));
-            amount.setDatInk(datInkStr != null && datInkStr.length() != 0 ? Utl.getDateFromStr(datInkStr) : null);
+            amount.setDatInk(datInkStr != null && !datInkStr.isEmpty() ? Utl.getDateFromStr(datInkStr) : null);
         } catch (ParseException e) {
             log.error(Utl.getStackTraceString(e));
             throw new WrongParam("ERROR! Некорректный период!");

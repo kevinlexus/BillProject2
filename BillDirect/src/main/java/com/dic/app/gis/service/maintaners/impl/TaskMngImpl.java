@@ -97,7 +97,6 @@ public class TaskMngImpl implements TaskMng {
 		return taskDao.getByTguid(task, tguid);
 
 	}
-
 	/**
 	 * Добавить в лог сообщение
 	 * @param task - задание

@@ -19,11 +19,17 @@ public class BillDirectApplication {
         log.info("****************************************************************");
         log.info("*                                                              *");
         log.info("*                                                              *");
-        log.info("*                    Версия модуля - 1.4.30                    *");
+        log.info("*                    Версия модуля - 1.4.32                    *");
         log.info("*                                                              *");
         log.info("*                                                              *");
         log.info("****************************************************************");
         log.info("");
+        log.info("21.01.24 - исправлено REQUIRED вместо REQUIRES_NEW в Builder ГИС");
+        log.info("25.01.24 - исправлено REQUIRED вместо REQUIRES_NEW в Builder ГИС - вернул назад");
+        log.info("25.01.24 - добавил логирование постановки в очередь заданий ГИС");
+        log.info("02.03.24 - добавил логирование пени. Доработал загрузку ПД в ГИС");
+        log.info("");
+        log.info("****************************************************************");
 
         SpringApplication.run(BillDirectApplication.class, args);
     }

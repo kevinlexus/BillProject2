@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class) // не убирать REQUIRES_NEW - приведёт к зависанию потока, из за попытки rollback после Exception! ред. 25.01.24
 @RequiredArgsConstructor
 public class DeviceMeteringAsyncBindingBuilder {
 
@@ -450,7 +450,6 @@ public class DeviceMeteringAsyncBindingBuilder {
     // и тогда должен быть получен обновленный объект! ред.07.12.18
     public void exportMeteringDeviceValuesAsk(Integer taskId) throws WrongGetMethod, CantPrepSoap, WrongParam, UnusableCode, CantSendSoap {
         Task task = em.find(Task.class, taskId);
-        eolinkMng.lock(task.getEolink().getId());
 
         taskMng.logTask(task, true, null);
 

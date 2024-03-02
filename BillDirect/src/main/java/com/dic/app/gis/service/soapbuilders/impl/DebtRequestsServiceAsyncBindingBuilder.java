@@ -55,7 +55,7 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
-@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class) // не убирать REQUIRES_NEW - приведёт к зависанию потока, из за попытки rollback после Exception! ред. 25.01.24
 @RequiredArgsConstructor
 public class DebtRequestsServiceAsyncBindingBuilder {
 
@@ -99,6 +99,7 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         // подоготовительный объект для SOAP
         SoapBuilder sb = new SoapBuilder();
         ReqProp reqProp = new ReqProp(config, task, eolParMng);
+
         sb.setUp((BindingProvider) port, true, reqProp.getPpGuid(),
                 reqProp.getHostIp(), true);
 
@@ -189,6 +190,9 @@ public class DebtRequestsServiceAsyncBindingBuilder {
         ExportDSRsRequest req = new ExportDSRsRequest();
 
         req.setId("foo");
+        // требование гис передать именно так версию
+        //req.setVersion("13.1.10.1");
+        req.setVersion("14.0.0.0");
         req.setVersion(req.getVersion() == null ? par.reqProp.getGisVersion() : req.getVersion());
 
         if (task.getNextBlockGuid() != null) {

@@ -1,4 +1,5 @@
 import com.dic.app.config.Config;
+import com.dic.app.gis.service.maintaners.EolinkMng;
 import com.dic.app.gis.service.soapbuilders.impl.DeviceMeteringAsyncBindingBuilder;
 import com.dic.bill.dao.MeterDAO;
 import com.dic.bill.dto.MeterData;
@@ -47,6 +48,8 @@ public class TestMeterMng {
 	private MeterDAO meterDao;
 	@Autowired
 	private MeterMng meterMng;
+	@Autowired
+	private EolinkMng eolinkMng;
 	@Autowired
 	private DeviceMeteringAsyncBindingBuilder deviceMeteringAsyncBindingBuilder;
 
@@ -110,6 +113,13 @@ public class TestMeterMng {
 		Kart kart = em.find(Kart.class, "00000239");
 
 		log.info("Ko5={}, Ko6={}", kart.getKoKw().getId(), kart.getKoLsk().getId());
+	}
+
+	@Test
+	public void justTest2() throws Exception {
+		log.info("*** CHECK 1");
+		eolinkMng.getLskEolByHouseEol(111,222);
+		log.info("*** CHECK 2");
 	}
 
 	/**

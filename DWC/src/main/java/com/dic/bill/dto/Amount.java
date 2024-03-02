@@ -77,4 +77,6 @@ public class Amount {
     public boolean isExistPenya() {
         return this.getPenya().compareTo(BigDecimal.ZERO)!=0;
     }
+    // знак операции, для снятий минусом, не через обратную проводку. В операции не использовать пеню!
+    private boolean signPositive = true;
 }

@@ -105,7 +105,7 @@ public class ConfigAppImpl implements ConfigApp {
 
 
     private void setUpGisParameters() {
-        File tempFile = new File("stopGis");
+        File tempFile = new File("stop_gis");
         boolean exists = tempFile.exists();
         if (exists) {
             isGisWorkOnStart = false;

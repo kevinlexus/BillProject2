@@ -28,11 +28,11 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.gosuslugi.dom.schema.integration.base.AckRequest;
+import ru.gosuslugi.dom.schema.integration.base.CommonResultType;
 import ru.gosuslugi.dom.schema.integration.base.CommonResultType.Error;
 import ru.gosuslugi.dom.schema.integration.base.GetStateRequest;
 import ru.gosuslugi.dom.schema.integration.house_management.*;
@@ -62,11 +62,10 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class) // не убирать REQUIRES_NEW - приведёт к зависанию потока, из за попытки rollback после Exception! ред. 25.01.24
 @RequiredArgsConstructor
 public class HouseManagementAsyncBindingBuilder {
 
-    private final ApplicationContext ctx;
     @PersistenceContext
     private EntityManager em;
     private final UlistMng ulistMng;
@@ -275,7 +274,6 @@ public class HouseManagementAsyncBindingBuilder {
     // и тогда должен быть получен обновленный объект! ред.07.12.18
     public void exportDeviceDataAsk(Integer taskId) throws ErrorProcessAnswer, WrongGetMethod, UnusableCode, CantPrepSoap, CantSendSoap {
         Task task = em.find(Task.class, taskId);
-        eolinkMng.lock(task.getEolink().getId());
 
         taskMng.logTask(task, true, null);
         // Установить параметры SOAP
@@ -556,7 +554,6 @@ public class HouseManagementAsyncBindingBuilder {
 
     public void exportHouseDataAsk(Integer taskId) throws UnusableCode, CantPrepSoap, CantSendSoap {
         Task task = em.find(Task.class, taskId);
-        eolinkMng.lock(task.getEolink().getId());
 
         taskMng.logTask(task, true, null);
 
@@ -920,7 +917,6 @@ public class HouseManagementAsyncBindingBuilder {
 
     public void exportAccountDataAsk(Integer taskId) throws CantPrepSoap, WrongParam, ErrorProcessAnswer, CantSendSoap {
         Task task = em.find(Task.class, taskId);
-        eolinkMng.lock(task.getEolink().getId());
 
         taskMng.logTask(task, true, null);
         if (task.getProcUk() == null)
@@ -1062,7 +1058,6 @@ public class HouseManagementAsyncBindingBuilder {
 
     public void importAccountData(Integer taskId) throws CantPrepSoap, CantSendSoap, WrongParam, UnusableCode {
         Task task = em.find(Task.class, taskId);
-        eolinkMng.lock(task.getEolink().getId());
 
         taskMng.logTask(task, true, null);
         if (task.getProcUk() == null)
@@ -1085,7 +1080,7 @@ public class HouseManagementAsyncBindingBuilder {
 
         // создать отсутствующие в EOLINK объекты лицевых счетов по данному Дому и УК из KART
         List<Kart> lstKartAbsent = eolinkMng.getKartNotExistsInEolink(houseEol.getId(), task.getProcUk().getId());
-        if (lstKartAbsent.size() > 0) {
+        if (!lstKartAbsent.isEmpty()) {
             log.info("Кол-во лиц.счетов на загрузку {}", lstKartAbsent.size());
             for (Kart kart : lstKartAbsent) {
                 log.info("Попытка создать лиц.счет в EOLINK, lsk={}", kart.getLsk());
@@ -1343,7 +1338,6 @@ public class HouseManagementAsyncBindingBuilder {
 
     public void importAccountDataAsk(Integer taskId) throws CantPrepSoap, WrongParam, CantSendSoap, UnusableCode {
         Task task = em.find(Task.class, taskId);
-        eolinkMng.lock(task.getEolink().getId());
 
         taskMng.logTask(task, true, null);
         if (task.getProcUk() == null)
@@ -1373,8 +1367,8 @@ public class HouseManagementAsyncBindingBuilder {
                     // ошибки внутри выполненного задания
                     for (Error f : d.getError()) {
                         String errStr = String.format("Ошибка импорта лиц.счета в ГИС ЖКХ: " + "Error code=%s, Description=%s", f.getErrorCode(), f.getDescription());
+                        lskEol.setComm(errStr.substring(0, Math.min(errStr.length(), 1300)));
                         soapConfig.saveError(lskEol, CommonErrs.ERR_IMPORT, true);
-                        lskEol.setComm(errStr);
                         log.error(errStr);
                     }
 

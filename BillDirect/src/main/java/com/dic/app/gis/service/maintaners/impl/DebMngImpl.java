@@ -66,6 +66,7 @@ public class DebMngImpl implements DebMng {
 		.withOutkredit(sumSaldoRec.getOutkredit())
 		.withOutdebet(sumSaldoRec.getOutdebet())
 		.withPayment(sumSaldoRec.getPayment())
+		.withPn(sumSaldoRec.getPn())
 		.withInSal(inSal)
 		.withOutSal(outSal)
 		.build();

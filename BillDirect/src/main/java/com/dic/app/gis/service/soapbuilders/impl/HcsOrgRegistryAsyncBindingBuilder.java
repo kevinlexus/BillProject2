@@ -33,7 +33,7 @@ import javax.xml.ws.BindingProvider;
 
 @Slf4j
 @Service
-@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class) // не убирать REQUIRES_NEW - приведёт к зависанию потока, из за попытки rollback после Exception! ред. 25.01.24
 @RequiredArgsConstructor
 public class HcsOrgRegistryAsyncBindingBuilder {
 

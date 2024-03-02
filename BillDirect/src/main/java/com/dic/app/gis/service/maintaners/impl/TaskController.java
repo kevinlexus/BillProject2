@@ -35,6 +35,7 @@ public class TaskController {
     public static final int COUNT_OF_THREADS = 10;
     private final TaskDAO2 taskDao2;
     private final ApplicationContext context;
+    @Getter
     private final LinkedBlockingQueue<Integer> queueTask = new LinkedBlockingQueue<>(COUNT_OF_THREADS);
     private final List<Thread> threads;
     private final ConfigApp configApp;
@@ -82,15 +83,17 @@ public class TaskController {
         } else {
             activeTaskIds = new ArrayList<>(queueTask);
         }
+
+        // получить задачи на активацию
         List<Integer> taskIds = new ArrayList<>(taskDao2.getAllUnprocessedNotActiveTaskIds(activeTaskIds));
         unprocessedTasks = taskIds.stream().map(t -> em.find(Task.class, t))
                 .filter(t -> t.getPriority() != null || (t.getDtNextStart() == null || t.getDtNextStart().getTime() <= new Date().getTime())) //следующий старт
                 .sorted(Comparator.comparing((Task t) -> Utl.nvl(t.getPriority(), 0)).reversed().thenComparing(Task::getId))
                 .collect(Collectors.toList());
-
         try {
             for (Task unprocessedTask : unprocessedTasks) {
                 Integer taskId = unprocessedTask.getId();
+                log.trace("Попытка поместить в очередь queueTask.put({})", taskId);
                 queueTask.put(taskId); // если размер очереди = COUNT_OF_THREADS, то здесь поток будет ожидать удаления элемента, после queueTask.take()
                 log.trace("Задача id={}, ушла в очередь", taskId);
             }

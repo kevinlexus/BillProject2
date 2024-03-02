@@ -51,7 +51,7 @@ public class DistPayWithRestriction {
         lstDistribBase = distPayHelper.getBaseForDistrib(distribParam.getAmount(), distribParam.getTp(), distribParam.isIncludeByClosedOrgList(), distribParam.isExcludeByClosedOrgList(), distribParam.getLstExcludeUslId(), distribParam.getLstFilterByUslId(), currPeriod);
 
 
-        Map<DistributableBigDecimal, BigDecimal> mapDistPay = null;
+        Map<DistributableBigDecimal, BigDecimal> mapDistPay;
         if (distribParam.getTp().equals(BaseForDistPays.CURR_PERIOD_CHARGE_MOIFY_7)) {
             // распределить сумму в точности по услугам
             if (distribParam.isDistPay()) {
