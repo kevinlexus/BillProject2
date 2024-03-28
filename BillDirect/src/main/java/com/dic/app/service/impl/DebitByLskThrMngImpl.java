@@ -94,7 +94,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
         Date dt1 = reqConf.getCurDt1();
         // дата окончания расчета
         Date dt2 = reqConf.getGenDt();
-
+        log.trace("*** Дата начала {} и окончания {} расчета", dt1, dt2);
         // долги предыдущего периода (вх.сальдо)
         Map<Integer, PeriodSumma> mapDebPart1 = new HashMap<>();
         localStore.getLstDebFlow()
@@ -200,7 +200,7 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
 
         }
         // рассчитать и сохранить пеню
-        genSavePen(kart, reqConf, mapDebPositiveValues, mapDebLastDay, mapDebAmount);
+        genSavePen(kart, mapDebPositiveValues, mapDebLastDay, mapDebAmount);
     }
 
     /**
@@ -212,10 +212,16 @@ public class DebitByLskThrMngImpl implements DebitByLskThrMng {
      * @param mapDebLastDay        долги на последний день
      * @param mapDebAmount         общая сумма долга по периодам, сгруппированная по дням
      */
-    private void genSavePen(Kart kart, RequestConfigDirect reqConf, Map<Date,
+    private void genSavePen(Kart kart, Map<Date,
             Map<Integer, BigDecimal>> mapDebPositiveValues, Map<Integer, BigDecimal> mapDebLastDay,
                             Map<Date, BigDecimal> mapDebAmount) throws ErrorWhileChrgPen {
-        // расчитать пеню по долгам
+        // расчитать пеню по
+
+        // логирование:
+        mapDebPositiveValues.forEach((k,v)->log.trace("mapDebPositiveValues key={}, val={}", k, v));
+        mapDebLastDay.forEach((k,v)->log.trace("mapDebLastDay key={}, val={}", k, v));
+        mapDebAmount.forEach((k,v)->log.trace("mapDebAmount key={}, val={}", k, v));
+
         // пеня для C_PEN_CUR
         List<PenCurRec> lstPenCurRec = new ArrayList<>(10);
 
