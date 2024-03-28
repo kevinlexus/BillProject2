@@ -85,7 +85,7 @@ public class UserInteractionImpl {
 
         MessageStore messageStore = new MessageStore(update);
         mapKoAddress.getMapKoAddress().values().stream().sorted(Comparator.comparing(KoAddress::getOrd))
-                .forEach(t -> messageStore.addButtonCallBack(ADDRESS_KLSK.getCallBackData() + "_klskId:" + t.getKlskId()+"_queryId:"+cnt.getAndIncrement(), t.getAddress()));
+                .forEach(t -> messageStore.addButtonCallBack(ADDRESS_KLSK.getCallBackData() + "_klskId:" + t.getKlskId() + "_queryId:" + cnt.getAndIncrement(), t.getAddress()));
 
         return messageStore.build(msg);
     }
@@ -243,18 +243,12 @@ public class UserInteractionImpl {
                 new RuntimeException("Некорректен callback, не найден meterId:" +
                         ObjectUtils.firstNonNull(callBackData, "null"))));
         //} else {
-//            meterId = env.getUserCurrentMeter().get(userId).getMeterId();
+//            meterId = env.getUserCurrentMeter().get(userId).getCurrentMeterId();
         //      }
 
         StringBuilder msg = new StringBuilder();
         //if (meterId != null) {
-        Long currKlskId = env.getUserCurrentKo().get(userId).getKlskId();
-        MapMeter mapMeter = env.getMetersByKlskId().get(currKlskId);
-        SumMeterVolExt meter = mapMeter.getMapKoMeter().get(meterId);
-        env.getUserCurrentMeter().put(userId, meter);
-        Map<Integer, SumMeterVolExt> mapKoMeter = env.getMetersByKlskId().get(currKlskId)
-                .getMapKoMeter();
-        SumMeterVolExt sumMeterVolExt = mapKoMeter.get(meterId);
+        SumMeterVolExt sumMeterVolExt = getMeterVolByMeterId(userId, meterId);
         env.getMeterVolExtByMeterId().put(meterId, sumMeterVolExt);
         msg.append("*Передача показаний возможна с 5 по 27 число.*\r\n");
         msg.append("\r\n");
@@ -274,24 +268,45 @@ public class UserInteractionImpl {
     }
 
     public TelegramMessage inputVolAccept(Update update, long userId) {
+        Integer meterId = getCurrentMeterId(userId);
+        SumMeterVolExt vol = getMeterVolByMeterId(userId, meterId);
+        String newVal = update.getMessage().getText();
+        if (StringUtils.isBlank(newVal)) {
+            return buildErrorMessage(update);
+        }
+        String val = newVal.replace(",", ".");
+        if (new BigDecimal(val).compareTo(vol.getN1()) <= 0) {
+            return buildErrorMessage(update);
+        }
 
-        Pair<MeterValSaveState, Double> result = saveMeterValByMeterId(env
-                        .getUserCurrentMeter().get(userId).getMeterId(),
-                update.getMessage().getText());
-        MeterValSaveState status = result.getValue0();
-        SumMeterVolExt sumMeterVolExt = env.getUserCurrentMeter().get(userId);
+        return checkSavingMeterVal(update, userId, newVal);
+    }
+
+    private TelegramMessage buildErrorMessage(Update update) {
         StringBuilder msg = new StringBuilder();
+        msg.append("*ВНИМАНИЕ\\!* Показания те же или меньше текущих\\!");
+        MessageStore messageStore = new MessageStore(update);
+        messageStore.addButton(BACK);
+        return messageStore.build(msg);
+    }
+
+    private TelegramMessage checkSavingMeterVal(Update update, long userId, String newVal) {
+        StringBuilder msg = new StringBuilder();
+        Pair<MeterValSaveState, Double> result = saveMeterValByMeterId(getCurrentMeterId(userId),
+                newVal);
+        MeterValSaveState status = result.getValue0();
         if (status.equals(MeterValSaveState.SUCCESSFUL)) {
+            SumMeterVolExt sumMeterVolExt = env.getUserCurrentMeter().get(userId);
             msg.append("*ПОКАЗАНИЯ ПО СЧЕТЧИКУ* ")
                     .append(sumMeterVolExt.getNpp())
                     .append(". ")
                     .append(sumMeterVolExt.getServiceName())
                     .append(": ").append(result.getValue1()
-                    ).append(": ").append(" *ПРИНЯТЫ\\!*");
+                    ).append(": ").append(" *ПРИНЯТЫ \\!*");
         } else if (status.equals(MeterValSaveState.WRONG_FORMAT)) {
             log.error("*ВНИМАНИЕ\\!* Некорректное показание по счетчику, фин.лиц klskId={}, {}",
                     env.getUserCurrentKo().get(userId).getKlskId(),
-                    update.getMessage().getText());
+                    newVal);
             msg.append("*ВНИМАНИЕ\\!* Некорректное показание по счетчику\\!");
         } else if (status.equals(MeterValSaveState.VAL_SAME_OR_LOWER)) {
             msg.append("*ВНИМАНИЕ\\!* Показания те же или меньше текущих\\!");
@@ -356,4 +371,21 @@ public class UserInteractionImpl {
     public Optional<Long> getKlskIdFromCallback(String callBackStr) {
         return getSubstr(callBackStr, ptrnKlskId).map(Long::parseLong);
     }
+
+
+    private Integer getCurrentMeterId(long userId) {
+        return env
+                .getUserCurrentMeter().get(userId).getMeterId();
+    }
+
+    private SumMeterVolExt getMeterVolByMeterId(long userId, Integer meterId) {
+        Long currKlskId = env.getUserCurrentKo().get(userId).getKlskId();
+        MapMeter mapMeter = env.getMetersByKlskId().get(currKlskId);
+        SumMeterVolExt meter = mapMeter.getMapKoMeter().get(meterId);
+        env.getUserCurrentMeter().put(userId, meter);
+        Map<Integer, SumMeterVolExt> mapKoMeter = env.getMetersByKlskId().get(currKlskId)
+                .getMapKoMeter();
+        return mapKoMeter.get(meterId);
+    }
+
 }
