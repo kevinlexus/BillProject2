@@ -397,6 +397,16 @@ public class VchangeDet implements java.io.Serializable {
         .stream().collect(Collectors.groupingBy(Anabor::getKey,
         Collectors.mapping(t -> t, Collectors.toList())));
 
+        // преобразование из Map в Map
+        Map<String, EventAddress> map = response.getBody();
+        Map<String, Optional<CameraAddress>> mapAdr = map.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, t -> {
+                    EventAddress adr = t.getValue();
+                    return Optional.of(new CameraAddress(adr.getAddressGeoLatitude(),
+                            adr.getAddressGeoLongitude(), adr.getFullAddress(), adr.getEchdAreaId(),
+                            adr.getEchdDistrictId(), adr.getObjectId(), adr.isNeedToCompleteAddress()));
+                }));
+
         // или получить переменную или вызвать Exception
         String period = getSubstr(callBackData, ptrnPeriod).orElseThrow(() -> new RuntimeException(""));
         // или получить переменную или строку по умолчанию

@@ -24,6 +24,7 @@ import com.ric.dto.SumSaldoRecDTO;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,7 +74,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class) // не убирать REQUIRES_NEW - приведёт к зависанию потока, из за попытки rollback после Exception! ред. 25.01.24
 @RequiredArgsConstructor
 public class HcsBillsAsyncBuilder {
 
@@ -96,6 +97,8 @@ public class HcsBillsAsyncBuilder {
     private final EolinkMng eolinkMng;
     private final ApenyaDAO apenyaDAO;
     private final Xitog3LskDAO xitog3LskDAO;
+    @Value("${parameters.gis.pdoc.type}")
+    private Integer pdocType;
 
 
     @AllArgsConstructor
@@ -717,8 +720,7 @@ public class HcsBillsAsyncBuilder {
         // получить период импорта ПД
         String period = config.getPeriodBack();
         if (period == null) {
-            throw new CantPrepSoap("По объекту РКЦ (родительская запись УК) не заполнен параметр " +
-                    "\"ГИС ЖКХ.PERIOD_IMP_PD\", либо некорректно проставлен PARENT_ID от УК к РКЦ!");
+            throw new CantPrepSoap("Не заполнен период dtFirst");
         }
         // получить дату загрузки ПД
         Date dt;
@@ -847,7 +849,268 @@ public class HcsBillsAsyncBuilder {
      * @param paymentDocumentPar@return добавлен ли документ
      * @throws CantPrepSoap невозможно создать SOAP
      */
-    private Boolean addPaymentDocument(PaymentDocumentPar paymentDocumentPar)
+    private Boolean addPaymentDocument(PaymentDocumentPar paymentDocumentPar) throws CantPrepSoap, ParseException {
+        if (pdocType == 0) {
+            return addPaymentDocumentKis(paymentDocumentPar);
+        } else {
+            return addPaymentDocumentTSJ(paymentDocumentPar);
+        }
+    }
+
+    /**
+     * Добавление платежного документа
+     *
+     * @param paymentDocumentPar@return добавлен ли документ
+     * @throws CantPrepSoap невозможно создать SOAP
+     */
+    private Boolean addPaymentDocumentKis(PaymentDocumentPar paymentDocumentPar)
+            throws CantPrepSoap, ParseException {
+        PaymentDocument pd = new PaymentDocument();
+        // оступ
+        log.info("");
+        // услуги повыш коэфф, уже добавленные в ПД (чтобы избежать повторного добавления)
+        List<Integer> lstOverServ = new ArrayList<>(0);
+        Pdoc pdoc = paymentDocumentPar.getPdoc();
+        Org org = paymentDocumentPar.getUkReference().getOrg();
+
+        // лицевой счет
+        Eolink acc = pdoc.getEolink();
+        // GUID лицевого счета
+        String accGuid = acc.getGuid();
+        // лиц счет из биллинга
+        Kart kart = acc.getKart();
+        if (kart == null) {
+            log.error("Не обнаружен лицевой счет: Eolink.id={}", acc.getId());
+            return false;
+        }
+
+        // дата ПД (обычно последнее число расчетного месяца)
+        Date dt = pdoc.getDt();
+        if (dt == null) {
+            throw new CantPrepSoap("Не заполнена дата Платежного Документа");
+        }
+        // почистить результат
+        pdoc.setResult(null);
+        // период ПД в формате YYYYMM
+        String period = Utl.getPeriodFromDate(dt);
+        // день ПД
+        Byte day = Utl.getDay(dt).byteValue();
+        // месяц ПД
+        Integer month = Integer.valueOf(Utl.ltrim(Utl.getPeriodMonth(period), "0"));
+        // год ПД
+        Short year = Short.valueOf(Utl.getPeriodYear(period));
+        // № ПД
+        String cd;
+        if (pdoc.getCd() == null) {
+            // если не проставлен № документа в биллинге
+            // старая и эксперементальная разработка
+            cd = "ПД_".concat(paymentDocumentPar.getUk().getOrg().getReu().concat("_").concat(period).concat("_").concat(String.valueOf(pdoc.getId())));
+            pdoc.setCd(cd);
+            log.info("-------------------------------------------------------------------------------------------");
+            log.info("ПД: проставлен № документа cd={}", cd);
+        } else {
+            log.info("ПД: использован № документа cd={}", pdoc.getCd());
+        }
+
+        // лиц.счет
+        pd.setAccountGuid(accGuid);
+
+        // Номер ПД из биллинга
+        if (pdoc.getCd() == null) {
+            throw new CantPrepSoap("Не заполнен CD документа");
+        }
+        pd.setPaymentDocumentNumber(pdoc.getCd());
+        List<SumChrgRec> lstSum
+                =
+                chrgMng.getChrgGrp(acc.getKart().getLsk(), period, paymentDocumentPar.getUkReference()).stream()
+                        .map(t -> new SumChrgRecAlter
+                                (t.getUlistId(), t.getChrg(), t.getChng(),
+                                        t.getVol(),
+                                        t.getPrice(), t.getNorm(), t.getSqr(), t.getUlist(), t.getSch()))
+                        .collect(Collectors.toList());
+        // обновить услугами из справочника ГИС
+        lstSum.forEach(t -> {
+            Ulist ulist = em.find(Ulist.class, t.getUlistId());
+            t.setUlist(ulist);
+        });
+
+        ChargeInfo chrgInfo;
+        // начисления по видам услуг
+        for (SumChrgRec t : lstSum) {
+            // наименование услуги и т.п.
+            if (!Utl.nvl(t.getUlist().getIsHideInPd(), false)) {
+                // если не скрытая услуга (типа Повыш.коэфф.)
+                if (t.getUlist().getUlistTp().getFkExt().equals(50)
+                        && !t.getUlist().getGuid().equals("7dd57643-4836-4838-900b-cacec6b2f27b")
+                ) {
+                    // Общий справочник №50 - жилищная, но не взнос на капремонт
+                    HousingService housService = new HousingService();
+                    chrgInfo = new ChargeInfo();
+                    chrgInfo.setHousingService(housService);
+                    chrgInfo.setHousingService(addHousingService(t, "NO", lstSum));
+                    pd.getChargeInfo().add(chrgInfo);
+                } else if (t.getUlist().getUlistTp().getFkExt().equals(51)) {
+                    // Внутренний справочник №51 - коммунальная (напр.Х.В., Отопление)
+                    chrgInfo = new ChargeInfo();
+                    pd.getChargeInfo().add(chrgInfo);
+                    String detMethod;
+                    if (t.getSch().equals(1)) {
+                        // счетчик
+                        detMethod = "M";
+                    } else {
+                        // если норматив, - ставим "Иное" (просил СКЭК Татьяна Леонидовна) ред.21.10.2019
+                        detMethod = "O";
+                    }
+                    chrgInfo.setMunicipalService(addMunService(t, "NO", detMethod,
+                            lstSum, lstOverServ));
+                } else if (t.getUlist().getUlistTp().getFkExt().equals(1)) {
+                    // Внутренний справочник №1 - дополнительная (напр Замок)
+                    chrgInfo = new ChargeInfo();
+                    pd.getChargeInfo().add(chrgInfo);
+                    chrgInfo.setAdditionalService(addAdditionalService(t, "NO", kart));
+                } else if (t.getUlist().getGuid().equals("7dd57643-4836-4838-900b-cacec6b2f27b")) {
+                    // Общий справочник №50 - Взнос на капитальный ремонт
+                    if (pd.getCapitalRepairCharge() != null) {
+                        throw new CantPrepSoap("Не допускается заполнение в ПД услуги Капремонт более одного раза!");
+                    }
+                    addCapitalRepair(pd, t);
+                }
+            }
+
+        }
+
+        // неустойки и судебные расходы (пени)
+        PenaltiesAndCourtCosts penCourtCost = new PenaltiesAndCourtCosts();
+
+        // вид неустойки и судебных расходов. НСИ 329 "Неустойки и судебные расходы":
+        //- Пени
+        //- Штрафы
+        //- Государственные пошлины
+        //- Судебные издержки.
+        BigDecimal pen;
+        if (org.getVarDebPenPdGis() == 0) {
+            // общая сумма пени
+            pen = Utl.nvl(apenyaDAO.getPenAmnt(acc.getKart().getLsk(), period), BigDecimal.ZERO);
+        } else if (org.getVarDebPenPdGis() == 1) {
+            // начисленная, текущая пеня
+            pen = Utl.nvl(xitog3LskDAO.getPenCurPeriod(acc.getKart().getLsk(), period), BigDecimal.ZERO);
+        } else {
+            throw new RuntimeException("Некорректный параметр ORG.VAR_DEB_PEN_PD_GIS=" + org.getVarDebPenPdGis());
+        }
+
+        if (pen.compareTo(BigDecimal.ZERO) != 0) {
+            // добавить только в случае суммы <> 0, иначе НЕ сквитируется ПД
+            NsiRef servType = ulistMng.getNsiElem("NSI", 329, "Вид начисления", "Пени");
+            penCourtCost.setServiceType(servType);
+            penCourtCost.setTotalPayable(pen);
+            // основание начисления пени (обязательный параметр)
+            String penCause = "задолженность";
+            penCourtCost.setCause(penCause);
+            pd.getPenaltiesAndCourtCosts().add(penCourtCost);
+            log.info("ПД: пеня={}", pen);
+        }
+
+        // Итого начислено
+        Double totalD = lstSum.stream() // Итог без капремонта!
+                .mapToDouble(SumChrgRec::getChrg).sum();
+        BigDecimal totalPeriod = Utl.getBigDecimalRound(totalD, 2);
+        log.info("ПД: ИТОГО начислено за период ={}", totalPeriod);
+
+        // получить запись сальдо
+        SumSaldoRecDTO sumSaldo = debMng.getSumSaldo(acc.getKart().getLsk(),
+                period, 1);
+
+        // задолженность за предыдущие периоды
+        BigDecimal debt = BigDecimal.ZERO;
+        // вычесть текущую оплату
+        if (sumSaldo != null) {
+            BigDecimal inSal = Utl.nvl(sumSaldo.getInSal(), BigDecimal.ZERO);
+            BigDecimal pay = Utl.nvl(sumSaldo.getPayment(), BigDecimal.ZERO);
+            debt = inSal.subtract(pay);
+            log.info("ПД: сальдо на начало периода={}, минус оплата={}, итого={}",
+                    sumSaldo.getInSal(), sumSaldo.getPayment(), debt);
+            // оплачено денежных средств, руб (не обязательно) сказано в ГИС, что эта сумма автоматически осуществит квитирование предыдущ. ПД
+            pd.setPaidCash(sumSaldo.getPayment());
+            log.info("ПД: оплачено={}", sumSaldo.getPayment());
+
+        }
+
+        // итого к оплате по неустойкам и судебным издержкам, руб. (итого по всем неустойкам и судебным издержкам).
+        // заполняется только для ПД с типом = Текущий
+        log.info("org.getVarDebPenPdGis()={}", org.getVarDebPenPdGis());
+        if (org.getVarDebPenPdGis() == 0) {
+            if (pen.compareTo(BigDecimal.ZERO) != 0) {
+                log.info("ПД: итого к оплате по неустойкам и судебным издержкам={}", pen);
+                pd.setTotalByPenaltiesAndCourtCosts(pen);
+            }
+        } else if (org.getVarDebPenPdGis() == 1) {
+            String periodBack = Utl.addMonths(period, -1);
+            BigDecimal penAmnt = Utl.nvl(apenyaDAO.getPenAmnt(acc.getKart().getLsk(), periodBack), BigDecimal.ZERO);
+            debt = debt.add(penAmnt);
+            log.info("ПД: вх.сальдо по пене={}", penAmnt);
+            if (pen.compareTo(BigDecimal.ZERO) != 0) { // итого пени может быть заполнено, если добавлено выше getPenaltiesAndCourtCosts.add(penCourtCost);
+                // иначе произойдет: Error code=INT008162, Description=Поле «Итого к оплате по неустойкам и судебным издержкам» может быть заполнено только, если в ПД передана информация о неустойках и судебных расходах
+                if (penAmnt.compareTo(BigDecimal.ZERO) != 0) {
+                    log.info("ПД: итого к оплате по неустойкам и судебным издержкам={}", penAmnt);
+                    pd.setTotalByPenaltiesAndCourtCosts(penAmnt);
+                }
+            }
+        } else {
+            throw new RuntimeException("Некорректный параметр ORG.VAR_DEB_PEN_PD_GIS=" + org.getVarDebPenPdGis());
+        }
+
+        // аванс на начало периода
+        BigDecimal pn = Utl.nvl(sumSaldo.getPn(), BigDecimal.ZERO); // оплата пени
+        BigDecimal advnc = debt.subtract(pn);
+        if (advnc.compareTo(BigDecimal.ZERO) < 0) {
+            advnc = advnc.abs();
+            log.info("ПД: расчет аванса на начало расчетного периода {}(advnc)={}(debt)-{}(pn)", advnc, debt, pn);
+            pd.setAdvanceBllingPeriod(advnc);
+        } else {
+            log.info("ПД: задолженность за предыдущие периоды {}(advnc)={}(debt)-{}(pn)", advnc, debt, pn);
+            pd.setDebtPreviousPeriods(advnc);
+        }
+
+        log.info("ПД: начисление={}", totalPeriod);
+
+        // учтены платежи, поступившие до указанного числа расчетного периода включительно
+        pd.setPaymentsTaken(day);
+
+
+        // по приказу Минстроя РФ от 26.01.2018 N 43/пр следующая информация:
+        /*PaymentDocument.PaymentInformationDetails pinf = new PaymentDocument.PaymentInformationDetails();
+        pinf.setAccountNumber();
+        pinf.setTotalPayableByPaymentInformation();
+        pinf.setDebtPreviousPeriodsOrAdvanceBillingPeriod();
+        pinf.setTotalPayableWithDebtAndAdvance();
+        pd.setPaymentInformationDetails(pinf);
+
+        // по приказу Минстроя РФ от 26.01.2018 N 43/пр информация о показаниях ПУ
+        PaymentDocumentType.IndividualMDReadings indMd = new PaymentDocumentType.IndividualMDReadings();
+        indMd.setMDPreviousPeriodReadings();
+        indMd.setMDUnit();
+        indMd.setMeteringDevice();
+
+        pd.getIndividualMDReadings().add(indMd);
+        */
+
+        //meterDAO.findActualByKo(acc.getKart().getKoKw(), )
+
+        // сохранить транспортный GUID ПД
+        String tguid = Utl.getRndUuid().toString();
+        pd.setTransportGUID(tguid);
+        pdoc.setTguid(tguid);
+
+        paymentDocumentPar.getReq().getPaymentDocument().add(pd);
+        paymentDocumentPar.getReq().setMonth(month);
+        paymentDocumentPar.getReq().setYear(year);
+
+        // сослаться на TGUID платежных реквизитов
+        pd.setPaymentInformationKey(paymentDocumentPar.getTguidPay());
+        return true;
+    }
+
+    private Boolean addPaymentDocumentTSJ(PaymentDocumentPar paymentDocumentPar)
             throws CantPrepSoap, ParseException {
         PaymentDocument pd = new PaymentDocument();
         // оступ
@@ -1096,7 +1359,6 @@ public class HcsBillsAsyncBuilder {
         pd.setPaymentInformationKey(paymentDocumentPar.getTguidPay());
         return true;
     }
-
     /**
      * добавить запись о капремонте
      *
